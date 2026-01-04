@@ -51,3 +51,11 @@ export function delNotice(noticeIds: string[]) {
     params: { ids: noticeIds.join(',') }
   })
 }
+
+export function changeNoticeStatus(noticeId: string, status: string) {
+  return request({
+    url: '/system/notice/changeStatus',
+    method: 'put',
+    data: { noticeId, status }
+  })
+}

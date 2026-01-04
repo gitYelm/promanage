@@ -629,13 +629,13 @@ async function main() {
   await ensureMenu({
     menuName: '接口文档',
     parentId: toolDir.menuId,
-    path: 'swagger',
+    path: 'apidoc',
     component: 'tool/swagger/index',
     orderNum: 2,
     menuType: 'C',
     visible: '0',
     status: '0',
-    perms: 'tool:swagger:view',
+    perms: 'tool:apidoc:view',
     icon: 'file-text',
     isFrame: 1,
   });
@@ -1087,7 +1087,7 @@ async function main() {
       (m) => m.path === 'monitor' && !m.parentId,
     );
     const toolMenu = allMenus.find((m) => m.path === 'tool' && !m.parentId);
-    const swaggerMenu = allMenus.find((m) => m.path === 'swagger');
+    const apidocMenu = allMenus.find((m) => m.path === 'apidoc');
 
     if (monitorMenu) {
       const monitorMenuIds = allMenus
@@ -1105,7 +1105,7 @@ async function main() {
 
       // 添加工具菜单和接口文档
       if (toolMenu) monitorMenuIds.push(toolMenu.menuId);
-      if (swaggerMenu) monitorMenuIds.push(swaggerMenu.menuId);
+      if (apidocMenu) monitorMenuIds.push(apidocMenu.menuId);
 
       await prisma.sysRoleMenu.createMany({
         data: monitorMenuIds.map((menuId) => ({

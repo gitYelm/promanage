@@ -35,9 +35,11 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import LeaveConfirmDialog from '@/components/common/LeaveConfirmDialog.vue'
+import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import { sanitizeHtml } from '@/utils/sanitize'
-import { listNotice, getNotice, delNotice, addNotice, updateNotice, type SysNotice } from '@/api/system/notice'
+import { listNotice, getNotice, delNotice, addNotice, updateNotice, changeNoticeStatus, type SysNotice } from '@/api/system/notice'
 import { useUnsavedChanges } from '@/composables'
 
 const { toast } = useToast()
@@ -58,7 +60,7 @@ const noticeList = ref<SysNotice[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   noticeTitle: '',
   createBy: '',
   noticeType: undefined
@@ -81,12 +83,15 @@ const form = reactive({
 })
 
 // 监听表单变化，标记脏状态（仅在弹窗打开时）
+// 使用 skipNextChange 跳过弹窗打开时的初始赋值
+let skipNextChange = false
 watch(
   () => ({ ...form }),
   () => {
-    if (showDialog.value) {
+    if (showDialog.value && !skipNextChange) {
       isDirty.value = true
     }
+    skipNextChange = false
   },
   { deep: true }
 )
@@ -120,6 +125,7 @@ function resetQuery() {
 function handleAdd() {
   resetForm()
   isEdit.value = false
+  skipNextChange = true
   showDialog.value = true
 }
 
@@ -127,6 +133,7 @@ async function handleUpdate(row: SysNotice) {
   resetForm()
   isEdit.value = true
   const res = await getNotice(row.noticeId)
+  skipNextChange = true
   Object.assign(form, res)
   showDialog.value = true
 }
@@ -252,7 +259,7 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">类型</span>
-        <Select v-model="queryParams.noticeType">
+        <Select v-model="queryParams.noticeType" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
@@ -309,9 +316,12 @@ onMounted(() => {
                <Badge variant="outline">{{ getNoticeTypeLabel(item.noticeType) }}</Badge>
             </TableCell>
             <TableCell>
-               <Badge :variant="item.status === '0' ? 'default' : 'destructive'">
-                {{ item.status === '0' ? '正常' : '关闭' }}
-              </Badge>
+              <StatusSwitch
+                :status="item.status"
+                :name="item.noticeTitle"
+                :on-toggle="(s) => changeNoticeStatus(item.noticeId, s)"
+                @update:status="item.status = $event as '0' | '1'"
+              />
             </TableCell>
             <TableCell>{{ item.createBy }}</TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
@@ -376,8 +386,9 @@ onMounted(() => {
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">正常</SelectItem>
-                  <SelectItem value="1">关闭</SelectItem>
+                  <SelectItem v-for="opt in getStatusOptions('normalClose')" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
           </div>

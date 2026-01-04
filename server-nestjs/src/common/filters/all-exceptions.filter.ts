@@ -23,6 +23,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    // 忽略 source map 文件的 404 请求（Swagger UI 等工具会请求这些文件）
+    if (request.url.endsWith('.map')) {
+      return response.status(404).send();
+    }
+
     // 处理 BusinessException
     if (exception instanceof BusinessException) {
       const exceptionResponse = exception.getResponse() as {

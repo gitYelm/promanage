@@ -31,7 +31,10 @@ export class UpdateMenuDto {
   @IsString()
   path?: string;
 
-  @ApiPropertyOptional({ description: '组件路径', example: 'system/user/index' })
+  @ApiPropertyOptional({
+    description: '组件路径',
+    example: 'system/user/index',
+  })
   @IsOptional()
   @IsString()
   component?: string;

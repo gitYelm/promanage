@@ -33,6 +33,7 @@ import { Trash2, RefreshCw, Search } from 'lucide-vue-next'
 import { listLogininfor, delLogininfor, cleanLogininfor, type LogininforQuery } from '@/api/monitor/logininfor'
 import type { SysLoginLog } from '@/api/system/types'
 import { formatDate } from '@/utils/format'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -44,12 +45,12 @@ const { toast } = useToast()
 const loading = ref(true)
 const logList = ref<SysLoginLog[]>([])
 const total = ref(0)
-const queryParams = reactive<LogininforQuery>({
+const queryParams = reactive<LogininforQuery & { status: string }>({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   userName: '',
   ipaddr: '',
-  status: undefined,
+  status: ALL_OPTION_VALUE,
   beginTime: undefined,
   endTime: undefined
 })
@@ -61,7 +62,10 @@ const deleteTarget = ref<SysLoginLog | null>(null)
 async function getList() {
   loading.value = true
   try {
-    const res = await listLogininfor(queryParams)
+    const res = await listLogininfor({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     logList.value = res.rows
     total.value = res.total
   } finally {
@@ -78,7 +82,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.userName = ''
   queryParams.ipaddr = ''
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   queryParams.beginTime = undefined
   queryParams.endTime = undefined
   handleQuery()
@@ -164,13 +168,14 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status">
+        <Select v-model="queryParams.status" @update:model-value="handleQuery">
           <SelectTrigger class="w-[100px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">成功</SelectItem>
-            <SelectItem value="1">失败</SelectItem>
+            <SelectItem v-for="opt in getStatusOptionsWithAll('successFail')" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -216,19 +221,19 @@ onMounted(() => {
       <Table v-else>
         <TableHeader>
           <TableRow>
-            <TableHead>访问编号</TableHead>
-            <TableHead>用户名称</TableHead>
-            <TableHead>登录地址</TableHead>
-            <TableHead>登录地点</TableHead>
-            <TableHead>浏览器</TableHead>
-            <TableHead>操作系统</TableHead>
-            <TableHead>登录状态</TableHead>
-            <TableHead>操作信息</TableHead>
-            <TableHead>登录时间</TableHead>
+            <TableHead class="w-[100px]">访问编号</TableHead>
+            <TableHead class="w-[120px]">用户名称</TableHead>
+            <TableHead class="w-[140px]">登录地址</TableHead>
+            <TableHead class="min-w-[120px]">登录地点</TableHead>
+            <TableHead class="w-[120px]">浏览器</TableHead>
+            <TableHead class="w-[120px]">操作系统</TableHead>
+            <TableHead class="w-[90px]">登录状态</TableHead>
+            <TableHead class="min-w-[150px]">操作信息</TableHead>
+            <TableHead class="w-[170px]">登录时间</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="item in logList" :key="item.infoId">
+          <TableRow v-for="item in logList" :key="item.infoId" class="h-12">
             <TableCell>{{ item.infoId }}</TableCell>
             <TableCell>{{ item.userName }}</TableCell>
             <TableCell>{{ item.ipaddr }}</TableCell>

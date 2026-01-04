@@ -16,7 +16,7 @@ export class DictService {
   async listTypes(query: QueryDictTypeDto) {
     const { dictName, dictType, status } = query;
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
     const where: Prisma.SysDictTypeWhereInput = {};
     if (dictName) where.dictName = { contains: dictName };
     if (dictType) where.dictType = { contains: dictType };
@@ -104,6 +104,22 @@ export class DictService {
     });
 
     this.logger.log(`字典类型删除成功: ${dictIds.length} 个`, 'DictService');
+    return {};
+  }
+
+  async changeTypeStatus(dictId: string, status: string) {
+    this.logger.log(`切换字典类型状态: ${dictId} -> ${status}`, 'DictService');
+
+    const type = await this.getType(dictId);
+    if (!type) {
+      throw new BadRequestException('字典类型不存在');
+    }
+
+    await this.prisma.sysDictType.update({
+      where: { dictId: BigInt(dictId) },
+      data: { status, updateTime: new Date() },
+    });
+
     return {};
   }
 }

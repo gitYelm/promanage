@@ -32,18 +32,25 @@ export class DictDataController {
     return this.service.list(query);
   }
 
-  @Get(':dictCode')
-  @RequirePermission('system:dict:query')
-  @ApiOperation({ summary: '查询字典数据详情' })
-  get(@Param('dictCode') dictCode: string) {
-    return this.service.get(dictCode);
-  }
-
   @Post()
   @RequirePermission('system:dict:add')
   @ApiOperation({ summary: '新增字典数据' })
   create(@Body() dto: CreateDictDataDto) {
     return this.service.create(dto);
+  }
+
+  @Put('changeStatus')
+  @RequirePermission('system:dict:edit')
+  @ApiOperation({ summary: '修改字典数据状态' })
+  changeStatus(@Body() body: { dictCode: string; status: string }) {
+    return this.service.changeStatus(body.dictCode, body.status);
+  }
+
+  @Get(':dictCode')
+  @RequirePermission('system:dict:query')
+  @ApiOperation({ summary: '查询字典数据详情' })
+  get(@Param('dictCode') dictCode: string) {
+    return this.service.get(dictCode);
   }
 
   @Put(':dictCode')

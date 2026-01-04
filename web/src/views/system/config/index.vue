@@ -57,7 +57,7 @@ const configList = ref<SysConfig[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   configName: '',
   configKey: '',
   configType: undefined
@@ -79,12 +79,15 @@ const form = reactive<Partial<SysConfig>>({
 })
 
 // 监听表单变化，标记脏状态（仅在弹窗打开时）
+// 使用 skipFirstChange 跳过弹窗打开时的初始赋值
+let skipNextChange = false
 watch(
   () => ({ ...form }),
   () => {
-    if (showDialog.value) {
+    if (showDialog.value && !skipNextChange) {
       isDirty.value = true
     }
+    skipNextChange = false
   },
   { deep: true }
 )
@@ -118,6 +121,7 @@ function resetQuery() {
 function handleAdd() {
   resetForm()
   isEdit.value = false
+  skipNextChange = true
   showDialog.value = true
 }
 
@@ -125,6 +129,7 @@ async function handleUpdate(row: SysConfig) {
   resetForm()
   isEdit.value = true
   const res = await getConfig(row.configId)
+  skipNextChange = true
   Object.assign(form, res)
   showDialog.value = true
 }
@@ -241,7 +246,7 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">系统内置</span>
-        <Select v-model="queryParams.configType">
+        <Select v-model="queryParams.configType" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>

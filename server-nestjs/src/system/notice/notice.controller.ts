@@ -32,18 +32,25 @@ export class NoticeController {
     return this.service.findAll(query);
   }
 
-  @Get(':noticeId')
-  @RequirePermission('system:notice:query')
-  @ApiOperation({ summary: '查询通知公告详情' })
-  get(@Param('noticeId') noticeId: string) {
-    return this.service.findOne(noticeId);
-  }
-
   @Post()
   @RequirePermission('system:notice:add')
   @ApiOperation({ summary: '新增通知公告' })
   create(@Body() dto: CreateNoticeDto) {
     return this.service.create(dto);
+  }
+
+  @Put('changeStatus')
+  @RequirePermission('system:notice:edit')
+  @ApiOperation({ summary: '修改通知公告状态' })
+  changeStatus(@Body() body: { noticeId: string; status: string }) {
+    return this.service.changeStatus(body.noticeId, body.status);
+  }
+
+  @Get(':noticeId')
+  @RequirePermission('system:notice:query')
+  @ApiOperation({ summary: '查询通知公告详情' })
+  get(@Param('noticeId') noticeId: string) {
+    return this.service.findOne(noticeId);
   }
 
   @Put(':noticeId')

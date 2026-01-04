@@ -114,7 +114,7 @@ export class UserService {
       status,
       deptId,
       pageNum = 1,
-      pageSize = 10,
+      pageSize = 20,
     } = query;
     const skip = (pageNum - 1) * pageSize;
 
@@ -645,10 +645,7 @@ export class UserService {
       }
     }
 
-    this.logger.log(
-      `导入完成: 成功${success}条, 失败${fail}条`,
-      'UserService',
-    );
+    this.logger.log(`导入完成: 成功${success}条, 失败${fail}条`, 'UserService');
     return { success, fail, errors };
   }
 }

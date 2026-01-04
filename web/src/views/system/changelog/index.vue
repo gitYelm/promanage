@@ -26,6 +26,24 @@ const typeConfig = {
 
 const changelog: ChangelogEntry[] = [
   {
+    version: 'v1.0.2',
+    date: '2026-01-05',
+    description: '体验优化和功能增强',
+    changes: [
+      { type: 'feat', content: '接口文档支持 Swagger / Redoc 双模式切换' },
+      { type: 'feat', content: '新增统一状态切换组件，支持显示对象名称的提示' },
+      { type: 'feat', content: '后端新增各模块状态切换接口' },
+      { type: 'fix', content: '修复菜单、部门、定时任务状态切换无效的问题' },
+      { type: 'fix', content: '修复系统设置、参数配置、通知公告未修改时误触发离开确认' },
+      { type: 'fix', content: '修复开发环境上传图片无法显示的问题' },
+      { type: 'perf', content: '分页列表默认每页 20 条数据' },
+      { type: 'perf', content: '优化登录日志表格列宽和行高' },
+      { type: 'perf', content: '优化字典管理页面交互体验' },
+      { type: 'refactor', content: '统一所有页面的状态筛选下拉框' },
+      { type: 'refactor', content: '接口文档路由改为 /tool/apidoc' },
+    ],
+  },
+  {
     version: 'v1.0.1',
     date: '2025-12-26',
     description: 'Docker 部署优化和 Bug 修复',

@@ -32,18 +32,25 @@ export class DictController {
     return this.dictService.listTypes(query);
   }
 
-  @Get(':dictId')
-  @RequirePermission('system:dict:query')
-  @ApiOperation({ summary: '查询字典类型详情' })
-  get(@Param('dictId') dictId: string) {
-    return this.dictService.getType(dictId);
-  }
-
   @Post()
   @RequirePermission('system:dict:add')
   @ApiOperation({ summary: '新增字典类型' })
   create(@Body() dto: CreateDictTypeDto) {
     return this.dictService.createType(dto);
+  }
+
+  @Put('changeStatus')
+  @RequirePermission('system:dict:edit')
+  @ApiOperation({ summary: '修改字典类型状态' })
+  changeStatus(@Body() body: { dictId: string; status: string }) {
+    return this.dictService.changeTypeStatus(body.dictId, body.status);
+  }
+
+  @Get(':dictId')
+  @RequirePermission('system:dict:query')
+  @ApiOperation({ summary: '查询字典类型详情' })
+  get(@Param('dictId') dictId: string) {
+    return this.dictService.getType(dictId);
   }
 
   @Put(':dictId')

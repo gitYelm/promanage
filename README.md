@@ -37,9 +37,11 @@
 |------|------|
 | Vue 3.5 + Composition API | NestJS 11 |
 | Vite 7 + TypeScript 5.9 | Prisma 7 ORM |
-| shadcn-vue + Tailwind CSS 3.4 | PostgreSQL 16 + Redis |
+| shadcn-vue 2.4 + Tailwind CSS 3.4 | PostgreSQL 16 + Redis 7 |
 | Pinia 3 + Vue Router 4 | JWT + Passport |
 | VeeValidate + Zod | Swagger + Winston |
+| Tiptap 富文本编辑器 | AWS S3 文件存储 |
+| VueUse 14 + Lucide Icons | Nodemailer 邮件服务 |
 
 ## 🚀 快速开始
 
@@ -108,9 +110,12 @@ rbac-admin-pro/
 │   └── src/
 │       ├── api/          # API 接口
 │       ├── components/   # 组件 (ui/common/business)
+│       ├── composables/  # 组合式函数
 │       ├── views/        # 页面视图
 │       ├── stores/       # Pinia 状态
-│       └── router/       # 路由配置
+│       ├── router/       # 路由配置
+│       ├── directive/    # Vue 指令 (权限)
+│       └── layout/       # 布局组件
 ├── server-nestjs/        # 后端 NestJS
 │   ├── src/
 │   │   ├── auth/         # 认证模块
@@ -119,12 +124,12 @@ rbac-admin-pro/
 │   │   └── common/       # 公共模块
 │   └── prisma/           # 数据库 Schema
 ├── db/                   # SQL 脚本
+├── docs/                 # 项目文档
 ├── monorepo.sh           # 服务管理脚本
 └── db.sh                 # 数据库管理脚本
 ```
 
 ## 🔧 常用命令
-
 
 ### pnpm workspace（推荐）
 

@@ -19,16 +19,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,7 +35,9 @@ import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import { listRole, getRole, delRole, addRole, updateRole, changeRoleStatus } from '@/api/system/role'
 import { listMenu } from '@/api/system/menu'
 import type { SysRole, SysMenu } from '@/api/system/types'
@@ -58,10 +50,10 @@ const roleList = ref<SysRole[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   roleName: '',
   roleKey: '',
-  status: undefined
+  status: ALL_OPTION_VALUE as string
 })
 
 const showDialog = ref(false)
@@ -76,21 +68,6 @@ const menuList = ref<SysMenu[]>([])
 const flatMenuList = ref<SysMenu[]>([]) // 扁平菜单列表，用于ID到名称的映射
 const allMenuIds = ref<string[]>([]) // 所有菜单ID
 const expandedAll = ref(false) // 是否展开全部
-
-// 菜单ID到菜单信息的映射
-const menuMap = computed(() => {
-  const map = new Map<string, SysMenu>()
-  flatMenuList.value.forEach(menu => {
-    map.set(String(menu.menuId), menu)
-  })
-  return map
-})
-
-// 根据菜单ID获取菜单名称
-function getMenuName(menuId: string): string {
-  const menu = menuMap.value.get(String(menuId))
-  return menu?.menuName || `菜单 ${menuId}`
-}
 
 // 预览用的已选中菜单ID集合
 const previewSelectedIds = computed(() => {
@@ -116,7 +93,10 @@ const form = reactive<Partial<SysRole>>({
 async function getList() {
   loading.value = true
   try {
-    const res = await listRole(queryParams)
+    const res = await listRole({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     roleList.value = res.rows
     total.value = res.total
   } finally {
@@ -188,7 +168,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.roleName = ''
   queryParams.roleKey = ''
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   handleQuery()
 }
 
@@ -240,26 +220,6 @@ async function confirmDelete() {
     showDeleteDialog.value = false
   } catch (error) {
     // handled by interceptor
-  }
-}
-
-async function handleStatusChange(row: SysRole) {
-  const newStatus = row.status === '0' ? '1' : '0'
-  const oldStatus = row.status
-  
-  // 乐观更新
-  row.status = newStatus
-  
-  try {
-    await changeRoleStatus(row.roleId, newStatus)
-    toast({ 
-      title: "操作成功", 
-      description: `角色已${newStatus === '0' ? '启用' : '停用'}` 
-    })
-  } catch (error) {
-    // 失败时回滚
-    row.status = oldStatus
-    console.error('状态切换失败:', error)
   }
 }
 
@@ -531,13 +491,14 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status">
+        <Select v-model="queryParams.status" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">正常</SelectItem>
-            <SelectItem value="1">停用</SelectItem>
+            <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -601,11 +562,12 @@ onMounted(() => {
             </TableCell>
             <TableCell>{{ item.roleSort }}</TableCell>
             <TableCell>
-              <div class="flex items-center space-x-2">
-                <Badge :variant="item.status === '0' ? 'default' : 'destructive'">
-                  {{ item.status === '0' ? '正常' : '停用' }}
-                </Badge>
-              </div>
+              <StatusSwitch
+                :status="item.status"
+                :name="item.roleName"
+                :on-toggle="(s) => changeRoleStatus(item.roleId, s)"
+                @update:status="item.status = $event as '0' | '1'"
+              />
             </TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
             <TableCell class="text-right space-x-2">
@@ -666,8 +628,9 @@ onMounted(() => {
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">正常</SelectItem>
-                  <SelectItem value="1">停用</SelectItem>
+                  <SelectItem v-for="opt in getStatusOptions()" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -130,7 +130,7 @@ export class OnlineService {
 
     // 分页
     const pageNum = Number(query?.pageNum ?? 1);
-    const pageSize = Number(query?.pageSize ?? 10);
+    const pageSize = Number(query?.pageSize ?? 20);
     const total = rows.length;
     const start = (pageNum - 1) * pageSize;
     const end = start + pageSize;

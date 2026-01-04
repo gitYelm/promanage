@@ -79,7 +79,9 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import ExportButton from '@/components/common/ExportButton.vue'
+import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 
 // State
 const loading = ref(true)
@@ -87,10 +89,10 @@ const userList = ref<SysUser[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   userName: '',
   phonenumber: '',
-  status: undefined,
+  status: ALL_OPTION_VALUE as string,
   deptId: undefined,
   roleId: undefined
 })
@@ -224,7 +226,10 @@ function getAvatarUrl(avatar: string | undefined | null): string {
 async function getList() {
   loading.value = true
   try {
-    const res = await listUser(queryParams)
+    const res = await listUser({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     userList.value = res.rows
     total.value = res.total
   } finally {
@@ -246,7 +251,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.userName = ''
   queryParams.phonenumber = ''
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   queryParams.deptId = undefined
   queryParams.roleId = undefined
   handleQuery()
@@ -527,16 +532,6 @@ async function confirmResetPwd() {
   }
 }
 
-async function handleStatusChange(row: SysUser) {
-  try {
-    await changeUserStatus(row.userId, row.status === '0' ? '1' : '0')
-    row.status = row.status === '0' ? '1' : '0'
-    toast({ title: "操作成功", description: "用户状态已变更" })
-  } catch {
-    // revert on error
-  }
-}
-
 function resetForm() {
   form.userId = undefined
   form.deptId = undefined
@@ -742,13 +737,14 @@ onMounted(async () => {
         <div class="grid grid-cols-3 gap-4">
           <div class="grid gap-2">
             <Label>状态</Label>
-            <Select v-model="queryParams.status">
+            <Select v-model="queryParams.status" @update:model-value="handleQuery">
               <SelectTrigger>
                 <SelectValue placeholder="请选择状态" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">正常</SelectItem>
-                <SelectItem value="1">停用</SelectItem>
+                <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -758,11 +754,12 @@ onMounted(async () => {
               v-model="queryParams.deptId"
               :depts="deptOptions"
               placeholder="请选择部门"
+              @update:model-value="handleQuery"
             />
           </div>
           <div class="grid gap-2">
             <Label>角色</Label>
-            <Select v-model="queryParams.roleId">
+            <Select v-model="queryParams.roleId" @update:model-value="handleQuery">
               <SelectTrigger>
                 <SelectValue placeholder="请选择角色" />
               </SelectTrigger>
@@ -832,9 +829,12 @@ onMounted(async () => {
             <TableCell v-if="isColumnVisible('phonenumber')">{{ user.phonenumber }}</TableCell>
             <TableCell v-if="isColumnVisible('email')">{{ user.email }}</TableCell>
             <TableCell v-if="isColumnVisible('status')">
-              <Badge :variant="user.status === '0' ? 'default' : 'destructive'">
-                {{ user.status === '0' ? '正常' : '停用' }}
-              </Badge>
+              <StatusSwitch
+                :status="user.status"
+                :name="user.nickName"
+                :on-toggle="(s) => changeUserStatus(user.userId, s)"
+                @update:status="user.status = $event as '0' | '1'"
+              />
             </TableCell>
             <TableCell v-if="isColumnVisible('createTime')">{{ formatDate(user.createTime) }}</TableCell>
             <TableCell class="text-right space-x-2">

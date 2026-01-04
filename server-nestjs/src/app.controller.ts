@@ -1,10 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import {
-  ErrorCode,
-  ErrorCodeMessage,
-} from './common/enums/error-code.enum';
+import { ErrorCode, ErrorCodeMessage } from './common/enums/error-code.enum';
 
 @ApiTags('系统')
 @Controller()

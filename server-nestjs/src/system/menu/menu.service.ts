@@ -320,4 +320,23 @@ export class MenuService {
     }
     return component;
   }
+
+  /**
+   * 修改菜单状态
+   */
+  async changeStatus(menuId: string, status: string) {
+    this.logger.log(`切换菜单状态: ${menuId} -> ${status}`, 'MenuService');
+
+    const menu = await this.findOne(menuId);
+    if (!menu) {
+      throw new BadRequestException('菜单不存在');
+    }
+
+    await this.prisma.sysMenu.update({
+      where: { menuId: BigInt(menuId) },
+      data: { status, updateTime: new Date() },
+    });
+
+    return {};
+  }
 }

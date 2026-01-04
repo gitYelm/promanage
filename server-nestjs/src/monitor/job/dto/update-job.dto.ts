@@ -12,12 +12,18 @@ export class UpdateJobDto {
   @IsString()
   jobGroup?: string;
 
-  @ApiPropertyOptional({ description: '调用目标字符串', example: 'ryTask.ryNoParams' })
+  @ApiPropertyOptional({
+    description: '调用目标字符串',
+    example: 'ryTask.ryNoParams',
+  })
   @IsOptional()
   @IsString()
   invokeTarget?: string;
 
-  @ApiPropertyOptional({ description: 'cron执行表达式', example: '0/10 * * * * ?' })
+  @ApiPropertyOptional({
+    description: 'cron执行表达式',
+    example: '0/10 * * * * ?',
+  })
   @IsOptional()
   @IsString()
   cronExpression?: string;

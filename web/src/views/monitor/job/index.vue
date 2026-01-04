@@ -53,8 +53,10 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import CronGenerator from '@/components/common/CronGenerator.vue'
+import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { listJob, getJob, delJob, addJob, updateJob, runJob, changeJobStatus } from '@/api/monitor/job'
 import type { SysJob } from '@/api/system/types'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 
 const { toast } = useToast()
 
@@ -64,10 +66,10 @@ const jobList = ref<SysJob[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   jobName: '',
   jobGroup: '',
-  status: undefined
+  status: ALL_OPTION_VALUE as string
 })
 
 const showDialog = ref(false)
@@ -94,11 +96,22 @@ const confirmDialog = reactive({
   action: null as (() => Promise<void>) | null
 })
 
+// 更新任务状态
+function updateJobStatus(jobId: string, status: string) {
+  const job = jobList.value.find(j => j.jobId === jobId)
+  if (job) {
+    job.status = status as '0' | '1'
+  }
+}
+
 // Fetch Data
 async function getList() {
   loading.value = true
   try {
-    const res = await listJob(queryParams)
+    const res = await listJob({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     jobList.value = res.rows
     total.value = res.total
   } finally {
@@ -115,7 +128,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.jobName = ''
   queryParams.jobGroup = ''
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   handleQuery()
 }
 
@@ -151,25 +164,6 @@ function handleRun(row: SysJob) {
   confirmDialog.action = async () => {
     await runJob(row.jobId)
     toast({ title: "执行成功", description: "任务已下发执行" })
-  }
-  confirmDialog.open = true
-}
-
-function handleSwitchClick(row: SysJob) {
-  // 当前状态：'0' = 正常(运行中), '1' = 暂停
-  const isRunning = String(row.status) === '0'
-  // 点击后要切换到的状态
-  const text = isRunning ? '暂停' : '启用'
-  const newStatus = isRunning ? '1' : '0'
-  const jobId = row.jobId
-  confirmDialog.title = `${text}任务`
-  confirmDialog.description = `确认要${text}任务"${row.jobName}"吗？`
-  confirmDialog.action = async () => {
-    await changeJobStatus(jobId, newStatus)
-    // 更新列表中对应项的状态
-    const job = jobList.value.find(j => j.jobId === jobId)
-    if (job) job.status = newStatus
-    toast({ title: "操作成功", description: "任务状态已变更" })
   }
   confirmDialog.open = true
 }
@@ -259,7 +253,7 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">任务组名</span>
-        <Select v-model="queryParams.jobGroup">
+        <Select v-model="queryParams.jobGroup" @update:model-value="handleQuery">
           <SelectTrigger class="w-[150px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
@@ -271,13 +265,14 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status">
+        <Select v-model="queryParams.status" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">正常</SelectItem>
-            <SelectItem value="1">暂停</SelectItem>
+            <SelectItem v-for="opt in getStatusOptionsWithAll('normalPause')" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -329,10 +324,13 @@ onMounted(() => {
             <TableCell class="max-w-[200px] truncate">{{ item.invokeTarget }}</TableCell>
             <TableCell><Badge variant="outline">{{ item.cronExpression }}</Badge></TableCell>
             <TableCell>
-               <Switch 
-                 :checked="String(item.status) === '0'"
-                 @click.prevent="handleSwitchClick(item)"
-               />
+              <StatusSwitch
+                :status="String(item.status)"
+                :name="item.jobName"
+                :on-toggle="(s) => changeJobStatus(item.jobId, s)"
+                :labels="{ enable: '启用', disable: '暂停' }"
+                @update:status="updateJobStatus(item.jobId, $event)"
+              />
             </TableCell>
             <TableCell>{{ item.createTime }}</TableCell>
             <TableCell class="text-right">

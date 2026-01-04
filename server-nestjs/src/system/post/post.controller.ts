@@ -32,18 +32,25 @@ export class PostController {
     return this.postService.findAll(query);
   }
 
-  @Get(':postId')
-  @RequirePermission('system:post:query')
-  @ApiOperation({ summary: '查询岗位详情' })
-  get(@Param('postId') postId: string) {
-    return this.postService.findOne(postId);
-  }
-
   @Post()
   @RequirePermission('system:post:add')
   @ApiOperation({ summary: '新增岗位' })
   create(@Body() dto: CreatePostDto) {
     return this.postService.create(dto);
+  }
+
+  @Put('changeStatus')
+  @RequirePermission('system:post:edit')
+  @ApiOperation({ summary: '修改岗位状态' })
+  changeStatus(@Body() body: { postId: string; status: string }) {
+    return this.postService.changeStatus(body.postId, body.status);
+  }
+
+  @Get(':postId')
+  @RequirePermission('system:post:query')
+  @ApiOperation({ summary: '查询岗位详情' })
+  get(@Param('postId') postId: string) {
+    return this.postService.findOne(postId);
   }
 
   @Put(':postId')

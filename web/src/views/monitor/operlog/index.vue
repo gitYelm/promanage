@@ -40,6 +40,7 @@ import { Trash2, RefreshCw, Search, Eye } from 'lucide-vue-next'
 import { listOperLog, delOperLog, cleanOperLog } from '@/api/monitor/operlog'
 import type { SysOperLog } from '@/api/system/types'
 import { formatDate } from '@/utils/format'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -53,11 +54,11 @@ const logList = ref<SysOperLog[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   title: '',
   operName: '',
   businessType: undefined,
-  status: undefined
+  status: ALL_OPTION_VALUE as string
 })
 
 const showDetail = ref(false)
@@ -70,7 +71,10 @@ const deleteTarget = ref<SysOperLog | null>(null)
 async function getList() {
   loading.value = true
   try {
-    const res = await listOperLog(queryParams)
+    const res = await listOperLog({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     logList.value = res.rows
     total.value = res.total
   } finally {
@@ -88,7 +92,7 @@ function resetQuery() {
   queryParams.title = ''
   queryParams.operName = ''
   queryParams.businessType = undefined
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   handleQuery()
 }
 
@@ -187,7 +191,7 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">类型</span>
-        <Select v-model="queryParams.businessType">
+        <Select v-model="queryParams.businessType" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
@@ -200,13 +204,14 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status">
+        <Select v-model="queryParams.status" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">成功</SelectItem>
-            <SelectItem value="1">失败</SelectItem>
+            <SelectItem v-for="opt in getStatusOptionsWithAll('successFail')" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>

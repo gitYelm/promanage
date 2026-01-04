@@ -19,7 +19,7 @@ export class JobService {
     if (query.jobGroup) where.jobGroup = { contains: query.jobGroup };
     if (query.status) where.status = query.status;
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
 
     const [total, rows] = await Promise.all([
       this.prisma.sysJob.count({ where }),
@@ -159,7 +159,7 @@ export class JobService {
     if (query.status) where.status = query.status;
 
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
 
     const [total, rows] = await Promise.all([
       this.prisma.sysJobLog.count({ where }),

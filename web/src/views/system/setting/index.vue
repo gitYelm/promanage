@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -127,7 +127,10 @@ async function getData() {
         ;(form as any)[item.configKey] = value
       }
     })
-    // 数据加载完成后，清除脏状态并开始监听
+    // 数据加载完成后，等待 DOM 更新，再开始监听
+    await nextTick()
+    // 再等一个 tick 确保 watch 不会被触发
+    await nextTick()
     markClean()
     isDataLoaded.value = true
   } finally {

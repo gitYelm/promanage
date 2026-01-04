@@ -68,6 +68,13 @@ export class SystemMenuController {
     return { menus };
   }
 
+  @Put('changeStatus')
+  @RequirePermission('system:menu:edit')
+  @ApiOperation({ summary: '修改菜单状态' })
+  changeStatus(@Body() body: { menuId: string; status: string }) {
+    return this.menuService.changeStatus(body.menuId, body.status);
+  }
+
   @Get(':menuId')
   @RequirePermission('system:menu:query')
   @ApiOperation({ summary: '查询菜单详情' })

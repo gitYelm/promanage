@@ -69,3 +69,11 @@ export function roleMenuTreeselect(roleId: string) {
     method: 'get'
   })
 }
+
+export function changeMenuStatus(menuId: string, status: string) {
+  return request({
+    url: '/system/menu/changeStatus',
+    method: 'put',
+    data: { menuId, status }
+  })
+}

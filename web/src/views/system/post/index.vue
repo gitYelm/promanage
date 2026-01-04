@@ -29,22 +29,14 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { Plus, Edit, Trash2, RefreshCw, Search, Loader2 } from 'lucide-vue-next'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
-import { listPost, getPost, delPost, addPost, updatePost } from '@/api/system/post'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { listPost, getPost, delPost, addPost, updatePost, changePostStatus } from '@/api/system/post'
 import type { SysPost } from '@/api/system/types'
 
 const { toast } = useToast()
@@ -55,10 +47,10 @@ const postList = ref<SysPost[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   postCode: '',
   postName: '',
-  status: undefined
+  status: ALL_OPTION_VALUE as string
 })
 
 const showDialog = ref(false)
@@ -80,7 +72,10 @@ const form = reactive<Partial<SysPost>>({
 async function getList() {
   loading.value = true
   try {
-    const res = await listPost(queryParams)
+    const res = await listPost({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     postList.value = res.rows
     total.value = res.total
   } finally {
@@ -97,7 +92,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.postCode = ''
   queryParams.postName = ''
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   handleQuery()
 }
 
@@ -210,13 +205,14 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status">
+        <Select v-model="queryParams.status" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">正常</SelectItem>
-            <SelectItem value="1">停用</SelectItem>
+            <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -266,9 +262,12 @@ onMounted(() => {
             <TableCell>{{ item.postName }}</TableCell>
             <TableCell>{{ item.postSort }}</TableCell>
             <TableCell>
-              <Badge :variant="item.status === '0' ? 'default' : 'destructive'">
-                {{ item.status === '0' ? '正常' : '停用' }}
-              </Badge>
+              <StatusSwitch
+                :status="item.status"
+                :name="item.postName"
+                :on-toggle="(s) => changePostStatus(item.postId, s)"
+                @update:status="item.status = $event as '0' | '1'"
+              />
             </TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
             <TableCell class="text-right space-x-2">
@@ -326,8 +325,9 @@ onMounted(() => {
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">正常</SelectItem>
-                  <SelectItem value="1">停用</SelectItem>
+                  <SelectItem v-for="opt in getStatusOptions()" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

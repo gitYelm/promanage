@@ -19,7 +19,7 @@ export class DictDataService {
     if (query.dictLabel) where.dictLabel = { contains: query.dictLabel };
     if (query.status) where.status = query.status;
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
     const [total, rows] = await Promise.all([
       this.prisma.sysDictData.count({ where }),
       this.prisma.sysDictData.findMany({
@@ -108,6 +108,25 @@ export class DictDataService {
       `字典数据删除成功: ${dictCodes.length} 个`,
       'DictDataService',
     );
+    return {};
+  }
+
+  async changeStatus(dictCode: string, status: string) {
+    this.logger.debug(
+      `切换字典数据状态: ${dictCode} -> ${status}`,
+      'DictDataService',
+    );
+
+    const data = await this.get(dictCode);
+    if (!data) {
+      throw new BadRequestException('字典数据不存在');
+    }
+
+    await this.prisma.sysDictData.update({
+      where: { dictCode: BigInt(dictCode) },
+      data: { status },
+    });
+
     return {};
   }
 }

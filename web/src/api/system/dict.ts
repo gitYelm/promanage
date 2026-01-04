@@ -110,3 +110,21 @@ export function delData(dictCodes: string[]) {
     params: { ids: dictCodes.join(',') }
   })
 }
+
+// 切换字典类型状态
+export function changeDictTypeStatus(dictId: string, status: string) {
+  return request({
+    url: '/system/dict/type/changeStatus',
+    method: 'put',
+    data: { dictId, status }
+  })
+}
+
+// 切换字典数据状态
+export function changeDictDataStatus(dictCode: string, status: string) {
+  return request({
+    url: '/system/dict/data/changeStatus',
+    method: 'put',
+    data: { dictCode, status }
+  })
+}

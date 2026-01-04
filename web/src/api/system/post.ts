@@ -49,3 +49,11 @@ export function delPost(postIds: string[]) {
     params: { ids: postIds.join(',') }
   })
 }
+
+export function changePostStatus(postId: string, status: string) {
+  return request({
+    url: '/system/post/changeStatus',
+    method: 'put',
+    data: { postId, status }
+  })
+}

@@ -251,4 +251,23 @@ export class DeptService {
       throw error;
     }
   }
+
+  /**
+   * 修改部门状态
+   */
+  async changeStatus(deptId: string, status: string) {
+    this.logger.log(`切换部门状态: ${deptId} -> ${status}`, 'DeptService');
+
+    const dept = await this.findOne(deptId);
+    if (!dept) {
+      throw new BusinessException(ErrorCode.DEPT_NOT_FOUND);
+    }
+
+    await this.prisma.sysDept.update({
+      where: { deptId: BigInt(deptId) },
+      data: { status, updateTime: new Date() },
+    });
+
+    return {};
+  }
 }

@@ -18,6 +18,7 @@ import { Upload } from 'lucide-vue-next'
 import PasswordInput from '@/components/common/PasswordInput.vue'
 import DeptTreeSelect from './DeptTreeSelect.vue'
 import type { SysUser, SysDept, SysRole, SysPost } from '@/api/system/types'
+import { getStatusOptions } from '@/utils/options'
 
 interface Props {
   modelValue: Partial<SysUser>
@@ -334,8 +335,9 @@ defineExpose({
             <SelectValue placeholder="选择状态" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">正常</SelectItem>
-            <SelectItem value="1">停用</SelectItem>
+            <SelectItem v-for="opt in getStatusOptions()" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>

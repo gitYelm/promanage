@@ -20,7 +20,7 @@ export class PostService {
     if (query.status) where.status = query.status;
 
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
     const [total, rows] = await Promise.all([
       this.prisma.sysPost.count({ where }),
       this.prisma.sysPost.findMany({
@@ -110,6 +110,22 @@ export class PostService {
     });
 
     this.logger.log(`岗位删除成功: ${postIds.length} 个`, 'PostService');
+    return {};
+  }
+
+  async changeStatus(postId: string, status: string) {
+    this.logger.log(`切换岗位状态: ${postId} -> ${status}`, 'PostService');
+
+    const post = await this.findOne(postId);
+    if (!post) {
+      throw new BadRequestException('岗位不存在');
+    }
+
+    await this.prisma.sysPost.update({
+      where: { postId: BigInt(postId) },
+      data: { status, updateTime: new Date() },
+    });
+
     return {};
   }
 }

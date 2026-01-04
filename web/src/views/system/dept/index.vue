@@ -40,10 +40,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { formatDate } from '@/utils/format'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import { listDept, getDept, delDept, addDept, updateDept, listDeptTree } from '@/api/system/dept'
+import StatusSwitch from '@/components/common/StatusSwitch.vue'
+import { listDept, getDept, delDept, addDept, updateDept, listDeptTree, changeDeptStatus } from '@/api/system/dept'
 import type { SysDept } from '@/api/system/types'
 
 const { toast } = useToast()
@@ -53,7 +55,7 @@ const loading = ref(true)
 const deptList = ref<SysDept[]>([])
 const queryParams = reactive({
   deptName: '',
-  status: undefined
+  status: ALL_OPTION_VALUE as string
 })
 const isExpanded = ref<Record<string, boolean>>({})
 const expandedAll = ref(true) // 默认展开全部
@@ -80,7 +82,10 @@ const form = reactive<Partial<SysDept>>({
 async function getList() {
   loading.value = true
   try {
-    const res = await listDept(queryParams)
+    const res = await listDept({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     deptList.value = toTreeDept(res)
     // Default expand all for demo
     expandAll(deptList.value)
@@ -122,6 +127,21 @@ async function getDeptTree() {
   deptOptions.value = toTreeDept(res)
 }
 
+// 部门ID到部门对象的映射，用于快速查找和更新
+const deptMap = computed(() => {
+  const map = new Map<string, SysDept>()
+  const traverse = (nodes: SysDept[]) => {
+    nodes.forEach(node => {
+      map.set(node.deptId, node)
+      if (node.children && node.children.length > 0) {
+        traverse(node.children)
+      }
+    })
+  }
+  traverse(deptList.value)
+  return map
+})
+
 // Helper to flatten tree for table display with expansion control
 const flattenDepts = computed(() => {
   const result: (SysDept & { level: number, hasChildren: boolean })[] = []
@@ -137,6 +157,14 @@ const flattenDepts = computed(() => {
   traverse(deptList.value)
   return result
 })
+
+// 更新部门状态
+function updateDeptStatus(deptId: string, status: string) {
+  const dept = deptMap.value.get(deptId)
+  if (dept) {
+    dept.status = status as '0' | '1'
+  }
+}
 
 // Helper for Select options (flattened with indentation)
 // 将部门树扁平化为下拉选项，确保拥有有效的 id 与 label 字段
@@ -165,7 +193,7 @@ function handleQuery() {
 
 function resetQuery() {
   queryParams.deptName = ''
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   handleQuery()
 }
 
@@ -303,13 +331,14 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status">
+        <Select v-model="queryParams.status" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">正常</SelectItem>
-            <SelectItem value="1">停用</SelectItem>
+            <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -369,9 +398,12 @@ onMounted(() => {
             </TableCell>
             <TableCell>{{ item.orderNum }}</TableCell>
             <TableCell>
-              <Badge :variant="item.status === '0' ? 'default' : 'destructive'">
-                {{ item.status === '0' ? '正常' : '停用' }}
-              </Badge>
+              <StatusSwitch
+                :status="item.status"
+                :name="item.deptName"
+                :on-toggle="(s) => changeDeptStatus(item.deptId, s)"
+                @update:status="updateDeptStatus(item.deptId, $event)"
+              />
             </TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
             <TableCell class="text-right space-x-2">
@@ -450,8 +482,9 @@ onMounted(() => {
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">正常</SelectItem>
-                  <SelectItem value="1">停用</SelectItem>
+                  <SelectItem v-for="opt in getStatusOptions()" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

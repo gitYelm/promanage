@@ -55,8 +55,10 @@ import {
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import { listMenu, getMenu, delMenu, addMenu, updateMenu } from '@/api/system/menu'
+import StatusSwitch from '@/components/common/StatusSwitch.vue'
+import { listMenu, getMenu, delMenu, addMenu, updateMenu, changeMenuStatus } from '@/api/system/menu'
 import type { SysMenu } from '@/api/system/types'
+import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 
 const { toast } = useToast()
 
@@ -65,7 +67,7 @@ const loading = ref(true)
 const menuList = ref<SysMenu[]>([])
 const queryParams = reactive({
   menuName: '',
-  status: undefined
+  status: ALL_OPTION_VALUE as string
 })
 const isExpanded = ref<Record<string, boolean>>({})
 const expandedAll = ref(true) // 默认展开第一级
@@ -97,7 +99,10 @@ const form = reactive<Partial<SysMenu>>({
 async function getList() {
   loading.value = true
   try {
-    const res = await listMenu(queryParams)
+    const res = await listMenu({
+      ...queryParams,
+      status: toQueryValue(queryParams.status)
+    })
     menuList.value = toTreeMenu(res)
     // Default expand first level
     if (expandedAll.value) {
@@ -141,6 +146,21 @@ async function getMenuTree() {
   menuOptions.value = toTreeMenu(res)
 }
 
+// 菜单ID到菜单对象的映射，用于快速查找和更新
+const menuMap = computed(() => {
+  const map = new Map<string, SysMenu>()
+  const traverse = (nodes: SysMenu[]) => {
+    nodes.forEach(node => {
+      map.set(node.menuId, node)
+      if (node.children && node.children.length > 0) {
+        traverse(node.children)
+      }
+    })
+  }
+  traverse(menuList.value)
+  return map
+})
+
 // Helper to flatten tree for table display with expansion control
 const flattenMenus = computed(() => {
   const result: (SysMenu & { level: number, hasChildren: boolean })[] = []
@@ -156,6 +176,14 @@ const flattenMenus = computed(() => {
   traverse(menuList.value)
   return result
 })
+
+// 更新菜单状态
+function updateMenuStatus(menuId: string, status: string) {
+  const menu = menuMap.value.get(menuId)
+  if (menu) {
+    menu.status = status as '0' | '1'
+  }
+}
 
 // Helper for Select options (flattened with indentation)
 const flattenedOptions = computed(() => {
@@ -183,7 +211,7 @@ function handleQuery() {
 
 function resetQuery() {
   queryParams.menuName = ''
-  queryParams.status = undefined
+  queryParams.status = ALL_OPTION_VALUE
   handleQuery()
 }
 
@@ -326,13 +354,14 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status">
+        <Select v-model="queryParams.status" @update:model-value="handleQuery">
           <SelectTrigger class="w-[120px]">
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">正常</SelectItem>
-            <SelectItem value="1">停用</SelectItem>
+            <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -409,9 +438,12 @@ onMounted(() => {
             <TableCell><Badge variant="outline" v-if="item.perms">{{ item.perms }}</Badge></TableCell>
             <TableCell class="max-w-[200px] truncate">{{ item.component }}</TableCell>
             <TableCell>
-              <Badge :variant="item.status === '0' ? 'default' : 'destructive'">
-                {{ item.status === '0' ? '正常' : '停用' }}
-              </Badge>
+              <StatusSwitch
+                :status="item.status"
+                :name="item.menuName"
+                :on-toggle="(s) => changeMenuStatus(item.menuId, s)"
+                @update:status="updateMenuStatus(item.menuId, $event)"
+              />
             </TableCell>
             <TableCell class="text-right space-x-2">
               <Button variant="ghost" size="icon" @click="handleUpdate(item)">
@@ -513,8 +545,9 @@ onMounted(() => {
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">显示</SelectItem>
-                  <SelectItem value="1">隐藏</SelectItem>
+                  <SelectItem v-for="opt in getStatusOptions('showHide')" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -525,8 +558,9 @@ onMounted(() => {
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">正常</SelectItem>
-                  <SelectItem value="1">停用</SelectItem>
+                  <SelectItem v-for="opt in getStatusOptions()" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

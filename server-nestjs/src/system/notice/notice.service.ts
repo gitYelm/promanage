@@ -19,7 +19,7 @@ export class NoticeService {
     if (query.noticeTitle) where.noticeTitle = { contains: query.noticeTitle };
     if (query.noticeType) where.noticeType = query.noticeType;
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
     const [total, rows] = await Promise.all([
       this.prisma.sysNotice.count({ where }),
       this.prisma.sysNotice.findMany({
@@ -93,6 +93,22 @@ export class NoticeService {
       `通知公告删除成功: ${noticeIds.length} 个`,
       'NoticeService',
     );
+    return {};
+  }
+
+  async changeStatus(noticeId: string, status: string) {
+    this.logger.log(`切换公告状态: ${noticeId} -> ${status}`, 'NoticeService');
+
+    const notice = await this.findOne(noticeId);
+    if (!notice) {
+      throw new BadRequestException('公告不存在');
+    }
+
+    await this.prisma.sysNotice.update({
+      where: { noticeId: BigInt(noticeId) },
+      data: { status, updateTime: new Date() },
+    });
+
     return {};
   }
 }

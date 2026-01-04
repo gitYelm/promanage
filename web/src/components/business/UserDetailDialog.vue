@@ -88,7 +88,7 @@ watch(() => props.user, async (newUser) => {
       const res = await listLogininfor({
         userName: newUser.userName,
         pageNum: 1,
-        pageSize: 10
+        pageSize: 20
       })
       loginLogs.value = res.rows || []
     } catch (error) {

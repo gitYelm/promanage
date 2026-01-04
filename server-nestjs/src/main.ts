@@ -8,6 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { json, urlencoded } from 'express';
+import redoc from 'redoc-express';
 
 // 全局 BigInt 序列化支持
 // 解决 "TypeError: Do not know how to serialize a BigInt" 错误
@@ -129,9 +130,28 @@ async function bootstrap() {
     },
   });
 
+  // 添加 Redoc API 文档
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use(
+    '/redoc',
+    redoc({
+      title: 'RBAC Admin Pro API',
+      specUrl: '/api-docs-json',
+      redocOptions: {
+        theme: {
+          colors: { primary: { main: '#1890ff' } },
+        },
+        hideDownloadButton: false,
+        expandResponses: '200',
+        pathInMiddlePanel: true,
+      },
+    }),
+  );
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');
   logger.log(`Application is running on: http://0.0.0.0:${port}`, 'Bootstrap');
   logger.log(`Swagger API Docs: http://0.0.0.0:${port}/api-docs`, 'Bootstrap');
+  logger.log(`Redoc API Docs: http://0.0.0.0:${port}/redoc`, 'Bootstrap');
 }
 void bootstrap();

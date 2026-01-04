@@ -15,7 +15,7 @@ export class OperlogService {
     if (query.businessType) where.businessType = Number(query.businessType);
 
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
 
     const [total, rows] = await Promise.all([
       this.prisma.sysOperLog.count({ where }),

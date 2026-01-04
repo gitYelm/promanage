@@ -49,6 +49,14 @@ export class RoleController {
     return this.roleService.findAll(query);
   }
 
+  @Put('changeStatus')
+  @RequirePermission('system:role:edit')
+  @ApiOperation({ summary: '修改角色状态' })
+  @ApiResponse({ status: 200, description: '修改成功' })
+  changeStatus(@Body() body: { roleId: string; status: string }) {
+    return this.roleService.changeStatus(body.roleId, body.status);
+  }
+
   @Get(':roleId')
   @RequirePermission('system:role:query')
   @ApiOperation({ summary: '查询角色详情' })
@@ -78,13 +86,5 @@ export class RoleController {
   @ApiResponse({ status: 200, description: '删除成功' })
   remove(@Param('roleId') roleId: string) {
     return this.roleService.remove(roleId);
-  }
-
-  @Put('changeStatus')
-  @RequirePermission('system:role:edit')
-  @ApiOperation({ summary: '修改角色状态' })
-  @ApiResponse({ status: 200, description: '修改成功' })
-  changeStatus(@Body() body: { roleId: string; status: string }) {
-    return this.roleService.changeStatus(body.roleId, body.status);
   }
 }

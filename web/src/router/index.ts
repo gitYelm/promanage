@@ -131,9 +131,13 @@ const router = createRouter({
         },
         {
           path: 'tool/swagger',
-          name: 'Swagger',
+          redirect: '/tool/apidoc'
+        },
+        {
+          path: 'tool/apidoc',
+          name: 'ApiDoc',
           component: () => import('@/views/tool/swagger/index.vue'),
-          meta: { title: '系统接口', icon: 'link', roles: ['admin'] }
+          meta: { title: '接口文档', icon: 'link', roles: ['admin'] }
         }
       ]
     },
@@ -175,12 +179,12 @@ const router = createRouter({
  */
 export function setupLoginRoute(loginPath: string) {
   const path = loginPath || '/login'
-  
+
   // 移除已存在的登录路由
   if (router.hasRoute('Login')) {
     router.removeRoute('Login')
   }
-  
+
   // 添加登录路由
   const loginRoute: RouteRecordRaw = {
     path,

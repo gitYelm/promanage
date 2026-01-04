@@ -19,7 +19,7 @@ export class RoleService {
    * 查询角色列表
    */
   async findAll(query: QueryRoleDto) {
-    const { roleName, roleKey, status, pageNum = 1, pageSize = 10 } = query;
+    const { roleName, roleKey, status, pageNum = 1, pageSize = 20 } = query;
     const skip = (pageNum - 1) * pageSize;
 
     const where: Prisma.SysRoleWhereInput = {

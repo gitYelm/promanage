@@ -28,7 +28,7 @@ export class LogininforService {
     }
 
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
 
     const [total, rows] = await Promise.all([
       this.prisma.sysLoginLog.count({ where }),

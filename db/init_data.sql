@@ -407,7 +407,7 @@ ON CONFLICT DO NOTHING;
 
 -- 12.6 系统工具子菜单
 INSERT INTO sys_menu (menu_name, path, component, order_num, menu_type, visible, status, icon, is_frame, parent_id, perms)
-SELECT '接口文档', 'swagger', 'tool/swagger/index', 1, 'C', '0', '0', 'file-text', 1, menu_id, 'tool:swagger:view'
+SELECT '接口文档', 'apidoc', 'tool/swagger/index', 1, 'C', '0', '0', 'file-text', 1, menu_id, 'tool:apidoc:view'
 FROM sys_menu WHERE path = 'tool' AND parent_id IS NULL
 ON CONFLICT DO NOTHING;
 
@@ -698,7 +698,7 @@ WHERE r.role_key = 'monitor_admin' AND r.del_flag = '0'
     )
     -- 系统工具(接口文档)
     OR (m.path = 'tool' AND m.parent_id IS NULL)
-    OR m.path = 'swagger'
+    OR m.path = 'apidoc'
   )
 ON CONFLICT DO NOTHING;
 

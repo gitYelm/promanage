@@ -45,7 +45,7 @@ const onlineList = ref<SysUserOnline[]>([])
 const total = ref(0)
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   ipaddr: '',
   userName: '',
 })

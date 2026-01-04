@@ -19,7 +19,7 @@ export class ConfigService {
     if (query.configKey) where.configKey = { contains: query.configKey };
     if (query.configType) where.configType = query.configType;
     const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 10);
+    const pageSize = Number(query.pageSize ?? 20);
     const [total, rows] = await Promise.all([
       this.prisma.sysConfig.count({ where }),
       this.prisma.sysConfig.findMany({

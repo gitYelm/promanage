@@ -58,6 +58,19 @@ export class DeptController {
     return this.deptService.listExcludeChild(deptId);
   }
 
+  @Put('changeStatus')
+  @RequirePermission('system:dept:edit')
+  @ApiOperation({ summary: '修改部门状态' })
+  @ApiBody({
+    schema: {
+      properties: { deptId: { type: 'string' }, status: { type: 'string' } },
+    },
+  })
+  @ApiResponse({ status: 200, description: '修改成功' })
+  changeStatus(@Body() body: { deptId: string; status: string }) {
+    return this.deptService.changeStatus(body.deptId, body.status);
+  }
+
   @Get(':deptId')
   @RequirePermission('system:dept:query')
   @ApiOperation({ summary: '查询部门详情' })

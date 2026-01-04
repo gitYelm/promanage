@@ -33,12 +33,18 @@ export class CreateRoleDto {
   @IsString()
   dataScope?: string;
 
-  @ApiPropertyOptional({ description: '菜单树选择项是否关联显示', example: true })
+  @ApiPropertyOptional({
+    description: '菜单树选择项是否关联显示',
+    example: true,
+  })
   @IsOptional()
   @IsBoolean()
   menuCheckStrictly?: boolean;
 
-  @ApiPropertyOptional({ description: '部门树选择项是否关联显示', example: true })
+  @ApiPropertyOptional({
+    description: '部门树选择项是否关联显示',
+    example: true,
+  })
   @IsOptional()
   @IsBoolean()
   deptCheckStrictly?: boolean;
