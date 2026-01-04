@@ -4,6 +4,25 @@ import { getSiteConfig, type SiteConfig } from '@/api/system/site'
 import { setupLoginRoute } from '@/router'
 
 export const useAppStore = defineStore('app', () => {
+  // 侧边栏折叠状态（从 localStorage 恢复）
+  const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true')
+
+  /**
+   * 切换侧边栏折叠状态
+   */
+  function toggleSidebar() {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+    localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed.value))
+  }
+
+  /**
+   * 设置侧边栏折叠状态
+   */
+  function setSidebarCollapsed(collapsed: boolean) {
+    sidebarCollapsed.value = collapsed
+    localStorage.setItem('sidebarCollapsed', String(collapsed))
+  }
+
   // 网站配置
   const siteConfig = ref<SiteConfig>({
     name: 'RBAC Admin Pro',
@@ -69,6 +88,9 @@ export const useAppStore = defineStore('app', () => {
   }
 
   return {
+    sidebarCollapsed,
+    toggleSidebar,
+    setSidebarCollapsed,
     siteConfig,
     siteConfigLoaded,
     loadSiteConfig,

@@ -53,35 +53,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { 
   LayoutDashboard, 
-  Settings, 
-  Settings2,
-  Monitor, 
-  PenTool,
   User,
-  Shield,
-  Menu,
-  Network,
-  Briefcase,
-  Book,
-  Bell,
-  FileText,
-  LogIn,
-  Users,
-  Server,
-  Database,
-  Activity,
-  Code,
-  Layout as LayoutIcon,
-  Link,
-  Clock,
   PanelLeft,
   Package2,
-  Home,
   LogOut,
   ChevronsUpDown
 } from 'lucide-vue-next'
@@ -97,7 +81,12 @@ const appStore = useAppStore()
 const menuStore = useMenuStore()
 const themeStore = useThemeStore()
 const { toast } = useToast()
-const isCollapsed = ref(false)
+
+// 使用 store 的折叠状态（持久化）
+const isCollapsed = computed({
+  get: () => appStore.sidebarCollapsed,
+  set: (val) => appStore.setSidebarCollapsed(val)
+})
 
 // 菜单模式
 const isNormalMode = computed(() => themeStore.menuMode === 'normal')
@@ -145,12 +134,6 @@ const sidebarStyle = computed(() => ({
     : `${themeStore.sidebarExpandedWidth}px`
 }))
 
-const sidebarWidthClass = computed(() => 
-  isCollapsed.value 
-    ? `w-[${themeStore.sidebarCollapsedWidth}px]` 
-    : `w-[${themeStore.sidebarExpandedWidth}px]`
-)
-
 // 页面切换动画类名
 const transitionName = computed(() => {
   const map = {
@@ -193,7 +176,7 @@ function getAvatarUrl(avatar: string | undefined | null): string {
 const isActive = (path: string) => route.path === path
 
 const toggleSidebar = () => {
-  isCollapsed.value = !isCollapsed.value
+  appStore.toggleSidebar()
 }
 
 // 退出登录确认对话框
@@ -219,9 +202,6 @@ const handleProfile = () => {
 
 // 打开设置
 const showSettings = ref(false)
-const handleSettings = () => {
-  showSettings.value = true
-}
 
 // 打开编辑用户对话框
 const handleOpenEditDialog = (userId: string) => {
@@ -276,31 +256,66 @@ const handleOpenEditDialog = (userId: string) => {
               </Tooltip>
               <DynamicMenu />
             </div>
-            <div v-else class="flex flex-col gap-4 items-center">
+            <div v-else class="flex flex-col gap-1 items-center">
+              <!-- 仪表盘 -->
               <Tooltip :delay-duration="0">
                 <TooltipTrigger as-child>
-                  <div class="h-9 w-9 flex items-center justify-center text-muted-foreground">
-                    <Settings class="h-4 w-4" />
-                  </div>
+                  <router-link
+                    to="/dashboard"
+                    :class="cn(
+                      'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
+                      isActive('/dashboard') ? 'bg-muted text-primary' : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                    )"
+                  >
+                    <LayoutDashboard class="h-4 w-4" />
+                  </router-link>
                 </TooltipTrigger>
-                <TooltipContent side="right">系统管理 (展开查看更多)</TooltipContent>
+                <TooltipContent side="right">仪表盘</TooltipContent>
               </Tooltip>
-              <Tooltip :delay-duration="0">
-                <TooltipTrigger as-child>
-                  <div class="h-9 w-9 flex items-center justify-center text-muted-foreground">
-                    <Monitor class="h-4 w-4" />
+              
+              <!-- 动态菜单 - 使用 HoverCard 显示子菜单 -->
+              <HoverCard 
+                v-for="menu in menuStore.menuList" 
+                :key="menu.path" 
+                :open-delay="0" 
+                :close-delay="100"
+              >
+                <HoverCardTrigger as-child>
+                  <button
+                    :class="cn(
+                      'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
+                      route.path.startsWith(menu.path) ? 'bg-muted text-primary' : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                    )"
+                  >
+                    <component :is="getIcon(menu.meta?.icon)" class="h-4 w-4" />
+                  </button>
+                </HoverCardTrigger>
+                <HoverCardContent 
+                  side="right" 
+                  align="start" 
+                  :side-offset="8" 
+                  class="w-48 p-2"
+                  @pointerDownOutside="(e: Event) => e.preventDefault()"
+                >
+                  <div class="text-sm font-medium mb-2 px-2 text-foreground">{{ menu.meta?.title }}</div>
+                  <div class="space-y-1">
+                    <router-link 
+                      v-for="child in menu.children" 
+                      :key="child.path"
+                      :to="child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`"
+                      :class="cn(
+                        'flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors',
+                        isActive(child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`) 
+                          ? 'bg-muted text-primary' 
+                          : 'text-muted-foreground hover:bg-muted hover:text-primary'
+                      )"
+                    >
+                      <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
+                      {{ child.meta?.title }}
+                    </router-link>
                   </div>
-                </TooltipTrigger>
-                <TooltipContent side="right">系统监控 (展开查看更多)</TooltipContent>
-              </Tooltip>
-              <Tooltip :delay-duration="0">
-                <TooltipTrigger as-child>
-                  <div class="h-9 w-9 flex items-center justify-center text-muted-foreground">
-                    <PenTool class="h-4 w-4" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right">系统工具 (展开查看更多)</TooltipContent>
-              </Tooltip>
+                </HoverCardContent>
+              </HoverCard>
             </div>
           </template>
 
