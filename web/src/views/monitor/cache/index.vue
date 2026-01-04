@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { getCache, type CacheInfo } from '@/api/monitor/cache'
-import { Loader2, RefreshCw, Database, Activity, Server, Clock, AlertTriangle } from 'lucide-vue-next'
+import {
+  Loader2,
+  RefreshCw,
+  Database,
+  Activity,
+  Server,
+  Clock,
+  AlertTriangle,
+} from 'lucide-vue-next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from '@/components/ui/toast'
 
@@ -91,15 +89,11 @@ onUnmounted(() => {
         <span v-if="lastUpdateTime" class="text-xs text-muted-foreground">
           更新于 {{ lastUpdateTime }}
         </span>
-        <Button
-          :variant="autoRefresh ? 'default' : 'outline'"
-          size="sm"
-          @click="toggleAutoRefresh"
-        >
+        <Button :variant="autoRefresh ? 'default' : 'outline'" size="sm" @click="toggleAutoRefresh">
           <Activity class="mr-2 h-4 w-4" :class="{ 'animate-pulse': autoRefresh }" />
           {{ autoRefresh ? '自动刷新中' : '自动刷新' }}
         </Button>
-        <Button variant="outline" size="sm" @click="getData" :disabled="loading">
+        <Button variant="outline" size="sm" :disabled="loading" @click="getData">
           <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': loading }" />
           刷新
         </Button>
@@ -112,11 +106,15 @@ onUnmounted(() => {
 
     <div v-else-if="cache" class="space-y-6">
       <!-- Memory Mode Warning -->
-      <Alert v-if="cache.isMemoryMode" class="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
+      <Alert
+        v-if="cache.isMemoryMode"
+        class="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20"
+      >
         <AlertTriangle class="h-4 w-4 text-yellow-600" />
         <AlertTitle class="text-yellow-700 dark:text-yellow-500">内存模式</AlertTitle>
         <AlertDescription class="text-yellow-600 dark:text-yellow-500/80">
-          当前使用内存模拟 Redis，数据仅供参考。如需真实监控数据，请在 .env 中设置 REDIS_ENABLED=true 并配置 Redis 连接。
+          当前使用内存模拟 Redis，数据仅供参考。如需真实监控数据，请在 .env 中设置
+          REDIS_ENABLED=true 并配置 Redis 连接。
         </AlertDescription>
       </Alert>
 
@@ -185,7 +183,10 @@ onUnmounted(() => {
                 />
               </div>
             </div>
-            <p v-if="!cache.commandStats?.length" class="text-sm text-muted-foreground text-center py-4">
+            <p
+              v-if="!cache.commandStats?.length"
+              class="text-sm text-muted-foreground text-center py-4"
+            >
               暂无命令统计数据
             </p>
           </div>
@@ -198,27 +199,27 @@ onUnmounted(() => {
           <CardTitle>详细信息</CardTitle>
         </CardHeader>
         <CardContent>
-           <Table>
-             <TableBody>
-               <TableRow>
-                 <TableCell class="font-medium w-[200px]">Redis版本</TableCell>
-                 <TableCell>{{ cache.redis_version }}</TableCell>
-                 <TableCell class="font-medium w-[200px]">运行模式</TableCell>
-                 <TableCell>{{ cache.redis_mode }}</TableCell>
-               </TableRow>
-               <TableRow>
-                 <TableCell class="font-medium">端口</TableCell>
-                 <TableCell>{{ cache.tcp_port }}</TableCell>
-                 <TableCell class="font-medium">客户端数</TableCell>
-                 <TableCell>{{ cache.connected_clients }}</TableCell>
-               </TableRow>
-               <TableRow>
-                 <TableCell class="font-medium">运行时间(天)</TableCell>
-                 <TableCell>{{ cache.uptime_in_days }}</TableCell>
-                 <TableCell class="font-medium">使用内存</TableCell>
-                 <TableCell>{{ cache.used_memory_human }}</TableCell>
-               </TableRow>
-               <TableRow>
+          <Table>
+            <TableBody>
+              <TableRow>
+                <TableCell class="font-medium w-[200px]">Redis版本</TableCell>
+                <TableCell>{{ cache.redis_version }}</TableCell>
+                <TableCell class="font-medium w-[200px]">运行模式</TableCell>
+                <TableCell>{{ cache.redis_mode }}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell class="font-medium">端口</TableCell>
+                <TableCell>{{ cache.tcp_port }}</TableCell>
+                <TableCell class="font-medium">客户端数</TableCell>
+                <TableCell>{{ cache.connected_clients }}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell class="font-medium">运行时间(天)</TableCell>
+                <TableCell>{{ cache.uptime_in_days }}</TableCell>
+                <TableCell class="font-medium">使用内存</TableCell>
+                <TableCell>{{ cache.used_memory_human }}</TableCell>
+              </TableRow>
+              <TableRow>
                 <TableCell class="font-medium">内存峰值</TableCell>
                 <TableCell>{{ cache.used_memory_peak_human || '-' }}</TableCell>
                 <TableCell class="font-medium">最大内存</TableCell>
@@ -236,8 +237,8 @@ onUnmounted(() => {
                 <TableCell class="font-medium">RDB 状态</TableCell>
                 <TableCell>{{ cache.rdb_last_bgsave_status }}</TableCell>
               </TableRow>
-             </TableBody>
-           </Table>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

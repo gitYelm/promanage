@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('fs')
+const path = require('path')
 
 const views = [
   { path: 'src/views/system/dict/index.vue', title: '字典管理' },
@@ -15,7 +15,7 @@ const views = [
   { path: 'src/views/tool/gen/index.vue', title: '代码生成' },
   { path: 'src/views/tool/build/index.vue', title: '表单构建' },
   { path: 'src/views/tool/swagger/index.vue', title: '系统接口' },
-];
+]
 
 const template = (title) => `<script setup lang="ts">
 import ConstructionPlaceholder from '@/components/ConstructionPlaceholder.vue'
@@ -24,10 +24,10 @@ import ConstructionPlaceholder from '@/components/ConstructionPlaceholder.vue'
 <template>
   <ConstructionPlaceholder title="${title}" />
 </template>
-`;
+`
 
-views.forEach(view => {
-  const fullPath = path.join(process.cwd(), view.path);
-  fs.writeFileSync(fullPath, template(view.title));
-  console.log(`Created ${view.path}`);
-});
+views.forEach((view) => {
+  const fullPath = path.join(process.cwd(), view.path)
+  fs.writeFileSync(fullPath, template(view.title))
+  console.log(`Created ${view.path}`)
+})

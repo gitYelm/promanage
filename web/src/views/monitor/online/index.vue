@@ -21,18 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { LogOut, RefreshCw, Search, Loader2, Copy } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { listOnline, forceLogout, type SysUserOnline } from '@/api/monitor/online'
 import { useUserStore } from '@/stores/modules/user'
 
@@ -104,7 +98,6 @@ function formatDuration(ms: number) {
   }
   return `${seconds}秒`
 }
-
 
 // 截断显示 tokenId（前6位...后6位）
 function truncateToken(token: string) {
@@ -223,7 +216,6 @@ onUnmounted(() => {
 })
 </script>
 
-
 <template>
   <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
     <!-- Header -->
@@ -233,7 +225,7 @@ onUnmounted(() => {
         <p class="text-muted-foreground">监控当前系统活跃用户</p>
       </div>
       <div class="flex gap-2">
-        <Button variant="outline" size="sm" @click="getList" :disabled="loading">
+        <Button variant="outline" size="sm" :disabled="loading" @click="getList">
           <Loader2 v-if="loading" class="w-4 h-4 mr-2 animate-spin" />
           <RefreshCw v-else class="w-4 h-4 mr-2" />
           刷新
@@ -294,15 +286,20 @@ onUnmounted(() => {
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
-      <TableSkeleton v-if="loading && onlineList.length === 0" :columns="8" :rows="10" show-checkbox />
-      
+      <TableSkeleton
+        v-if="loading && onlineList.length === 0"
+        :columns="8"
+        :rows="10"
+        show-checkbox
+      />
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="!loading && onlineList.length === 0"
         title="暂无在线用户"
         description="当前没有活跃的在线用户"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>
@@ -349,8 +346,8 @@ onUnmounted(() => {
                   variant="ghost"
                   size="icon"
                   class="h-6 w-6"
-                  @click="copyTokenId(item.tokenId)"
                   title="复制会话编号"
+                  @click="copyTokenId(item.tokenId)"
                 >
                   <Copy class="h-3 w-3" />
                 </Button>
@@ -373,15 +370,17 @@ onUnmounted(() => {
             <TableCell>{{ item.os || '-' }}</TableCell>
             <TableCell>{{ formatTime(item.loginTime) }}</TableCell>
             <TableCell>
-              <span class="text-sm text-muted-foreground">{{ formatDuration(item.onlineDuration) }}</span>
+              <span class="text-sm text-muted-foreground">{{
+                formatDuration(item.onlineDuration)
+              }}</span>
             </TableCell>
             <TableCell class="text-right">
               <Button
                 variant="ghost"
                 size="sm"
                 class="text-destructive hover:text-destructive"
-                @click="openLogoutDialog(item)"
                 :disabled="isCurrentUser(item.userName)"
+                @click="openLogoutDialog(item)"
               >
                 <LogOut class="w-4 h-4 mr-2" />
                 强退

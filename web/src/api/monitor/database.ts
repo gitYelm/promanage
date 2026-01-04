@@ -46,6 +46,6 @@ export interface DatabaseInfo {
 export function getDatabase() {
   return request<{ data: DatabaseInfo }>({
     url: '/monitor/database',
-    method: 'get'
+    method: 'get',
   }).then((res: any) => res.data)
 }

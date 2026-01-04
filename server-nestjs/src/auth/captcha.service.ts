@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { generateUuid } from '../common/utils/uuid.util';
 
 // svg-captcha 没有类型定义
-/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const svgCaptcha: {
   create: (options: {
     size?: number;
@@ -16,7 +16,7 @@ const svgCaptcha: {
     height?: number;
   }) => { text: string; data: string };
 } = require('svg-captcha');
-/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment */
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 const CAPTCHA_PREFIX = 'captcha:';
 const CAPTCHA_EXPIRE = 300; // 5分钟过期

@@ -30,15 +30,39 @@ import { Badge } from '@/components/ui/badge'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Trash2, Plus, RefreshCw, Search, Edit, Loader2, ChevronRight, ChevronDown, Eye, Users, Shield } from 'lucide-vue-next'
+import {
+  Trash2,
+  Plus,
+  RefreshCw,
+  Search,
+  Edit,
+  Loader2,
+  ChevronRight,
+  ChevronDown,
+  Eye,
+  Users,
+  Shield,
+} from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
-import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
-import { listRole, getRole, delRole, addRole, updateRole, changeRoleStatus } from '@/api/system/role'
+import {
+  getStatusOptionsWithAll,
+  getStatusOptions,
+  toQueryValue,
+  ALL_OPTION_VALUE,
+} from '@/utils/options'
+import {
+  listRole,
+  getRole,
+  delRole,
+  addRole,
+  updateRole,
+  changeRoleStatus,
+} from '@/api/system/role'
 import { listMenu } from '@/api/system/menu'
 import type { SysRole, SysMenu } from '@/api/system/types'
 
@@ -53,7 +77,7 @@ const queryParams = reactive({
   pageSize: 20,
   roleName: '',
   roleKey: '',
-  status: ALL_OPTION_VALUE as string
+  status: ALL_OPTION_VALUE as string,
 })
 
 const showDialog = ref(false)
@@ -74,7 +98,7 @@ const previewSelectedIds = computed(() => {
   if (!roleToPreview.value?.menuIds) {
     return new Set<string>()
   }
-  return new Set(roleToPreview.value.menuIds.map(id => String(id)))
+  return new Set(roleToPreview.value.menuIds.map((id) => String(id)))
 })
 
 const form = reactive<Partial<SysRole>>({
@@ -86,7 +110,7 @@ const form = reactive<Partial<SysRole>>({
   menuIds: [],
   remark: '',
   menuCheckStrictly: true,
-  dataScope: '1' // 数据权限范围: 1-全部 2-自定义 3-本部门 4-本部门及以下 5-仅本人
+  dataScope: '1', // 数据权限范围: 1-全部 2-自定义 3-本部门 4-本部门及以下 5-仅本人
 })
 
 // Fetch Data
@@ -95,7 +119,7 @@ async function getList() {
   try {
     const res = await listRole({
       ...queryParams,
-      status: toQueryValue(queryParams.status)
+      status: toQueryValue(queryParams.status),
     })
     roleList.value = res.rows
     total.value = res.total
@@ -108,14 +132,14 @@ async function getList() {
 function buildMenuTree(flatList: SysMenu[]): SysMenu[] {
   const map = new Map<string, SysMenu>()
   const roots: SysMenu[] = []
-  
+
   // 先创建所有节点的映射,并添加 children 数组
-  flatList.forEach(item => {
+  flatList.forEach((item) => {
     map.set(item.menuId, { ...item, children: [] })
   })
-  
+
   // 构建树形结构
-  flatList.forEach(item => {
+  flatList.forEach((item) => {
     const node = map.get(item.menuId)!
     if (item.parentId === null || item.parentId === '0') {
       // 根节点
@@ -128,7 +152,7 @@ function buildMenuTree(flatList: SysMenu[]): SysMenu[] {
       }
     }
   })
-  
+
   return roots
 }
 
@@ -151,7 +175,7 @@ function selectAllMenus() {
 // 反选菜单
 function invertMenuSelection() {
   const currentIds = new Set(form.menuIds)
-  form.menuIds = allMenuIds.value.filter(id => !currentIds.has(id))
+  form.menuIds = allMenuIds.value.filter((id) => !currentIds.has(id))
 }
 
 // 展开/收起全部
@@ -192,16 +216,16 @@ async function handleUpdate(row: SysRole) {
       // 将后端返回的数据赋值给表单,确保 menuIds 是字符串数组
       Object.assign(form, {
         ...roleData,
-        menuIds: (roleData.menuIds || []).map((id: any) => String(id))
+        menuIds: (roleData.menuIds || []).map((id: any) => String(id)),
       })
     }
     showDialog.value = true
   } catch (error) {
     console.error('获取角色详情失败:', error)
-    toast({ 
-      title: "获取失败", 
-      description: "无法获取角色详情",
-      variant: "destructive"
+    toast({
+      title: '获取失败',
+      description: '无法获取角色详情',
+      variant: 'destructive',
     })
   }
 }
@@ -215,10 +239,10 @@ async function confirmDelete() {
   if (!roleToDelete.value) return
   try {
     await delRole([roleToDelete.value.roleId])
-    toast({ title: "删除成功", description: "角色已删除" })
+    toast({ title: '删除成功', description: '角色已删除' })
     getList()
     showDeleteDialog.value = false
-  } catch (error) {
+  } catch {
     // handled by interceptor
   }
 }
@@ -234,10 +258,10 @@ async function handlePreview(row: SysRole) {
     showPreviewDialog.value = true
   } catch (error) {
     console.error('获取角色详情失败:', error)
-    toast({ 
-      title: "获取失败", 
-      description: "无法获取角色详情",
-      variant: "destructive"
+    toast({
+      title: '获取失败',
+      description: '无法获取角色详情',
+      variant: 'destructive',
     })
   }
 }
@@ -249,7 +273,7 @@ function getDataScopeText(dataScope?: string): string {
     '2': '自定义数据',
     '3': '本部门数据',
     '4': '本部门及以下数据',
-    '5': '仅本人数据'
+    '5': '仅本人数据',
   }
   return scopeMap[dataScope || '1'] || '全部数据'
 }
@@ -257,9 +281,9 @@ function getDataScopeText(dataScope?: string): string {
 async function handleSubmit() {
   if (!form.roleName || !form.roleKey) {
     toast({
-      title: "验证失败",
-      description: "角色名称和权限字符不能为空",
-      variant: "destructive"
+      title: '验证失败',
+      description: '角色名称和权限字符不能为空',
+      variant: 'destructive',
     })
     return
   }
@@ -268,10 +292,10 @@ async function handleSubmit() {
   try {
     if (form.roleId) {
       await updateRole(form)
-      toast({ title: "修改成功", description: "角色信息已更新" })
+      toast({ title: '修改成功', description: '角色信息已更新' })
     } else {
       await addRole(form)
-      toast({ title: "新增成功", description: "角色已创建" })
+      toast({ title: '新增成功', description: '角色已创建' })
     }
     showDialog.value = false
     getList()
@@ -310,46 +334,56 @@ const PreviewMenuTreeItem: any = {
       isExpanded.value = !isExpanded.value
     }
 
-    return () => h('div', { class: 'py-1' }, [
-      h('div', {
-        class: 'flex items-center gap-1',
-        style: { 'padding-left': `${currentLevel * 24}px` }
-      }, [
-        // 展开/收起图标
-        hasChildren.value
-          ? h('button', {
-              class: 'w-4 h-4 flex items-center justify-center hover:bg-accent rounded transition-colors',
-              onClick: (e: Event) => {
-                e.stopPropagation()
-                toggleExpand()
-              }
-            }, [
-              h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })
-            ])
-          : h('span', { class: 'w-4' }),
-        // 禁用的 Checkbox
-        h(Checkbox, {
-          modelValue: isChecked.value,
-          disabled: true
-        }),
-        h('span', { class: 'text-sm' }, props.menu.menuName)
-      ]),
-      // 子节点(仅在展开时显示)
-      hasChildren.value && shouldExpand.value
-        ? h('div', {},
-            props.menu.children.map((child: any) =>
-              h(PreviewMenuTreeItem, {
-                key: child.menuId,
-                menu: child,
-                level: currentLevel + 1,
-                selectedIds: props.selectedIds,
-                expandAll: props.expandAll
-              })
+    return () =>
+      h('div', { class: 'py-1' }, [
+        h(
+          'div',
+          {
+            class: 'flex items-center gap-1',
+            style: { 'padding-left': `${currentLevel * 24}px` },
+          },
+          [
+            // 展开/收起图标
+            hasChildren.value
+              ? h(
+                  'button',
+                  {
+                    class:
+                      'w-4 h-4 flex items-center justify-center hover:bg-accent rounded transition-colors',
+                    onClick: (e: Event) => {
+                      e.stopPropagation()
+                      toggleExpand()
+                    },
+                  },
+                  [h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })]
+                )
+              : h('span', { class: 'w-4' }),
+            // 禁用的 Checkbox
+            h(Checkbox, {
+              modelValue: isChecked.value,
+              disabled: true,
+            }),
+            h('span', { class: 'text-sm' }, props.menu.menuName),
+          ]
+        ),
+        // 子节点(仅在展开时显示)
+        hasChildren.value && shouldExpand.value
+          ? h(
+              'div',
+              {},
+              props.menu.children.map((child: any) =>
+                h(PreviewMenuTreeItem, {
+                  key: child.menuId,
+                  menu: child,
+                  level: currentLevel + 1,
+                  selectedIds: props.selectedIds,
+                  expandAll: props.expandAll,
+                })
+              )
             )
-          )
-        : null
-    ])
-  }
+          : null,
+      ])
+  },
 }
 
 // Simple recursive component for menu tree checklist
@@ -363,87 +397,97 @@ const MenuTreeItem: any = {
     const currentLevel = props.level || 0
     const isExpanded = ref(false) // 默认收起
     const hasChildren = computed(() => props.menu.children && props.menu.children.length > 0)
-    
+
     // 监听expandAll变化
     const shouldExpand = computed(() => props.expandAll || isExpanded.value)
-    
+
     function toggleExpand() {
       isExpanded.value = !isExpanded.value
     }
-    
+
     function toggle(checked: boolean | 'indeterminate') {
       if (checked === 'indeterminate') return
-      
+
       let newIds = [...props.modelValue]
       if (checked) {
         if (!newIds.includes(props.menu.menuId)) newIds.push(props.menu.menuId)
         // Select children if checkStrictly is true (联动开启)
         if (props.checkStrictly && hasChildren.value) {
-           const addChildren = (nodes: any[]) => {
-             nodes.forEach(n => {
-               if (!newIds.includes(n.menuId)) newIds.push(n.menuId)
-               if (n.children && n.children.length > 0) addChildren(n.children)
-             })
-           }
-           addChildren(props.menu.children)
+          const addChildren = (nodes: any[]) => {
+            nodes.forEach((n) => {
+              if (!newIds.includes(n.menuId)) newIds.push(n.menuId)
+              if (n.children && n.children.length > 0) addChildren(n.children)
+            })
+          }
+          addChildren(props.menu.children)
         }
       } else {
         newIds = newIds.filter((id: string) => id !== props.menu.menuId)
         // Deselect children if checkStrictly is true (联动开启)
         if (props.checkStrictly && hasChildren.value) {
-           const removeChildren = (nodes: any[]) => {
-             nodes.forEach(n => {
-               newIds = newIds.filter((id: string) => id !== n.menuId)
-               if (n.children && n.children.length > 0) removeChildren(n.children)
-             })
-           }
-           removeChildren(props.menu.children)
+          const removeChildren = (nodes: any[]) => {
+            nodes.forEach((n) => {
+              newIds = newIds.filter((id: string) => id !== n.menuId)
+              if (n.children && n.children.length > 0) removeChildren(n.children)
+            })
+          }
+          removeChildren(props.menu.children)
         }
       }
       emit('update:modelValue', newIds)
     }
 
-    return () => h('div', { class: 'py-1' }, [
-      h('div', { 
-        class: 'flex items-center gap-1',
-        style: { 'padding-left': `${currentLevel * 24}px` }
-      }, [
-        // 展开/收起图标
-        hasChildren.value
-          ? h('button', {
-              class: 'w-4 h-4 flex items-center justify-center hover:bg-accent rounded transition-colors',
-              onClick: (e: Event) => {
-                e.stopPropagation()
-                toggleExpand()
-              }
-            }, [
-              h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })
-            ])
-          : h('span', { class: 'w-4' }), // 占位符保持对齐
-        h(Checkbox, {
-          modelValue: isChecked.value,
-          'onUpdate:modelValue': toggle
-        }),
-        h('span', { class: 'text-sm' }, props.menu.menuName)
-      ]),
-      // 子节点(仅在展开时显示)
-      hasChildren.value && shouldExpand.value
-        ? h('div', {}, 
-            props.menu.children.map((child: any) =>
-              h(MenuTreeItem, {
-                key: child.menuId,
-                menu: child,
-                modelValue: props.modelValue,
-                checkStrictly: props.checkStrictly,
-                level: currentLevel + 1,
-                expandAll: props.expandAll,
-                'onUpdate:modelValue': (val: any) => emit('update:modelValue', val)
-              })
+    return () =>
+      h('div', { class: 'py-1' }, [
+        h(
+          'div',
+          {
+            class: 'flex items-center gap-1',
+            style: { 'padding-left': `${currentLevel * 24}px` },
+          },
+          [
+            // 展开/收起图标
+            hasChildren.value
+              ? h(
+                  'button',
+                  {
+                    class:
+                      'w-4 h-4 flex items-center justify-center hover:bg-accent rounded transition-colors',
+                    onClick: (e: Event) => {
+                      e.stopPropagation()
+                      toggleExpand()
+                    },
+                  },
+                  [h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })]
+                )
+              : h('span', { class: 'w-4' }), // 占位符保持对齐
+            h(Checkbox, {
+              modelValue: isChecked.value,
+              'onUpdate:modelValue': toggle,
+            }),
+            h('span', { class: 'text-sm' }, props.menu.menuName),
+          ]
+        ),
+        // 子节点(仅在展开时显示)
+        hasChildren.value && shouldExpand.value
+          ? h(
+              'div',
+              {},
+              props.menu.children.map((child: any) =>
+                h(MenuTreeItem, {
+                  key: child.menuId,
+                  menu: child,
+                  modelValue: props.modelValue,
+                  checkStrictly: props.checkStrictly,
+                  level: currentLevel + 1,
+                  expandAll: props.expandAll,
+                  'onUpdate:modelValue': (val: any) => emit('update:modelValue', val),
+                })
+              )
             )
-          )
-        : null
-    ])
-  }
+          : null,
+      ])
+  },
 }
 
 onMounted(() => {
@@ -457,9 +501,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">角色管理</h2>
-        <p class="text-muted-foreground">
-          管理系统角色及其权限分配
-        </p>
+        <p class="text-muted-foreground">管理系统角色及其权限分配</p>
       </div>
       <div class="flex items-center gap-2">
         <Button @click="handleAdd">
@@ -470,21 +512,23 @@ onMounted(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">角色名称</span>
-        <Input 
-          v-model="queryParams.roleName" 
-          placeholder="请输入角色名称" 
+        <Input
+          v-model="queryParams.roleName"
+          placeholder="请输入角色名称"
           class="w-[200px]"
           @keyup.enter="handleQuery"
         />
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">权限字符</span>
-        <Input 
-          v-model="queryParams.roleKey" 
-          placeholder="请输入权限字符" 
+        <Input
+          v-model="queryParams.roleKey"
+          placeholder="请输入权限字符"
           class="w-[200px]"
           @keyup.enter="handleQuery"
         />
@@ -496,7 +540,11 @@ onMounted(() => {
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+            <SelectItem
+              v-for="opt in getStatusOptionsWithAll()"
+              :key="opt.value"
+              :value="opt.value"
+            >
               {{ opt.label }}
             </SelectItem>
           </SelectContent>
@@ -518,7 +566,7 @@ onMounted(() => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="8" :rows="10" />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="roleList.length === 0"
@@ -527,7 +575,7 @@ onMounted(() => {
         action-text="新增角色"
         @action="handleAdd"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>
@@ -547,7 +595,9 @@ onMounted(() => {
           <TableRow v-for="item in roleList" :key="item.roleId">
             <TableCell>{{ item.roleId }}</TableCell>
             <TableCell>{{ item.roleName }}</TableCell>
-            <TableCell><Badge variant="outline">{{ item.roleKey }}</Badge></TableCell>
+            <TableCell
+              ><Badge variant="outline">{{ item.roleKey }}</Badge></TableCell
+            >
             <TableCell>
               <Badge variant="outline" class="font-mono">
                 <Users class="w-3 h-3 mr-1" />
@@ -571,13 +621,19 @@ onMounted(() => {
             </TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
             <TableCell class="text-right space-x-2">
-              <Button variant="ghost" size="icon" @click="handlePreview(item)" title="查看权限">
+              <Button variant="ghost" size="icon" title="查看权限" @click="handlePreview(item)">
                 <Eye class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" @click="handleUpdate(item)" title="修改">
+              <Button variant="ghost" size="icon" title="修改" @click="handleUpdate(item)">
                 <Edit class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" class="text-destructive" @click="handleDelete(item)" title="删除">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="text-destructive"
+                title="删除"
+                @click="handleDelete(item)"
+              >
                 <Trash2 class="w-4 h-4" />
               </Button>
             </TableCell>
@@ -585,7 +641,7 @@ onMounted(() => {
         </TableBody>
       </Table>
     </div>
-    
+
     <!-- Pagination -->
     <TablePagination
       v-model:page-num="queryParams.pageNum"
@@ -599,11 +655,9 @@ onMounted(() => {
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{{ isEdit ? '修改角色' : '新增角色' }}</DialogTitle>
-          <DialogDescription>
-            请填写角色信息
-          </DialogDescription>
+          <DialogDescription> 请填写角色信息 </DialogDescription>
         </DialogHeader>
-        
+
         <div class="grid gap-4 py-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="grid gap-2">
@@ -615,11 +669,11 @@ onMounted(() => {
               <Input id="roleKey" v-model="form.roleKey" placeholder="请输入权限字符" />
             </div>
           </div>
-          
+
           <div class="grid grid-cols-2 gap-4">
             <div class="grid gap-2">
               <Label for="roleSort">显示顺序</Label>
-              <Input id="roleSort" type="number" v-model="form.roleSort" />
+              <Input id="roleSort" v-model="form.roleSort" type="number" />
             </div>
             <div class="grid gap-2">
               <Label for="status">状态</Label>
@@ -668,18 +722,22 @@ onMounted(() => {
               </div>
             </div>
             <div class="flex items-center space-x-2 mb-2">
-               <Checkbox id="checkStrictly" :model-value="form.menuCheckStrictly" @update:model-value="(val) => form.menuCheckStrictly = !!val" />
-               <Label for="checkStrictly" class="text-sm text-muted-foreground">父子联动</Label>
+              <Checkbox
+                id="checkStrictly"
+                :model-value="form.menuCheckStrictly"
+                @update:model-value="(val) => (form.menuCheckStrictly = !!val)"
+              />
+              <Label for="checkStrictly" class="text-sm text-muted-foreground">父子联动</Label>
             </div>
             <div class="border rounded-md p-2 h-[200px] overflow-y-auto">
-              <MenuTreeItem 
-                v-for="menu in menuList" 
-                :key="menu.menuId" 
-                :menu="menu" 
+              <MenuTreeItem
+                v-for="menu in menuList"
+                :key="menu.menuId"
                 v-model="form.menuIds"
-                :checkStrictly="form.menuCheckStrictly"
+                :menu="menu"
+                :check-strictly="form.menuCheckStrictly"
                 :level="0"
-                :expandAll="expandedAll"
+                :expand-all="expandedAll"
               />
             </div>
           </div>
@@ -692,7 +750,7 @@ onMounted(() => {
 
         <DialogFooter>
           <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button @click="handleSubmit" :disabled="submitLoading">
+          <Button :disabled="submitLoading" @click="handleSubmit">
             <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
             确定
           </Button>
@@ -719,7 +777,7 @@ onMounted(() => {
             查看角色 "{{ roleToPreview?.roleName }}" 的详细权限信息
           </DialogDescription>
         </DialogHeader>
-        
+
         <div class="grid gap-4 py-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -728,7 +786,9 @@ onMounted(() => {
             </div>
             <div>
               <div class="text-sm font-medium text-muted-foreground mb-1">权限字符</div>
-              <div class="text-sm"><Badge variant="outline">{{ roleToPreview?.roleKey }}</Badge></div>
+              <div class="text-sm">
+                <Badge variant="outline">{{ roleToPreview?.roleKey }}</Badge>
+              </div>
             </div>
           </div>
 
@@ -755,7 +815,12 @@ onMounted(() => {
           <div>
             <div class="flex items-center justify-between mb-2">
               <div class="text-sm font-medium text-muted-foreground">菜单权限</div>
-              <Button type="button" variant="outline" size="sm" @click="previewExpandAll = !previewExpandAll">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                @click="previewExpandAll = !previewExpandAll"
+              >
                 {{ previewExpandAll ? '收起' : '展开' }}全部
               </Button>
             </div>
@@ -770,9 +835,7 @@ onMounted(() => {
                   :expand-all="previewExpandAll"
                 />
               </template>
-              <div v-else class="text-sm text-muted-foreground text-center py-4">
-                暂无菜单数据
-              </div>
+              <div v-else class="text-sm text-muted-foreground text-center py-4">暂无菜单数据</div>
             </div>
           </div>
 

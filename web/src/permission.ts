@@ -60,13 +60,18 @@ router.beforeEach(async (to, _from, next) => {
         }
 
         const requiredRoles = (to.meta && (to.meta as any).roles) as string[] | undefined
-        if (requiredRoles && !requiredRoles.some(r => userStore.roles.includes(r))) {
+        if (requiredRoles && !requiredRoles.some((r) => userStore.roles.includes(r))) {
           next('/403')
           NProgress.done()
           return
         }
         const requiredPerms = (to.meta && (to.meta as any).perms) as string[] | undefined
-        if (requiredPerms && !requiredPerms.some(p => userStore.permissions.includes(p) || userStore.permissions.includes('*:*:*'))) {
+        if (
+          requiredPerms &&
+          !requiredPerms.some(
+            (p) => userStore.permissions.includes(p) || userStore.permissions.includes('*:*:*')
+          )
+        ) {
           next('/403')
           NProgress.done()
           return
@@ -83,7 +88,7 @@ router.beforeEach(async (to, _from, next) => {
 
           // 路由已动态添加，需要用 path 重新导航让新路由生效
           next({ path: to.path, query: to.query, replace: true })
-        } catch (error) {
+        } catch {
           await userStore.logout()
           next(`${loginPath}?redirect=${to.path}`)
           NProgress.done()

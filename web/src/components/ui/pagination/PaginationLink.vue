@@ -24,11 +24,19 @@ const delegatedProps = computed(() => {
 
 <template>
   <PaginationListItem v-bind="delegatedProps">
-    <Button :class="cn(
-      'h-9 w-9',
-      isActive ? 'bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground' : 'bg-transparent text-foreground hover:bg-muted',
-      props.class
-    )" :variant="isActive ? 'outline' : 'ghost'" :size="size">
+    <Button
+      :class="
+        cn(
+          'h-9 w-9',
+          isActive
+            ? 'bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground'
+            : 'bg-transparent text-foreground hover:bg-muted',
+          props.class
+        )
+      "
+      :variant="isActive ? 'outline' : 'ghost'"
+      :size="size"
+    >
       <slot />
     </Button>
   </PaginationListItem>

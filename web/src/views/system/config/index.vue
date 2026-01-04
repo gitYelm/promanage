@@ -36,20 +36,22 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import LeaveConfirmDialog from '@/components/common/LeaveConfirmDialog.vue'
 import { formatDate } from '@/utils/format'
-import { listConfig, getConfig, delConfig, addConfig, updateConfig, refreshCache, type SysConfig } from '@/api/system/config'
+import {
+  listConfig,
+  getConfig,
+  delConfig,
+  addConfig,
+  updateConfig,
+  refreshCache,
+  type SysConfig,
+} from '@/api/system/config'
 import { useUnsavedChanges } from '@/composables'
 
 const { toast } = useToast()
 
 // 未保存更改提示（同时支持路由离开和弹窗关闭）
-const {
-  isDirty,
-  markClean,
-  showLeaveDialog,
-  confirmLeave,
-  cancelLeave,
-  tryLeave
-} = useUnsavedChanges()
+const { isDirty, markClean, showLeaveDialog, confirmLeave, cancelLeave, tryLeave } =
+  useUnsavedChanges()
 
 // State
 const loading = ref(true)
@@ -60,7 +62,7 @@ const queryParams = reactive({
   pageSize: 20,
   configName: '',
   configKey: '',
-  configType: undefined
+  configType: undefined,
 })
 
 const showDialog = ref(false)
@@ -75,7 +77,7 @@ const form = reactive<Partial<SysConfig>>({
   configKey: '',
   configValue: '',
   configType: 'Y',
-  remark: ''
+  remark: '',
 })
 
 // 监听表单变化，标记脏状态（仅在弹窗打开时）
@@ -143,7 +145,7 @@ async function confirmDelete() {
   if (!configToDelete.value) return
   try {
     await delConfig([configToDelete.value.configId])
-    toast({ title: "删除成功", description: "参数已删除" })
+    toast({ title: '删除成功', description: '参数已删除' })
     getList()
   } finally {
     showDeleteDialog.value = false
@@ -152,12 +154,16 @@ async function confirmDelete() {
 
 async function handleRefreshCache() {
   await refreshCache()
-  toast({ title: "操作成功", description: "缓存刷新成功" })
+  toast({ title: '操作成功', description: '缓存刷新成功' })
 }
 
 async function handleSubmit() {
   if (!form.configName || !form.configKey || !form.configValue) {
-    toast({ title: "验证失败", description: "参数名称、键名和键值不能为空", variant: "destructive" })
+    toast({
+      title: '验证失败',
+      description: '参数名称、键名和键值不能为空',
+      variant: 'destructive',
+    })
     return
   }
 
@@ -165,10 +171,10 @@ async function handleSubmit() {
   try {
     if (form.configId) {
       await updateConfig(form)
-      toast({ title: "修改成功", description: "参数信息已更新" })
+      toast({ title: '修改成功', description: '参数信息已更新' })
     } else {
       await addConfig(form)
-      toast({ title: "新增成功", description: "参数已创建" })
+      toast({ title: '新增成功', description: '参数已创建' })
     }
     markClean() // 保存成功后清除脏状态
     showDialog.value = false
@@ -208,9 +214,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">参数设置</h2>
-        <p class="text-muted-foreground">
-          管理系统全局配置参数
-        </p>
+        <p class="text-muted-foreground">管理系统全局配置参数</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" @click="handleRefreshCache">
@@ -225,21 +229,23 @@ onMounted(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">参数名称</span>
-        <Input 
-          v-model="queryParams.configName" 
-          placeholder="请输入参数名称" 
+        <Input
+          v-model="queryParams.configName"
+          placeholder="请输入参数名称"
           class="w-[150px]"
           @keyup.enter="handleQuery"
         />
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">参数键名</span>
-        <Input 
-          v-model="queryParams.configKey" 
-          placeholder="请输入参数键名" 
+        <Input
+          v-model="queryParams.configKey"
+          placeholder="请输入参数键名"
           class="w-[150px]"
           @keyup.enter="handleQuery"
         />
@@ -272,7 +278,7 @@ onMounted(() => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="7" :rows="10" />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="configList.length === 0"
@@ -281,7 +287,7 @@ onMounted(() => {
         action-text="新增参数"
         @action="handleAdd"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>
@@ -301,9 +307,11 @@ onMounted(() => {
             <TableCell>{{ item.configId }}</TableCell>
             <TableCell>{{ item.configName }}</TableCell>
             <TableCell>{{ item.configKey }}</TableCell>
-            <TableCell class="max-w-[200px] truncate" :title="item.configValue">{{ item.configValue }}</TableCell>
+            <TableCell class="max-w-[200px] truncate" :title="item.configValue">{{
+              item.configValue
+            }}</TableCell>
             <TableCell>
-               <Badge :variant="item.configType === 'Y' ? 'default' : 'secondary'">
+              <Badge :variant="item.configType === 'Y' ? 'default' : 'secondary'">
                 {{ item.configType === 'Y' ? '是' : '否' }}
               </Badge>
             </TableCell>
@@ -313,7 +321,12 @@ onMounted(() => {
               <Button variant="ghost" size="icon" @click="handleUpdate(item)">
                 <Edit class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" class="text-destructive" @click="handleDelete(item)">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="text-destructive"
+                @click="handleDelete(item)"
+              >
                 <Trash2 class="w-4 h-4" />
               </Button>
             </TableCell>
@@ -332,14 +345,16 @@ onMounted(() => {
 
     <!-- Add/Edit Dialog -->
     <Dialog :open="showDialog" @update:open="(val) => !val && handleCloseDialog()">
-      <DialogContent class="sm:max-w-[600px]" @escape-key-down.prevent="handleCloseDialog" @pointer-down-outside.prevent="handleCloseDialog">
+      <DialogContent
+        class="sm:max-w-[600px]"
+        @escape-key-down.prevent="handleCloseDialog"
+        @pointer-down-outside.prevent="handleCloseDialog"
+      >
         <DialogHeader>
           <DialogTitle>{{ isEdit ? '修改参数' : '新增参数' }}</DialogTitle>
-          <DialogDescription>
-            请填写参数信息
-          </DialogDescription>
+          <DialogDescription> 请填写参数信息 </DialogDescription>
         </DialogHeader>
-        
+
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
             <Label for="configName">参数名称 *</Label>
@@ -354,16 +369,16 @@ onMounted(() => {
             <Textarea id="configValue" v-model="form.configValue" placeholder="请输入参数键值" />
           </div>
           <div class="grid gap-2">
-             <Label for="configType">系统内置</Label>
-             <Select v-model="form.configType">
-                <SelectTrigger>
-                  <SelectValue placeholder="选择是否内置" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Y">是</SelectItem>
-                  <SelectItem value="N">否</SelectItem>
-                </SelectContent>
-              </Select>
+            <Label for="configType">系统内置</Label>
+            <Select v-model="form.configType">
+              <SelectTrigger>
+                <SelectValue placeholder="选择是否内置" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Y">是</SelectItem>
+                <SelectItem value="N">否</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div class="grid gap-2">
             <Label for="remark">备注</Label>
@@ -373,9 +388,7 @@ onMounted(() => {
 
         <DialogFooter>
           <Button variant="outline" @click="handleCloseDialog">取消</Button>
-          <Button @click="handleSubmit" :disabled="submitLoading">
-            确定
-          </Button>
+          <Button :disabled="submitLoading" @click="handleSubmit"> 确定 </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

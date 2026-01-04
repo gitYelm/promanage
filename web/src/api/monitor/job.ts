@@ -37,14 +37,14 @@ export function listJob(query: JobQuery): Promise<PageResult<SysJob>> {
   return request<{ data: PageResult<SysJob> }>({
     url: '/monitor/job',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: unknown) => (res as { data: PageResult<SysJob> }).data)
 }
 
 export function getJob(jobId: string): Promise<SysJob> {
   return request<{ data: SysJob }>({
     url: `/monitor/job/${jobId}`,
-    method: 'get'
+    method: 'get',
   }).then((res: unknown) => (res as { data: SysJob }).data)
 }
 
@@ -52,7 +52,7 @@ export function addJob(data: JobForm) {
   return request<{ msg: string }>({
     url: '/monitor/job',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -60,7 +60,7 @@ export function updateJob(data: JobForm) {
   return request<{ msg: string }>({
     url: `/monitor/job/${data.jobId}`,
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -68,7 +68,7 @@ export function delJob(jobIds: string[]) {
   return request<{ msg: string }>({
     url: '/monitor/job',
     method: 'delete',
-    params: { ids: jobIds.join(',') }
+    params: { ids: jobIds.join(',') },
   })
 }
 
@@ -76,7 +76,7 @@ export function runJob(jobId: string) {
   return request<{ msg: string }>({
     url: '/monitor/job/run',
     method: 'post',
-    data: { jobId }
+    data: { jobId },
   })
 }
 
@@ -84,7 +84,7 @@ export function changeJobStatus(jobId: string, status: string) {
   return request<{ msg: string }>({
     url: '/monitor/job/changeStatus',
     method: 'put',
-    data: { jobId, status }
+    data: { jobId, status },
   })
 }
 
@@ -93,7 +93,7 @@ export function listJobLog(query: JobQuery): Promise<PageResult<SysJobLog>> {
   return request<{ data: PageResult<SysJobLog> }>({
     url: '/monitor/job/log',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: unknown) => (res as { data: PageResult<SysJobLog> }).data)
 }
 
@@ -101,6 +101,6 @@ export function listJobLog(query: JobQuery): Promise<PageResult<SysJobLog>> {
 export function cleanJobLog() {
   return request<{ msg: string }>({
     url: '/monitor/job/log/clean',
-    method: 'delete'
+    method: 'delete',
   })
 }

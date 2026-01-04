@@ -46,6 +46,6 @@ export interface ServerInfo {
 export function getServer() {
   return request<{ data: ServerInfo }>({
     url: '/monitor/server',
-    method: 'get'
+    method: 'get',
   }).then((res: any) => res.data)
 }

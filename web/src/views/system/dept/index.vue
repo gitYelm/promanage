@@ -26,26 +26,39 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, RefreshCw, Search, Loader2, Maximize2, Minimize2, Users } from 'lucide-vue-next'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  Plus,
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  Loader2,
+  Maximize2,
+  Minimize2,
+} from 'lucide-vue-next'
 import { formatDate } from '@/utils/format'
-import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import {
+  getStatusOptionsWithAll,
+  getStatusOptions,
+  toQueryValue,
+  ALL_OPTION_VALUE,
+} from '@/utils/options'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
-import { listDept, getDept, delDept, addDept, updateDept, listDeptTree, changeDeptStatus } from '@/api/system/dept'
+import {
+  listDept,
+  getDept,
+  delDept,
+  addDept,
+  updateDept,
+  listDeptTree,
+  changeDeptStatus,
+} from '@/api/system/dept'
 import type { SysDept } from '@/api/system/types'
 
 const { toast } = useToast()
@@ -55,7 +68,7 @@ const loading = ref(true)
 const deptList = ref<SysDept[]>([])
 const queryParams = reactive({
   deptName: '',
-  status: ALL_OPTION_VALUE as string
+  status: ALL_OPTION_VALUE as string,
 })
 const isExpanded = ref<Record<string, boolean>>({})
 const expandedAll = ref(true) // 默认展开全部
@@ -75,7 +88,7 @@ const form = reactive<Partial<SysDept>>({
   leader: '',
   phone: '',
   email: '',
-  status: '0'
+  status: '0',
 })
 
 // Fetch Data
@@ -84,7 +97,7 @@ async function getList() {
   try {
     const res = await listDept({
       ...queryParams,
-      status: toQueryValue(queryParams.status)
+      status: toQueryValue(queryParams.status),
     })
     deptList.value = toTreeDept(res)
     // Default expand all for demo
@@ -95,7 +108,7 @@ async function getList() {
 }
 
 function expandAll(depts: SysDept[]) {
-  depts.forEach(dept => {
+  depts.forEach((dept) => {
     isExpanded.value[dept.deptId] = true
     if (dept.children) {
       expandAll(dept.children)
@@ -104,7 +117,7 @@ function expandAll(depts: SysDept[]) {
 }
 
 function collapseAll(depts: SysDept[]) {
-  depts.forEach(dept => {
+  depts.forEach((dept) => {
     isExpanded.value[dept.deptId] = false
     if (dept.children) {
       collapseAll(dept.children)
@@ -131,7 +144,7 @@ async function getDeptTree() {
 const deptMap = computed(() => {
   const map = new Map<string, SysDept>()
   const traverse = (nodes: SysDept[]) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       map.set(node.deptId, node)
       if (node.children && node.children.length > 0) {
         traverse(node.children)
@@ -144,9 +157,9 @@ const deptMap = computed(() => {
 
 // Helper to flatten tree for table display with expansion control
 const flattenDepts = computed(() => {
-  const result: (SysDept & { level: number, hasChildren: boolean })[] = []
+  const result: (SysDept & { level: number; hasChildren: boolean })[] = []
   const traverse = (nodes: SysDept[], level = 0) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const hasChildren = !!(node.children && node.children.length > 0)
       result.push({ ...node, level, hasChildren })
       if (hasChildren && isExpanded.value[node.deptId]) {
@@ -170,7 +183,10 @@ function updateDeptStatus(deptId: string, status: string) {
 // 将部门树扁平化为下拉选项，确保拥有有效的 id 与 label 字段
 const flattenedOptions = computed(() => {
   const result: Array<{ id: string; label: string }> = []
-  const traverse = (nodes: Array<{ deptId: string; deptName: string; children?: any[] }>, prefix = '') => {
+  const traverse = (
+    nodes: Array<{ deptId: string; deptName: string; children?: any[] }>,
+    prefix = ''
+  ) => {
     for (const node of nodes || []) {
       result.push({ id: node.deptId, label: prefix + node.deptName })
       if (node.children && node.children.length) {
@@ -223,7 +239,7 @@ async function confirmDelete() {
   if (!deptToDelete.value) return
   try {
     await delDept(deptToDelete.value.deptId)
-    toast({ title: "删除成功", description: "部门已删除" })
+    toast({ title: '删除成功', description: '部门已删除' })
     getList()
     showDeleteDialog.value = false
   } catch (error) {
@@ -233,7 +249,7 @@ async function confirmDelete() {
 
 async function handleSubmit() {
   if (!form.deptName) {
-    toast({ title: "验证失败", description: "部门名称不能为空", variant: "destructive" })
+    toast({ title: '验证失败', description: '部门名称不能为空', variant: 'destructive' })
     return
   }
 
@@ -241,10 +257,10 @@ async function handleSubmit() {
   try {
     if (form.deptId) {
       await updateDept(form)
-      toast({ title: "修改成功", description: "部门信息已更新" })
+      toast({ title: '修改成功', description: '部门信息已更新' })
     } else {
       await addDept(form)
-      toast({ title: "新增成功", description: "部门已创建" })
+      toast({ title: '新增成功', description: '部门已创建' })
     }
     showDialog.value = false
     getList()
@@ -301,9 +317,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">部门管理</h2>
-        <p class="text-muted-foreground">
-          管理系统部门组织架构
-        </p>
+        <p class="text-muted-foreground">管理系统部门组织架构</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" size="sm" @click="toggleExpandAll">
@@ -319,12 +333,14 @@ onMounted(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">部门名称</span>
-        <Input 
-          v-model="queryParams.deptName" 
-          placeholder="请输入部门名称" 
+        <Input
+          v-model="queryParams.deptName"
+          placeholder="请输入部门名称"
           class="w-[200px]"
           @keyup.enter="handleQuery"
         />
@@ -336,7 +352,11 @@ onMounted(() => {
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+            <SelectItem
+              v-for="opt in getStatusOptionsWithAll()"
+              :key="opt.value"
+              :value="opt.value"
+            >
               {{ opt.label }}
             </SelectItem>
           </SelectContent>
@@ -358,7 +378,7 @@ onMounted(() => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="4" :rows="10" />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="flattenDepts.length === 0"
@@ -367,7 +387,7 @@ onMounted(() => {
         action-text="新增部门"
         @action="handleAdd()"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>
@@ -383,12 +403,12 @@ onMounted(() => {
           <TableRow v-for="item in flattenDepts" :key="item.deptId">
             <TableCell>
               <div class="flex items-center" :style="{ paddingLeft: `${item.level * 24}px` }">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  class="h-6 w-6 mr-1 p-0 hover:bg-transparent" 
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-6 w-6 mr-1 p-0 hover:bg-transparent"
+                  :class="{ invisible: !item.hasChildren }"
                   @click="toggleExpand(item.deptId)"
-                  :class="{ 'invisible': !item.hasChildren }"
                 >
                   <ChevronDown v-if="isExpanded[item.deptId]" class="h-4 w-4" />
                   <ChevronRight v-else class="h-4 w-4" />
@@ -413,7 +433,12 @@ onMounted(() => {
               <Button variant="ghost" size="icon" @click="handleAdd(item.deptId)">
                 <Plus class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" class="text-destructive" @click="handleDelete(item)">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="text-destructive"
+                @click="handleDelete(item)"
+              >
                 <Trash2 class="w-4 h-4" />
               </Button>
             </TableCell>
@@ -427,11 +452,9 @@ onMounted(() => {
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{{ isEdit ? '修改部门' : '新增部门' }}</DialogTitle>
-          <DialogDescription>
-            请填写部门信息
-          </DialogDescription>
+          <DialogDescription> 请填写部门信息 </DialogDescription>
         </DialogHeader>
-        
+
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
             <Label for="parentId">上级部门</Label>
@@ -440,8 +463,8 @@ onMounted(() => {
                 <SelectValue placeholder="选择上级部门" />
               </SelectTrigger>
               <SelectContent>
-                 <SelectItem value="0">无上级</SelectItem>
-                 <SelectItem v-for="dept in flattenedOptions" :key="dept.id" :value="dept.id">
+                <SelectItem value="0">无上级</SelectItem>
+                <SelectItem v-for="dept in flattenedOptions" :key="dept.id" :value="dept.id">
                   {{ dept.label }}
                 </SelectItem>
               </SelectContent>
@@ -455,7 +478,7 @@ onMounted(() => {
             </div>
             <div class="grid gap-2">
               <Label for="orderNum">显示排序</Label>
-              <Input id="orderNum" type="number" v-model="form.orderNum" />
+              <Input id="orderNum" v-model="form.orderNum" type="number" />
             </div>
           </div>
 
@@ -493,7 +516,7 @@ onMounted(() => {
 
         <DialogFooter>
           <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button @click="handleSubmit" :disabled="submitLoading">
+          <Button :disabled="submitLoading" @click="handleSubmit">
             <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
             确定
           </Button>

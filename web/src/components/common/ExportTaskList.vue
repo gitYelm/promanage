@@ -70,7 +70,7 @@ async function loadTasks() {
   try {
     const [result, config] = await Promise.all([
       listExportTasks({ pageSize: 20 }),
-      getExportConfig()
+      getExportConfig(),
     ])
     tasks.value = result.rows
     fileExpireHours.value = config.fileExpireHours
@@ -85,16 +85,18 @@ async function loadTasks() {
 function startPolling() {
   if (pollTimer) return
   pollTimer = setInterval(async () => {
-    const pendingTasks = tasks.value.filter(t => t.status === 'pending' || t.status === 'processing')
+    const pendingTasks = tasks.value.filter(
+      (t) => t.status === 'pending' || t.status === 'processing'
+    )
     if (pendingTasks.length === 0) {
       stopPolling()
       return
     }
-    
+
     for (const task of pendingTasks) {
       try {
         const updated = await getExportTask(task.taskId)
-        const idx = tasks.value.findIndex(t => t.taskId === task.taskId)
+        const idx = tasks.value.findIndex((t) => t.taskId === task.taskId)
         if (idx > -1) {
           tasks.value[idx] = updated
           // 完成时自动下载
@@ -136,7 +138,7 @@ async function handleDownload(task: ExportTask) {
 async function handleDelete(task: ExportTask) {
   try {
     await deleteExportTask(task.taskId)
-    tasks.value = tasks.value.filter(t => t.taskId !== task.taskId)
+    tasks.value = tasks.value.filter((t) => t.taskId !== task.taskId)
     toast({ title: '已删除' })
   } catch {
     toast({ title: '删除失败', variant: 'destructive' })
@@ -170,22 +172,28 @@ onUnmounted(() => {
 
 // 监听打开状态
 import { watch } from 'vue'
-watch(() => props.open, (val) => {
-  if (val) {
-    loadTasks()
-    startPolling()
-  } else {
-    stopPolling()
+watch(
+  () => props.open,
+  (val) => {
+    if (val) {
+      loadTasks()
+      startPolling()
+    } else {
+      stopPolling()
+    }
   }
-})
+)
 
 // 监听新任务
-watch(() => props.watchTaskId, (taskId) => {
-  if (taskId) {
-    loadTasks()
-    startPolling()
+watch(
+  () => props.watchTaskId,
+  (taskId) => {
+    if (taskId) {
+      loadTasks()
+      startPolling()
+    }
   }
-})
+)
 </script>
 
 <template>
@@ -194,7 +202,7 @@ watch(() => props.watchTaskId, (taskId) => {
       <SheetHeader>
         <SheetTitle class="flex items-center justify-between">
           导出任务
-          <Button variant="ghost" size="icon" @click="loadTasks" :disabled="loading">
+          <Button variant="ghost" size="icon" :disabled="loading" @click="loadTasks">
             <RefreshCwIcon :class="['h-4 w-4', { 'animate-spin': loading }]" />
           </Button>
         </SheetTitle>
@@ -207,18 +215,11 @@ watch(() => props.watchTaskId, (taskId) => {
         </div>
 
         <div v-else class="space-y-3">
-          <div
-            v-for="task in tasks"
-            :key="task.taskId"
-            class="rounded-lg border p-4 space-y-3"
-          >
+          <div v-for="task in tasks" :key="task.taskId" class="rounded-lg border p-4 space-y-3">
             <!-- 头部 -->
             <div class="flex items-start justify-between">
               <div class="flex items-center gap-2">
-                <component
-                  :is="formatIcons[task.format]"
-                  class="h-5 w-5 text-muted-foreground"
-                />
+                <component :is="formatIcons[task.format]" class="h-5 w-5 text-muted-foreground" />
                 <div>
                   <div class="font-medium text-sm line-clamp-1">{{ task.taskName }}</div>
                   <div class="text-xs text-muted-foreground">{{ formatTime(task.createTime) }}</div>
@@ -237,7 +238,9 @@ watch(() => props.watchTaskId, (taskId) => {
             <div v-if="task.status === 'processing'" class="space-y-1">
               <Progress :model-value="task.progress" class="h-2" />
               <div class="text-xs text-muted-foreground text-right">
-                {{ task.processedRows || 0 }} / {{ task.totalRows || '?' }} 行 ({{ task.progress }}%)
+                {{ task.processedRows || 0 }} / {{ task.totalRows || '?' }} 行 ({{
+                  task.progress
+                }}%)
               </div>
             </div>
 
@@ -253,19 +256,11 @@ watch(() => props.watchTaskId, (taskId) => {
 
             <!-- 操作按钮 -->
             <div class="flex gap-2">
-              <Button
-                v-if="task.status === 'completed'"
-                size="sm"
-                @click="handleDownload(task)"
-              >
+              <Button v-if="task.status === 'completed'" size="sm" @click="handleDownload(task)">
                 <DownloadIcon class="h-4 w-4 mr-1" />
                 下载
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="handleDelete(task)"
-              >
+              <Button variant="ghost" size="sm" @click="handleDelete(task)">
                 <Trash2Icon class="h-4 w-4 mr-1" />
                 删除
               </Button>

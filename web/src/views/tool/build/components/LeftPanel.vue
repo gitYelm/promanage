@@ -144,7 +144,11 @@ function addField(type: FormField['type'] | string) {
           <Button variant="outline" class="w-full justify-start" @click="addField('menubar')">
             <Plus class="mr-2 h-4 w-4" /> 菜单栏 (Menubar)
           </Button>
-          <Button variant="outline" class="w-full justify-start" @click="addField('navigation-menu')">
+          <Button
+            variant="outline"
+            class="w-full justify-start"
+            @click="addField('navigation-menu')"
+          >
             <Plus class="mr-2 h-4 w-4" /> 导航菜单 (Navigation Menu)
           </Button>
           <Button variant="outline" class="w-full justify-start" @click="addField('context-menu')">

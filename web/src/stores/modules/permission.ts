@@ -65,7 +65,7 @@ function transformRoutes(routes: RouteData[]): RouteRecordRaw[] {
       ...(children && { children }),
       ...(route.meta && { meta: route.meta }),
       ...(route.name && { name: route.name }),
-      ...(route.redirect && { redirect: route.redirect })
+      ...(route.redirect && { redirect: route.redirect }),
     } as RouteRecordRaw
 
     result.push(transformed)
@@ -95,6 +95,6 @@ export const usePermissionStore = defineStore('permission', () => {
   return {
     routes,
     addRoutes,
-    generateRoutes
+    generateRoutes,
   }
 })

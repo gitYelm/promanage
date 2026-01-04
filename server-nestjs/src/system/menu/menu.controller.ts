@@ -13,7 +13,6 @@ export class MenuController {
   @Get('getRouters')
   @ApiOperation({ summary: '获取前端路由' })
   async getRouters(@Request() req: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const userId = req.user.userId as string;
     return this.menuService.getRouters(userId);
   }

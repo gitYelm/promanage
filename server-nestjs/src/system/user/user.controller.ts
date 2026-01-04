@@ -71,7 +71,6 @@ export class UserController {
   @ApiOperation({ summary: '获取当前用户信息' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getInfo(@Request() req: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const userId = req.user.userId as string;
     return this.userService.getUserInfo(userId);
   }
@@ -90,7 +89,6 @@ export class UserController {
       avatar?: string;
     },
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const userId = req.user.userId as string;
     return this.userService.updateProfile(userId, body);
   }
@@ -102,7 +100,6 @@ export class UserController {
     @Request() req: any,
     @Body() body: { oldPassword: string; newPassword: string },
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const userId = req.user.userId as string;
     return this.userService.updatePassword(
       userId,

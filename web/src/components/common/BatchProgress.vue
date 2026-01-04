@@ -46,8 +46,8 @@ const emit = defineEmits<Emits>()
 // 统计
 const stats = computed(() => {
   const total = props.items.length
-  const success = props.items.filter(i => i.status === 'success').length
-  const error = props.items.filter(i => i.status === 'error').length
+  const success = props.items.filter((i) => i.status === 'success').length
+  const error = props.items.filter((i) => i.status === 'error').length
   const completed = success + error
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0
   const isComplete = completed === total
@@ -62,19 +62,27 @@ function handleClose() {
 
 function getStatusIcon(status: ProgressItem['status']) {
   switch (status) {
-    case 'success': return CheckCircle2Icon
-    case 'error': return XCircleIcon
-    case 'processing': return Loader2Icon
-    default: return null
+    case 'success':
+      return CheckCircle2Icon
+    case 'error':
+      return XCircleIcon
+    case 'processing':
+      return Loader2Icon
+    default:
+      return null
   }
 }
 
 function getStatusClass(status: ProgressItem['status']) {
   switch (status) {
-    case 'success': return 'text-green-500'
-    case 'error': return 'text-destructive'
-    case 'processing': return 'text-primary animate-spin'
-    default: return 'text-muted-foreground'
+    case 'success':
+      return 'text-green-500'
+    case 'error':
+      return 'text-destructive'
+    case 'processing':
+      return 'text-primary animate-spin'
+    default:
+      return 'text-muted-foreground'
   }
 }
 </script>
@@ -85,8 +93,8 @@ function getStatusClass(status: ProgressItem['status']) {
       <DialogHeader>
         <DialogTitle>{{ title }}</DialogTitle>
         <DialogDescription>
-          已完成 {{ stats.completed }}/{{ stats.total }}，
-          成功 {{ stats.success }}，失败 {{ stats.error }}
+          已完成 {{ stats.completed }}/{{ stats.total }}， 成功 {{ stats.success }}，失败
+          {{ stats.error }}
         </DialogDescription>
       </DialogHeader>
 
@@ -119,10 +127,7 @@ function getStatusClass(status: ProgressItem['status']) {
       </div>
 
       <DialogFooter>
-        <Button
-          :disabled="!closable && !stats.isComplete"
-          @click="handleClose"
-        >
+        <Button :disabled="!closable && !stats.isComplete" @click="handleClose">
           {{ stats.isComplete ? '完成' : '关闭' }}
         </Button>
       </DialogFooter>

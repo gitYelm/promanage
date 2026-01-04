@@ -79,12 +79,14 @@ function handleCloseRight(path: string) {
         <ContextMenu v-for="tab in tabsStore.tabs" :key="tab.path">
           <ContextMenuTrigger>
             <div
-              :class="cn(
-                'group relative flex h-8 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors',
-                tabsStore.activeTab === tab.path
-                  ? 'border-primary/50 bg-primary/10 text-primary'
-                  : 'border-transparent hover:border-border hover:bg-muted'
-              )"
+              :class="
+                cn(
+                  'group relative flex h-8 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors',
+                  tabsStore.activeTab === tab.path
+                    ? 'border-primary/50 bg-primary/10 text-primary'
+                    : 'border-transparent hover:border-border hover:bg-muted'
+                )
+              "
               @click="handleTabClick(tab.path)"
             >
               <span class="max-w-[120px] truncate">{{ tab.title }}</span>
@@ -106,19 +108,11 @@ function handleCloseRight(path: string) {
             <ContextMenuItem :disabled="!tab.closable" @click="handleClose($event, tab.path)">
               关闭当前
             </ContextMenuItem>
-            <ContextMenuItem @click="handleCloseOther(tab.path)">
-              关闭其他
-            </ContextMenuItem>
-            <ContextMenuItem @click="handleCloseLeft(tab.path)">
-              关闭左侧
-            </ContextMenuItem>
-            <ContextMenuItem @click="handleCloseRight(tab.path)">
-              关闭右侧
-            </ContextMenuItem>
+            <ContextMenuItem @click="handleCloseOther(tab.path)"> 关闭其他 </ContextMenuItem>
+            <ContextMenuItem @click="handleCloseLeft(tab.path)"> 关闭左侧 </ContextMenuItem>
+            <ContextMenuItem @click="handleCloseRight(tab.path)"> 关闭右侧 </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem @click="handleCloseAll">
-              关闭所有
-            </ContextMenuItem>
+            <ContextMenuItem @click="handleCloseAll"> 关闭所有 </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
       </div>

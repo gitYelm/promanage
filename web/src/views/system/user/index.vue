@@ -27,7 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -49,28 +48,38 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  Plus, 
-  Search, 
-  FileDown, 
+import {
+  Plus,
+  Search,
+  FileDown,
   FileUp,
-  Trash2, 
-  Loader2, 
-  RefreshCw, 
-  Key, 
+  Trash2,
+  Loader2,
+  RefreshCw,
+  Key,
   Eye,
   CheckSquare,
   XSquare,
   Filter,
   Edit,
   Settings2,
-  Download
+  Download,
 } from 'lucide-vue-next'
-import { listUser, getUser, delUser, addUser, updateUser, resetUserPwd, changeUserStatus, downloadUserTemplate, importUserExcel } from '@/api/system/user'
+import {
+  listUser,
+  getUser,
+  delUser,
+  addUser,
+  updateUser,
+  resetUserPwd,
+  changeUserStatus,
+  downloadUserTemplate,
+  importUserExcel,
+} from '@/api/system/user'
 import { listDeptTree } from '@/api/system/dept'
 import { listRole } from '@/api/system/role'
 import { listPost } from '@/api/system/post'
-import type { SysUser, SysDept, SysRole, SysPost } from '@/api/system/types'
+import type { SysUser, SysRole, SysPost } from '@/api/system/types'
 import DeptTreeSelect from '@/components/business/DeptTreeSelect.vue'
 import UserForm from '@/components/business/UserForm.vue'
 import UserDetailDialog from '@/components/business/UserDetailDialog.vue'
@@ -83,7 +92,7 @@ import ExportDialog from '@/components/common/ExportDialog.vue'
 import ExportTaskList from '@/components/common/ExportTaskList.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
-import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 
 // State
 const loading = ref(true)
@@ -96,7 +105,7 @@ const queryParams = reactive({
   phonenumber: '',
   status: ALL_OPTION_VALUE as string,
   deptId: undefined,
-  roleId: undefined
+  roleId: undefined,
 })
 
 // 高级搜索
@@ -176,7 +185,7 @@ function isColumnVisible(key: string): boolean {
 const hasSelectedRows = computed(() => selectedRows.value.length > 0)
 
 // 计算属性:可见列数量(用于空数据colspan)
-const visibleColumnCount = computed(() => {
+const _visibleColumnCount = computed(() => {
   // 选择框列 + 可见数据列 + 操作列
   return 1 + columns.value.filter((c) => c.visible).length + 1
 })
@@ -208,7 +217,7 @@ const form = reactive<Partial<SysUser>>({
   status: '0',
   remark: '',
   postIds: [],
-  roleIds: []
+  roleIds: [],
 })
 
 const { toast } = useToast()
@@ -230,7 +239,7 @@ async function getList() {
   try {
     const res = await listUser({
       ...queryParams,
-      status: toQueryValue(queryParams.status)
+      status: toQueryValue(queryParams.status),
     })
     userList.value = res.rows
     total.value = res.total
@@ -279,19 +288,19 @@ async function handleUpdate(row: SysUser) {
   resetForm()
   isEdit.value = true
   const userId = row.userId
-  
+
   const [userRes, roleRes, postRes] = await Promise.all([
     getUser(userId),
     listRole({}),
-    listPost({})
+    listPost({}),
   ])
-  
+
   Object.assign(form, userRes.user)
   form.postIds = userRes.postIds
   form.roleIds = userRes.roleIds
   // Password is not needed for update
   delete form.password
-  
+
   roleOptions.value = roleRes.rows
   postOptions.value = postRes.rows
   showDialog.value = true
@@ -307,14 +316,14 @@ async function handleSubmit() {
   try {
     if (form.userId) {
       await updateUser(form)
-      toast({ title: "修改成功", description: "用户信息已更新" })
+      toast({ title: '修改成功', description: '用户信息已更新' })
     } else {
       await addUser(form)
-      toast({ title: "新增成功", description: "用户已创建" })
+      toast({ title: '新增成功', description: '用户已创建' })
     }
     showDialog.value = false
     getList()
-  } catch (error) {
+  } catch {
     // 错误已由请求拦截器处理
   } finally {
     submitLoading.value = false
@@ -337,9 +346,9 @@ async function handleDetail(row: SysUser) {
 function handleBatchDelete() {
   if (selectedRows.value.length === 0) {
     toast({
-      title: "提示",
-      description: "请选择要删除的用户",
-      variant: "destructive"
+      title: '提示',
+      description: '请选择要删除的用户',
+      variant: 'destructive',
     })
     return
   }
@@ -352,15 +361,15 @@ async function confirmBatchDelete() {
     for (const userId of selectedRows.value) {
       await delUser([userId])
     }
-    toast({ 
-      title: "删除成功", 
-      description: `已删除 ${selectedRows.value.length} 个用户` 
+    toast({
+      title: '删除成功',
+      description: `已删除 ${selectedRows.value.length} 个用户`,
     })
     selectedRows.value = []
     selectAll.value = false
     getList()
     showBatchDeleteDialog.value = false
-  } catch (error) {
+  } catch {
     // Error handled by interceptor
   }
 }
@@ -372,9 +381,9 @@ const batchStatusType = ref<'0' | '1'>('0')
 function handleBatchStatus(status: '0' | '1') {
   if (selectedRows.value.length === 0) {
     toast({
-      title: "提示",
-      description: "请选择要操作的用户",
-      variant: "destructive"
+      title: '提示',
+      description: '请选择要操作的用户',
+      variant: 'destructive',
     })
     return
   }
@@ -385,20 +394,20 @@ function handleBatchStatus(status: '0' | '1') {
 async function confirmBatchStatus() {
   const status = batchStatusType.value
   const text = status === '0' ? '启用' : '停用'
-  
+
   try {
     for (const userId of selectedRows.value) {
       await changeUserStatus(userId, status)
     }
-    toast({ 
-      title: "操作成功", 
-      description: `已${text} ${selectedRows.value.length} 个用户` 
+    toast({
+      title: '操作成功',
+      description: `已${text} ${selectedRows.value.length} 个用户`,
     })
     selectedRows.value = []
     selectAll.value = false
     getList()
     showBatchStatusDialog.value = false
-  } catch (error) {
+  } catch {
     // Error handled by interceptor
   }
 }
@@ -434,8 +443,8 @@ function handleImport() {
 async function handleDownloadTemplate() {
   try {
     const res = await downloadUserTemplate()
-    const blob = new Blob([res as any], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    const blob = new Blob([res as any], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
@@ -443,7 +452,7 @@ async function handleDownloadTemplate() {
     link.click()
     URL.revokeObjectURL(link.href)
   } catch {
-    toast({ title: "下载失败", variant: "destructive" })
+    toast({ title: '下载失败', variant: 'destructive' })
   }
 }
 
@@ -456,7 +465,7 @@ function handleFileChange(e: Event) {
 
 async function confirmImport() {
   if (!importFile.value) {
-    toast({ title: "请选择文件", variant: "destructive" })
+    toast({ title: '请选择文件', variant: 'destructive' })
     return
   }
   importLoading.value = true
@@ -464,16 +473,15 @@ async function confirmImport() {
     const result = await importUserExcel(importFile.value, updateSupport.value)
     importResult.value = result
     if (result.success > 0) {
-      toast({ title: "导入完成", description: `成功 ${result.success} 条，失败 ${result.fail} 条` })
+      toast({ title: '导入完成', description: `成功 ${result.success} 条，失败 ${result.fail} 条` })
       getList()
     }
   } catch {
-    toast({ title: "导入失败", variant: "destructive" })
+    toast({ title: '导入失败', variant: 'destructive' })
   } finally {
     importLoading.value = false
   }
 }
-
 
 // 切换单个选择
 function toggleRowSelection(userId: string) {
@@ -484,7 +492,8 @@ function toggleRowSelection(userId: string) {
     selectedRows.value.push(userId)
   }
   // 更新全选状态
-  selectAll.value = selectedRows.value.length > 0 && selectedRows.value.length === userList.value.length
+  selectAll.value =
+    selectedRows.value.length > 0 && selectedRows.value.length === userList.value.length
 }
 
 async function handleDelete(row: SysUser) {
@@ -496,10 +505,10 @@ async function confirmDelete() {
   if (!userToDelete.value) return
   try {
     await delUser([userToDelete.value.userId])
-    toast({ title: "删除成功", description: "用户已删除" })
+    toast({ title: '删除成功', description: '用户已删除' })
     getList()
     showDeleteDialog.value = false
-  } catch (error) {
+  } catch {
     // Error handled by interceptor
   }
 }
@@ -519,9 +528,9 @@ async function confirmResetPwd() {
   if (!userToResetPwd.value || !newPassword.value) return
   try {
     await resetUserPwd(userToResetPwd.value.userId, newPassword.value)
-    toast({ title: "操作成功", description: "密码已重置" })
+    toast({ title: '操作成功', description: '密码已重置' })
     showResetPwdDialog.value = false
-  } catch (error) {
+  } catch {
     // Error handled by interceptor
   }
 }
@@ -543,9 +552,12 @@ function resetForm() {
 
 // Dept Tree Helper
 // 将部门树扁平化为下拉选项，确保拥有有效的 id 与 label 字段
-const flattenedDepts = computed(() => {
+const _flattenedDepts = computed(() => {
   const result: Array<{ id: string; label: string }> = []
-  const traverse = (nodes: Array<{ deptId: string; deptName: string; children?: any[] }>, prefix = '') => {
+  const traverse = (
+    nodes: Array<{ deptId: string; deptName: string; children?: any[] }>,
+    prefix = ''
+  ) => {
     for (const node of nodes || []) {
       result.push({ id: node.deptId, label: prefix + node.deptName })
       if (node.children && node.children.length) {
@@ -584,7 +596,7 @@ function toTreeDept(list: any[]): any[] {
 // 监听全选状态变化
 watch(selectAll, (newVal) => {
   if (newVal) {
-    selectedRows.value = userList.value.map(u => u.userId)
+    selectedRows.value = userList.value.map((u) => u.userId)
   } else {
     selectedRows.value = []
   }
@@ -598,11 +610,11 @@ onMounted(async () => {
   // 加载角色列表用于高级搜索
   const roleRes = await listRole({})
   roleOptions.value = roleRes.rows
-  
+
   // 检查URL参数,如果有edit参数则自动打开编辑对话框
   const editUserId = route.query.edit as string
   if (editUserId) {
-    const user = userList.value.find(u => String(u.userId) === editUserId)
+    const user = userList.value.find((u) => String(u.userId) === editUserId)
     if (user) {
       handleUpdate(user)
     }
@@ -616,22 +628,15 @@ onMounted(async () => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">用户管理</h2>
-        <p class="text-sm text-muted-foreground">
-          管理系统用户、分配角色和部门
-        </p>
+        <p class="text-sm text-muted-foreground">管理系统用户、分配角色和部门</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="sm"
-          :disabled="!hasSelectedRows"
-          @click="handleBatchDelete"
-        >
+        <Button variant="outline" size="sm" :disabled="!hasSelectedRows" @click="handleBatchDelete">
           <Trash2 class="h-4 w-4 sm:mr-2" />
           <span class="hidden sm:inline">批量删除</span>
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           :disabled="!hasSelectedRows"
           @click="handleBatchStatus('0')"
@@ -639,8 +644,8 @@ onMounted(async () => {
           <CheckSquare class="h-4 w-4 sm:mr-2" />
           <span class="hidden sm:inline">批量启用</span>
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           :disabled="!hasSelectedRows"
           @click="handleBatchStatus('1')"
@@ -652,11 +657,8 @@ onMounted(async () => {
           <FileUp class="h-4 w-4 sm:mr-2" />
           <span class="hidden sm:inline">导入</span>
         </Button>
-        <ExportButton
-          size="sm"
-          @export="handleExport"
-        />
-        <Button variant="outline" size="sm" @click="showExportTasks = true" title="导出任务">
+        <ExportButton size="sm" @export="handleExport" />
+        <Button variant="outline" size="sm" title="导出任务" @click="showExportTasks = true">
           <FileDown class="h-4 w-4" />
         </Button>
         <DropdownMenu>
@@ -673,14 +675,17 @@ onMounted(async () => {
               :key="col.key"
               :checked="col.visible"
               :disabled="col.fixed"
-              @select="(e: Event) => { e.preventDefault(); toggleColumn(col.key) }"
+              @select="
+                (e: Event) => {
+                  e.preventDefault()
+                  toggleColumn(col.key)
+                }
+              "
             >
               {{ col.label }}
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem @select="resetColumns">
-              重置默认
-            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem @select="resetColumns"> 重置默认 </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <Button size="sm" @click="handleAdd">
@@ -693,21 +698,23 @@ onMounted(async () => {
     <!-- Filters -->
     <div class="space-y-4">
       <!-- 基础搜索 -->
-      <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-3 sm:p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div
+        class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-3 sm:p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      >
         <div class="flex flex-col sm:flex-row sm:items-center gap-2">
           <span class="text-sm font-medium whitespace-nowrap">用户名</span>
-          <Input 
-            v-model="queryParams.userName" 
-            placeholder="请输入用户名" 
+          <Input
+            v-model="queryParams.userName"
+            placeholder="请输入用户名"
             class="w-full sm:w-[150px]"
             @keyup.enter="handleQuery"
           />
         </div>
         <div class="flex flex-col sm:flex-row sm:items-center gap-2">
           <span class="text-sm font-medium whitespace-nowrap">手机号码</span>
-          <Input 
-            v-model="queryParams.phonenumber" 
-            placeholder="请输入手机号码" 
+          <Input
+            v-model="queryParams.phonenumber"
+            placeholder="请输入手机号码"
             class="w-full sm:w-[150px]"
             @keyup.enter="handleQuery"
           />
@@ -729,7 +736,10 @@ onMounted(async () => {
       </div>
 
       <!-- 高级搜索 -->
-      <div v-if="showAdvancedSearch" class="bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div
+        v-if="showAdvancedSearch"
+        class="bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      >
         <div class="grid grid-cols-3 gap-4">
           <div class="grid gap-2">
             <Label>状态</Label>
@@ -738,7 +748,11 @@ onMounted(async () => {
                 <SelectValue placeholder="请选择状态" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+                <SelectItem
+                  v-for="opt in getStatusOptionsWithAll()"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
                   {{ opt.label }}
                 </SelectItem>
               </SelectContent>
@@ -774,7 +788,7 @@ onMounted(async () => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="6" :rows="10" show-checkbox />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="userList.length === 0"
@@ -783,7 +797,7 @@ onMounted(async () => {
         action-text="新增用户"
         @action="handleAdd"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else class="min-w-[800px]">
         <TableHeader>
@@ -832,18 +846,26 @@ onMounted(async () => {
                 @update:status="user.status = $event as '0' | '1'"
               />
             </TableCell>
-            <TableCell v-if="isColumnVisible('createTime')">{{ formatDate(user.createTime) }}</TableCell>
+            <TableCell v-if="isColumnVisible('createTime')">{{
+              formatDate(user.createTime)
+            }}</TableCell>
             <TableCell class="text-right space-x-2">
-              <Button variant="ghost" size="icon" @click="handleDetail(user)" title="查看详情">
+              <Button variant="ghost" size="icon" title="查看详情" @click="handleDetail(user)">
                 <Eye class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" @click="handleUpdate(user)" title="修改">
+              <Button variant="ghost" size="icon" title="修改" @click="handleUpdate(user)">
                 <Edit class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" @click="handleResetPwd(user)" title="重置密码">
+              <Button variant="ghost" size="icon" title="重置密码" @click="handleResetPwd(user)">
                 <Key class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" class="text-destructive" @click="handleDelete(user)" title="删除">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="text-destructive"
+                title="删除"
+                @click="handleDelete(user)"
+              >
                 <Trash2 class="w-4 h-4" />
               </Button>
             </TableCell>
@@ -865,11 +887,9 @@ onMounted(async () => {
       <DialogContent class="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{{ isEdit ? '修改用户' : '新增用户' }}</DialogTitle>
-          <DialogDescription>
-            请填写用户信息
-          </DialogDescription>
+          <DialogDescription> 请填写用户信息 </DialogDescription>
         </DialogHeader>
-        
+
         <UserForm
           ref="userFormRef"
           v-model="form"
@@ -881,7 +901,7 @@ onMounted(async () => {
 
         <DialogFooter>
           <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button @click="handleSubmit" :disabled="submitLoading">
+          <Button :disabled="submitLoading" @click="handleSubmit">
             <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
             确定
           </Button>
@@ -911,10 +931,7 @@ onMounted(async () => {
     />
 
     <!-- User Detail Dialog -->
-    <UserDetailDialog
-      v-model:open="showDetailDialog"
-      :user="currentUser"
-    />
+    <UserDetailDialog v-model:open="showDetailDialog" :user="currentUser" />
 
     <!-- Reset Password Dialog -->
     <AlertDialog v-model:open="showResetPwdDialog">
@@ -938,9 +955,7 @@ onMounted(async () => {
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction @click="confirmResetPwd">
-            确定
-          </AlertDialogAction>
+          <AlertDialogAction @click="confirmResetPwd"> 确定 </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -951,14 +966,13 @@ onMounted(async () => {
         <AlertDialogHeader>
           <AlertDialogTitle>确认{{ batchStatusType === '0' ? '启用' : '停用' }}?</AlertDialogTitle>
           <AlertDialogDescription>
-            您确定要{{ batchStatusType === '0' ? '启用' : '停用' }}选中的 {{ selectedRows.length }} 个用户吗？
+            您确定要{{ batchStatusType === '0' ? '启用' : '停用' }}选中的
+            {{ selectedRows.length }} 个用户吗？
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction @click="confirmBatchStatus">
-            确定
-          </AlertDialogAction>
+          <AlertDialogAction @click="confirmBatchStatus"> 确定 </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -968,11 +982,9 @@ onMounted(async () => {
       <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>导入用户</DialogTitle>
-          <DialogDescription>
-            上传 Excel 文件批量导入用户数据
-          </DialogDescription>
+          <DialogDescription> 上传 Excel 文件批量导入用户数据 </DialogDescription>
         </DialogHeader>
-        
+
         <div class="space-y-4 py-4">
           <div class="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
             <div class="text-sm">
@@ -987,11 +999,7 @@ onMounted(async () => {
 
           <div class="grid gap-2">
             <Label>选择文件</Label>
-            <Input 
-              type="file" 
-              accept=".xlsx,.xls"
-              @change="handleFileChange"
-            />
+            <Input type="file" accept=".xlsx,.xls" @change="handleFileChange" />
             <p v-if="importFile" class="text-sm text-muted-foreground">
               已选择: {{ importFile.name }}
             </p>
@@ -999,9 +1007,7 @@ onMounted(async () => {
 
           <div class="flex items-center space-x-2">
             <Checkbox id="updateSupport" v-model:checked="updateSupport" />
-            <Label for="updateSupport" class="text-sm font-normal">
-              更新已存在的用户数据
-            </Label>
+            <Label for="updateSupport" class="text-sm font-normal"> 更新已存在的用户数据 </Label>
           </div>
 
           <div v-if="importResult" class="p-4 border rounded-lg space-y-2">
@@ -1039,9 +1045,6 @@ onMounted(async () => {
     />
 
     <!-- Export Task List -->
-    <ExportTaskList
-      v-model:open="showExportTasks"
-      :watch-task-id="lastExportTaskId"
-    />
+    <ExportTaskList v-model:open="showExportTasks" :watch-task-id="lastExportTaskId" />
   </div>
 </template>

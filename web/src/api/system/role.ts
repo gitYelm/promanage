@@ -20,14 +20,14 @@ export function listRole(query: RoleQuery): Promise<PageResult<SysRole>> {
   return request<{ data: PageResult<SysRole> }>({
     url: '/system/role',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: unknown) => (res as { data: PageResult<SysRole> }).data)
 }
 
 export function getRole(roleId: string): Promise<SysRole> {
   return request<{ data: SysRole }>({
     url: `/system/role/${roleId}`,
-    method: 'get'
+    method: 'get',
   }).then((res: unknown) => (res as { data: SysRole }).data)
 }
 
@@ -35,7 +35,7 @@ export function addRole(data: RoleForm) {
   return request<{ msg: string }>({
     url: '/system/role',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -43,14 +43,14 @@ export function updateRole(data: RoleForm) {
   return request<{ msg: string }>({
     url: `/system/role/${data.roleId}`,
     method: 'put',
-    data
+    data,
   })
 }
 
 export function delRole(roleIds: string[]) {
   return request<{ msg: string }>({
     url: `/system/role/${roleIds[0]}`,
-    method: 'delete'
+    method: 'delete',
   })
 }
 
@@ -58,6 +58,6 @@ export function changeRoleStatus(roleId: string, status: string) {
   return request<{ msg: string }>({
     url: '/system/role/changeStatus',
     method: 'put',
-    data: { roleId, status }
+    data: { roleId, status },
   })
 }

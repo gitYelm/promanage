@@ -35,12 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
@@ -50,12 +45,19 @@ import { formatCronExpression, formatDate } from '@/utils/format'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import CronGenerator from '@/components/common/CronGenerator.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
-import { listJob, getJob, delJob, addJob, updateJob, runJob, changeJobStatus } from '@/api/monitor/job'
+import {
+  listJob,
+  getJob,
+  delJob,
+  addJob,
+  updateJob,
+  runJob,
+  changeJobStatus,
+} from '@/api/monitor/job'
 import type { SysJob } from '@/api/system/types'
-import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 
 const { toast } = useToast()
 
@@ -68,7 +70,7 @@ const queryParams = reactive({
   pageSize: 20,
   jobName: '',
   jobGroup: '',
-  status: ALL_OPTION_VALUE as string
+  status: ALL_OPTION_VALUE as string,
 })
 
 const showDialog = ref(false)
@@ -84,7 +86,7 @@ const form = reactive<Partial<SysJob>>({
   misfirePolicy: '1',
   concurrent: '1',
   status: '0',
-  remark: ''
+  remark: '',
 })
 
 // 确认框状态
@@ -92,12 +94,12 @@ const confirmDialog = reactive({
   open: false,
   title: '',
   description: '',
-  action: null as (() => Promise<void>) | null
+  action: null as (() => Promise<void>) | null,
 })
 
 // 更新任务状态
 function updateJobStatus(jobId: string, status: string) {
-  const job = jobList.value.find(j => j.jobId === jobId)
+  const job = jobList.value.find((j) => j.jobId === jobId)
   if (job) {
     job.status = status as '0' | '1'
   }
@@ -109,7 +111,7 @@ async function getList() {
   try {
     const res = await listJob({
       ...queryParams,
-      status: toQueryValue(queryParams.status)
+      status: toQueryValue(queryParams.status),
     })
     jobList.value = res.rows
     total.value = res.total
@@ -151,7 +153,7 @@ function handleDelete(row: SysJob) {
   confirmDialog.description = `确认要删除定时任务"${row.jobName}"吗？`
   confirmDialog.action = async () => {
     await delJob([row.jobId])
-    toast({ title: "删除成功", description: "任务已删除" })
+    toast({ title: '删除成功', description: '任务已删除' })
     getList()
   }
   confirmDialog.open = true
@@ -162,7 +164,7 @@ function handleRun(row: SysJob) {
   confirmDialog.description = `确认要立即执行一次任务"${row.jobName}"吗？`
   confirmDialog.action = async () => {
     await runJob(row.jobId)
-    toast({ title: "执行成功", description: "任务已下发执行" })
+    toast({ title: '执行成功', description: '任务已下发执行' })
   }
   confirmDialog.open = true
 }
@@ -178,11 +180,13 @@ async function handleConfirm() {
   confirmDialog.open = false
 }
 
-
-
 async function handleSubmit() {
   if (!form.jobName || !form.invokeTarget || !form.cronExpression) {
-    toast({ title: "验证失败", description: "任务名称、调用目标和Cron表达式不能为空", variant: "destructive" })
+    toast({
+      title: '验证失败',
+      description: '任务名称、调用目标和Cron表达式不能为空',
+      variant: 'destructive',
+    })
     return
   }
 
@@ -190,10 +194,10 @@ async function handleSubmit() {
   try {
     if (form.jobId) {
       await updateJob(form)
-      toast({ title: "修改成功", description: "任务信息已更新" })
+      toast({ title: '修改成功', description: '任务信息已更新' })
     } else {
       await addJob(form)
-      toast({ title: "新增成功", description: "任务已创建" })
+      toast({ title: '新增成功', description: '任务已创建' })
     }
     showDialog.value = false
     getList()
@@ -227,9 +231,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">定时任务</h2>
-        <p class="text-muted-foreground">
-          管理系统定时调度任务
-        </p>
+        <p class="text-muted-foreground">管理系统定时调度任务</p>
       </div>
       <div class="flex items-center gap-2">
         <Button @click="handleAdd">
@@ -240,12 +242,14 @@ onMounted(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">任务名称</span>
-        <Input 
-          v-model="queryParams.jobName" 
-          placeholder="请输入任务名称" 
+        <Input
+          v-model="queryParams.jobName"
+          placeholder="请输入任务名称"
           class="w-[150px]"
           @keyup.enter="handleQuery"
         />
@@ -269,7 +273,11 @@ onMounted(() => {
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in getStatusOptionsWithAll('normalPause')" :key="opt.value" :value="opt.value">
+            <SelectItem
+              v-for="opt in getStatusOptionsWithAll('normalPause')"
+              :key="opt.value"
+              :value="opt.value"
+            >
               {{ opt.label }}
             </SelectItem>
           </SelectContent>
@@ -291,7 +299,7 @@ onMounted(() => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="7" :rows="10" />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="jobList.length === 0"
@@ -300,7 +308,7 @@ onMounted(() => {
         action-text="新增任务"
         @action="handleAdd"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>
@@ -324,7 +332,10 @@ onMounted(() => {
             <TableCell>
               <div class="space-y-1">
                 <Badge variant="outline">{{ item.cronExpression }}</Badge>
-                <p v-if="formatCronExpression(item.cronExpression)" class="text-xs text-muted-foreground">
+                <p
+                  v-if="formatCronExpression(item.cronExpression)"
+                  class="text-xs text-muted-foreground"
+                >
                   {{ formatCronExpression(item.cronExpression) }}
                 </p>
               </div>
@@ -352,7 +363,12 @@ onMounted(() => {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger as-child>
-                      <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleUpdate(item)">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8"
+                        @click="handleUpdate(item)"
+                      >
                         <Edit class="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
@@ -360,7 +376,12 @@ onMounted(() => {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger as-child>
-                      <Button variant="ghost" size="icon" class="h-8 w-8 text-destructive hover:text-destructive" @click="handleDelete(item)">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8 text-destructive hover:text-destructive"
+                        @click="handleDelete(item)"
+                      >
                         <Trash2 class="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
@@ -383,7 +404,7 @@ onMounted(() => {
     />
 
     <!-- Confirm Dialog -->
-    <AlertDialog :open="confirmDialog.open" @update:open="(v) => confirmDialog.open = v">
+    <AlertDialog :open="confirmDialog.open" @update:open="(v) => (confirmDialog.open = v)">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ confirmDialog.title }}</AlertDialogTitle>
@@ -401,11 +422,9 @@ onMounted(() => {
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{{ isEdit ? '修改任务' : '新增任务' }}</DialogTitle>
-          <DialogDescription>
-            请填写定时任务信息
-          </DialogDescription>
+          <DialogDescription> 请填写定时任务信息 </DialogDescription>
         </DialogHeader>
-        
+
         <div class="grid gap-4 py-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="grid gap-2">
@@ -425,20 +444,24 @@ onMounted(() => {
               </Select>
             </div>
           </div>
-          
+
           <div class="grid gap-2">
             <Label for="invokeTarget">调用方法 *</Label>
-            <Input id="invokeTarget" v-model="form.invokeTarget" placeholder="请输入调用目标字符串" />
+            <Input
+              id="invokeTarget"
+              v-model="form.invokeTarget"
+              placeholder="请输入调用目标字符串"
+            />
             <p class="text-xs text-muted-foreground">Bean调用示例：ryTask.ryParams('ry')</p>
           </div>
 
           <div class="grid gap-2">
-             <Label for="cronExpression">Cron表达式 *</Label>
-             <CronGenerator v-model="form.cronExpression" />
+            <Label for="cronExpression">Cron表达式 *</Label>
+            <CronGenerator v-model="form.cronExpression" />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
-             <div class="grid gap-2">
+            <div class="grid gap-2">
               <Label for="misfirePolicy">错误策略</Label>
               <Select v-model="form.misfirePolicy">
                 <SelectTrigger>
@@ -468,20 +491,20 @@ onMounted(() => {
           <div class="grid gap-2">
             <Label for="status">状态</Label>
             <div class="flex items-center space-x-2">
-               <Switch 
-                 :checked="String(form.status) === '0'"
-                 @update:checked="(v: boolean) => form.status = v ? '0' : '1'"
-               />
-               <span class="text-sm text-muted-foreground">{{ String(form.status) === '0' ? '正常' : '暂停' }}</span>
+              <Switch
+                :checked="String(form.status) === '0'"
+                @update:checked="(v: boolean) => (form.status = v ? '0' : '1')"
+              />
+              <span class="text-sm text-muted-foreground">{{
+                String(form.status) === '0' ? '正常' : '暂停'
+              }}</span>
             </div>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button @click="handleSubmit" :disabled="submitLoading">
-            确定
-          </Button>
+          <Button :disabled="submitLoading" @click="handleSubmit"> 确定 </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

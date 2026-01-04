@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import { type SysLoginLog, type PageResult, type PageQuery } from '@/api/system/types'
+import { type SysLoginLog, type PageResult } from '@/api/system/types'
 
 /** 登录日志查询参数 */
 export interface LogininforQuery {
@@ -16,7 +16,7 @@ export function listLogininfor(query: LogininforQuery): Promise<PageResult<SysLo
   return request<{ data: PageResult<SysLoginLog> }>({
     url: '/monitor/logininfor',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: unknown) => (res as { data: PageResult<SysLoginLog> }).data)
 }
 
@@ -24,13 +24,13 @@ export function delLogininfor(infoIds: string[]) {
   return request<{ msg: string }>({
     url: '/monitor/logininfor',
     method: 'delete',
-    params: { ids: infoIds.join(',') }
+    params: { ids: infoIds.join(',') },
   })
 }
 
 export function cleanLogininfor() {
   return request<{ msg: string }>({
     url: '/monitor/logininfor/clean',
-    method: 'get'
+    method: 'get',
   })
 }

@@ -69,11 +69,14 @@ const canConfirm = computed(() => {
 })
 
 // 重置输入
-watch(() => props.open, (val) => {
-  if (!val) {
-    inputValue.value = ''
+watch(
+  () => props.open,
+  (val) => {
+    if (!val) {
+      inputValue.value = ''
+    }
   }
-})
+)
 
 function handleConfirm() {
   if (!canConfirm.value) return
@@ -95,10 +98,7 @@ function handleOpenChange(val: boolean) {
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle class="flex items-center gap-2">
-          <AlertTriangleIcon
-            v-if="destructive"
-            class="h-5 w-5 text-destructive"
-          />
+          <AlertTriangleIcon v-if="destructive" class="h-5 w-5 text-destructive" />
           {{ title }}
         </AlertDialogTitle>
         <AlertDialogDescription>
@@ -124,10 +124,15 @@ function handleOpenChange(val: boolean) {
         </AlertDialogCancel>
         <AlertDialogAction
           :disabled="!canConfirm"
-          :class="destructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''"
+          :class="
+            destructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''
+          "
           @click="handleConfirm"
         >
-          <span v-if="loading" class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <span
+            v-if="loading"
+            class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          />
           {{ confirmText }}
         </AlertDialogAction>
       </AlertDialogFooter>

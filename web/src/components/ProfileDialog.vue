@@ -27,15 +27,18 @@ const emit = defineEmits<{
 const userStore = useUserStore()
 
 // 监听对话框打开，确保用户信息已加载
-watch(() => props.open, async (newVal) => {
-  if (newVal && !userStore.userId) {
-    try {
-      await userStore.getInfo()
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
+watch(
+  () => props.open,
+  async (newVal) => {
+    if (newVal && !userStore.userId) {
+      try {
+        await userStore.getInfo()
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+      }
     }
   }
-})
+)
 
 // 获取完整的头像URL
 function getAvatarUrl(avatar: string | undefined | null): string {
@@ -68,9 +71,7 @@ const handleSettings = () => {
     <DialogContent class="sm:max-w-[600px]">
       <DialogHeader>
         <DialogTitle>个人资料</DialogTitle>
-        <DialogDescription>
-          查看和管理您的个人信息
-        </DialogDescription>
+        <DialogDescription> 查看和管理您的个人信息 </DialogDescription>
       </DialogHeader>
       <div class="space-y-6 py-4">
         <!-- 头像和基本信息 -->

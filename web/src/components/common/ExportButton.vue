@@ -94,11 +94,7 @@ const isSingleFormat = props.formats.length === 1
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end">
-      <DropdownMenuItem
-        v-for="format in formats"
-        :key="format"
-        @click="handleExport(format)"
-      >
+      <DropdownMenuItem v-for="format in formats" :key="format" @click="handleExport(format)">
         {{ formatLabels[format] }}
       </DropdownMenuItem>
     </DropdownMenuContent>

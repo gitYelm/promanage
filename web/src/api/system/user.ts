@@ -21,14 +21,16 @@ export function listUser(query: UserQuery) {
   return request<{ data: PageResult<SysUser> }>({
     url: '/system/user',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: any) => res.data)
 }
 
 export function getUser(userId: string) {
-  return request<{ data: { user: SysUser; roleIds: string[]; postIds: string[]; roles?: any[]; posts?: any[] } }>({
+  return request<{
+    data: { user: SysUser; roleIds: string[]; postIds: string[]; roles?: any[]; posts?: any[] }
+  }>({
     url: `/system/user/${userId}`,
-    method: 'get'
+    method: 'get',
   }).then((res: any) => res.data)
 }
 
@@ -36,7 +38,7 @@ export function addUser(data: UserForm) {
   return request({
     url: '/system/user',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -44,14 +46,14 @@ export function updateUser(data: UserForm) {
   return request({
     url: `/system/user/${data.userId}`,
     method: 'put',
-    data
+    data,
   })
 }
 
 export function delUser(userIds: string[]) {
   return request({
     url: `/system/user/${userIds[0]}`,
-    method: 'delete'
+    method: 'delete',
   })
 }
 
@@ -59,7 +61,7 @@ export function changeUserStatus(userId: string, status: string) {
   return request({
     url: '/system/user/changeStatus',
     method: 'put',
-    data: { userId, status }
+    data: { userId, status },
   })
 }
 
@@ -67,7 +69,7 @@ export function resetUserPwd(userId: string, password: string) {
   return request({
     url: '/system/user/resetPwd',
     method: 'put',
-    data: { userId, password }
+    data: { userId, password },
   })
 }
 
@@ -81,7 +83,7 @@ export function updateProfile(data: {
   return request({
     url: '/system/user/profile',
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -89,7 +91,7 @@ export function updatePassword(oldPassword: string, newPassword: string) {
   return request({
     url: '/system/user/profile/updatePwd',
     method: 'put',
-    data: { oldPassword, newPassword }
+    data: { oldPassword, newPassword },
   })
 }
 
@@ -99,7 +101,7 @@ export function exportUserExcel(query?: UserQuery) {
     url: '/system/user/export/excel',
     method: 'get',
     params: query,
-    responseType: 'blob'
+    responseType: 'blob',
   })
 }
 
@@ -108,7 +110,7 @@ export function downloadUserTemplate() {
   return request({
     url: '/system/user/import/template',
     method: 'get',
-    responseType: 'blob'
+    responseType: 'blob',
   })
 }
 
@@ -121,6 +123,6 @@ export function importUserExcel(file: File, updateSupport = false) {
     method: 'post',
     params: { updateSupport },
     data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
   }).then((res: any) => res.data)
 }

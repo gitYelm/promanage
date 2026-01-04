@@ -10,12 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -52,7 +47,7 @@ const emit = defineEmits<{
 
 const dialogOpen = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value)
+  set: (value) => emit('update:open', value),
 })
 
 // 登录历史数据
@@ -74,65 +69,70 @@ function getBusinessTypeText(type: number | undefined): string {
     5: '导出',
     6: '导入',
     7: '强退',
-    8: '清空'
+    8: '清空',
   }
   return map[type ?? 0] || '未知'
 }
 
 // 监听用户变化,加载登录历史和操作日志
-watch(() => props.user, async (newUser) => {
-  if (newUser && newUser.userName) {
-    // 加载登录历史
-    loadingLogs.value = true
-    try {
-      const res = await listLogininfor({
-        userName: newUser.userName,
-        pageNum: 1,
-        pageSize: 20
-      })
-      loginLogs.value = res.rows || []
-    } catch (error) {
-      console.error('加载登录历史失败:', error)
-      loginLogs.value = []
-    } finally {
-      loadingLogs.value = false
-    }
+watch(
+  () => props.user,
+  async (newUser) => {
+    if (newUser && newUser.userName) {
+      // 加载登录历史
+      loadingLogs.value = true
+      try {
+        const res = await listLogininfor({
+          userName: newUser.userName,
+          pageNum: 1,
+          pageSize: 20,
+        })
+        loginLogs.value = res.rows || []
+      } catch (error) {
+        console.error('加载登录历史失败:', error)
+        loginLogs.value = []
+      } finally {
+        loadingLogs.value = false
+      }
 
-    // 加载操作日志 (查询URL中包含该用户ID的操作)
-    loadingOperLogs.value = true
-    try {
-      const res = await listOperLog({
-        pageNum: 1,
-        pageSize: 50 // 增加查询数量
-      })
-      // 过滤出与该用户相关的操作 (URL中包含用户ID或用户名)
-      const userId = newUser.userId?.toString()
-      const userName = newUser.userName
-      
-      operLogs.value = (res.rows || []).filter((log: SysOperLog) => {
-        const url = log.operUrl || ''
-        const param = log.operParam || ''
-        
-        // 检查URL或参数中是否包含用户ID或用户名
-        return url.includes(`/system/user/${userId}`) ||
-               url.includes(`user/${userId}`) ||
-               param.includes(`"userId":"${userId}"`) ||
-               param.includes(`userId=${userId}`) ||
-               param.includes(`"userName":"${userName}"`) ||
-               param.includes(`userName=${userName}`)
-      })
-      
-    } catch {
-      // 加载操作日志失败，静默处理
+      // 加载操作日志 (查询URL中包含该用户ID的操作)
+      loadingOperLogs.value = true
+      try {
+        const res = await listOperLog({
+          pageNum: 1,
+          pageSize: 50, // 增加查询数量
+        })
+        // 过滤出与该用户相关的操作 (URL中包含用户ID或用户名)
+        const userId = newUser.userId?.toString()
+        const userName = newUser.userName
+
+        operLogs.value = (res.rows || []).filter((log: SysOperLog) => {
+          const url = log.operUrl || ''
+          const param = log.operParam || ''
+
+          // 检查URL或参数中是否包含用户ID或用户名
+          return (
+            url.includes(`/system/user/${userId}`) ||
+            url.includes(`user/${userId}`) ||
+            param.includes(`"userId":"${userId}"`) ||
+            param.includes(`userId=${userId}`) ||
+            param.includes(`"userName":"${userName}"`) ||
+            param.includes(`userName=${userName}`)
+          )
+        })
+      } catch {
+        // 加载操作日志失败，静默处理
+        operLogs.value = []
+      } finally {
+        loadingOperLogs.value = false
+      }
+    } else {
+      loginLogs.value = []
       operLogs.value = []
-    } finally {
-      loadingOperLogs.value = false
     }
-  } else {
-    loginLogs.value = []
-    operLogs.value = []
-  }
-}, { immediate: true })
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -207,19 +207,18 @@ watch(() => props.user, async (newUser) => {
             <div>
               <h4 class="font-semibold mb-2">角色信息</h4>
               <div class="flex flex-wrap gap-2">
-                <Badge
-                  v-for="role in user?.roles"
-                  :key="role.roleId"
-                  variant="secondary"
-                >
+                <Badge v-for="role in user?.roles" :key="role.roleId" variant="secondary">
                   {{ role.roleName }}
                 </Badge>
-                <span v-if="!user?.roles || user.roles.length === 0" class="text-sm text-muted-foreground">
+                <span
+                  v-if="!user?.roles || user.roles.length === 0"
+                  class="text-sm text-muted-foreground"
+                >
                   暂无角色
                 </span>
               </div>
             </div>
-            
+
             <div>
               <h4 class="font-semibold mb-2">数据权限</h4>
               <div class="text-sm text-muted-foreground">
@@ -227,11 +226,15 @@ watch(() => props.user, async (newUser) => {
                   {{ role.roleName }}:
                   <span class="ml-2">
                     {{
-                      role.dataScope === '1' ? '全部数据权限' :
-                      role.dataScope === '2' ? '自定义数据权限' :
-                      role.dataScope === '3' ? '本部门数据权限' :
-                      role.dataScope === '4' ? '本部门及以下数据权限' :
-                      '仅本人数据权限'
+                      role.dataScope === '1'
+                        ? '全部数据权限'
+                        : role.dataScope === '2'
+                          ? '自定义数据权限'
+                          : role.dataScope === '3'
+                            ? '本部门数据权限'
+                            : role.dataScope === '4'
+                              ? '本部门及以下数据权限'
+                              : '仅本人数据权限'
                     }}
                   </span>
                 </p>
@@ -286,9 +289,7 @@ watch(() => props.user, async (newUser) => {
         <!-- 登录历史 -->
         <TabsContent value="loginlog">
           <ScrollArea class="h-[400px] rounded-md border">
-            <div v-if="loadingLogs" class="p-8 text-center text-muted-foreground">
-              加载中...
-            </div>
+            <div v-if="loadingLogs" class="p-8 text-center text-muted-foreground">加载中...</div>
             <Table v-else>
               <TableHeader>
                 <TableRow>

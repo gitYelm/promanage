@@ -23,14 +23,14 @@ export function listDept(query?: DeptQuery): Promise<SysDept[]> {
   return request<{ data: SysDept[] }>({
     url: '/system/dept',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: unknown) => (res as { data: SysDept[] }).data)
 }
 
 export function getDept(deptId: string): Promise<SysDept> {
   return request<{ data: SysDept }>({
     url: `/system/dept/${deptId}`,
-    method: 'get'
+    method: 'get',
   }).then((res: unknown) => (res as { data: SysDept }).data)
 }
 
@@ -38,7 +38,7 @@ export function addDept(data: DeptForm) {
   return request<{ msg: string }>({
     url: '/system/dept',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -46,28 +46,28 @@ export function updateDept(data: DeptForm) {
   return request<{ msg: string }>({
     url: `/system/dept/${data.deptId}`,
     method: 'put',
-    data
+    data,
   })
 }
 
 export function delDept(deptId: string) {
   return request<{ msg: string }>({
     url: `/system/dept/${deptId}`,
-    method: 'delete'
+    method: 'delete',
   })
 }
 
 export function listDeptExcludeChild(deptId: string): Promise<SysDept[]> {
   return request<{ data: SysDept[] }>({
     url: `/system/dept/list/exclude/${deptId}`,
-    method: 'get'
+    method: 'get',
   }).then((res: unknown) => (res as { data: SysDept[] }).data)
 }
 
 export function listDeptTree(): Promise<SysDept[]> {
   return request<{ data: SysDept[] }>({
     url: '/system/dept',
-    method: 'get'
+    method: 'get',
   }).then((res: unknown) => (res as { data: SysDept[] }).data)
 }
 
@@ -75,6 +75,6 @@ export function changeDeptStatus(deptId: string, status: string) {
   return request({
     url: '/system/dept/changeStatus',
     method: 'put',
-    data: { deptId, status }
+    data: { deptId, status },
   })
 }

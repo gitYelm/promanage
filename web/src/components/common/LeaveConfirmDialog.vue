@@ -22,7 +22,7 @@ withDefaults(defineProps<Props>(), {
   title: '确认离开？',
   description: '您有未保存的更改，离开后将丢失这些修改。',
   cancelText: '继续编辑',
-  confirmText: '放弃更改'
+  confirmText: '放弃更改',
 })
 
 const emit = defineEmits<{

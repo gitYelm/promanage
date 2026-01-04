@@ -10,11 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ClockIcon, CalendarIcon, ChevronDownIcon } from 'lucide-vue-next'
@@ -100,7 +96,7 @@ function selectPreset(value: string) {
 const cronDescription = computed(() => formatCronExpression(cronExpression.value))
 
 // 计算下次执行时间（简化版）
-const nextExecutions = computed(() => {
+const _nextExecutions = computed(() => {
   const results: string[] = []
   const now = new Date()
 
@@ -266,9 +262,9 @@ const nextExecutions = computed(() => {
             <Label class="text-xs">Cron 表达式</Label>
             <Input
               :model-value="cronExpression"
-              @update:model-value="parseCron(String($event))"
               placeholder="秒 分 时 日 月 周"
               class="font-mono"
+              @update:model-value="parseCron(String($event))"
             />
             <p class="text-xs text-muted-foreground">
               格式：秒(0-59) 分(0-59) 时(0-23) 日(1-31) 月(1-12) 周(1-7或SUN-SAT)

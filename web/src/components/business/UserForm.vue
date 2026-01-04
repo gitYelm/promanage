@@ -50,10 +50,8 @@ function getAvatarUrl(avatar: string | undefined | null): string {
 // 表单数据
 const formData = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value) => emit('update:modelValue', value),
 })
-
-
 
 // 表单验证
 const errors = reactive({
@@ -61,7 +59,7 @@ const errors = reactive({
   nickName: '',
   password: '',
   email: '',
-  phonenumber: ''
+  phonenumber: '',
 })
 
 function validateEmail(email: string): boolean {
@@ -77,29 +75,38 @@ function validatePhone(phone: string): boolean {
 }
 
 // 监听字段变化进行验证
-watch(() => formData.value.email, (val) => {
-  if (val && !validateEmail(val)) {
-    errors.email = '邮箱格式不正确'
-  } else {
-    errors.email = ''
+watch(
+  () => formData.value.email,
+  (val) => {
+    if (val && !validateEmail(val)) {
+      errors.email = '邮箱格式不正确'
+    } else {
+      errors.email = ''
+    }
   }
-})
+)
 
-watch(() => formData.value.phonenumber, (val) => {
-  if (val && !validatePhone(val)) {
-    errors.phonenumber = '手机号格式不正确'
-  } else {
-    errors.phonenumber = ''
+watch(
+  () => formData.value.phonenumber,
+  (val) => {
+    if (val && !validatePhone(val)) {
+      errors.phonenumber = '手机号格式不正确'
+    } else {
+      errors.phonenumber = ''
+    }
   }
-})
+)
 
-watch(() => formData.value.password, (val) => {
-  if (!props.isEdit && val && val.length < 6) {
-    errors.password = '密码长度至少6位'
-  } else {
-    errors.password = ''
+watch(
+  () => formData.value.password,
+  (val) => {
+    if (!props.isEdit && val && val.length < 6) {
+      errors.password = '密码长度至少6位'
+    } else {
+      errors.password = ''
+    }
   }
-})
+)
 
 // 头像上传
 async function handleAvatarUpload(event: Event) {
@@ -135,7 +142,7 @@ function togglePost(postId: string, checked: boolean) {
   if (checked) {
     formData.value.postIds.push(postId)
   } else {
-    formData.value.postIds = formData.value.postIds.filter(id => id !== postId)
+    formData.value.postIds = formData.value.postIds.filter((id) => id !== postId)
   }
 }
 
@@ -145,7 +152,7 @@ function toggleRole(roleId: string, checked: boolean) {
   if (checked) {
     formData.value.roleIds.push(roleId)
   } else {
-    formData.value.roleIds = formData.value.roleIds.filter(id => id !== roleId)
+    formData.value.roleIds = formData.value.roleIds.filter((id) => id !== roleId)
   }
 }
 
@@ -155,7 +162,7 @@ function toggleAllPosts() {
   if (formData.value.postIds.length === props.posts.length) {
     formData.value.postIds = []
   } else {
-    formData.value.postIds = props.posts.map(p => p.postId)
+    formData.value.postIds = props.posts.map((p) => p.postId)
   }
 }
 
@@ -165,7 +172,7 @@ function toggleAllRoles() {
   if (formData.value.roleIds.length === props.roles.length) {
     formData.value.roleIds = []
   } else {
-    formData.value.roleIds = props.roles.map(r => r.roleId)
+    formData.value.roleIds = props.roles.map((r) => r.roleId)
   }
 }
 
@@ -173,38 +180,38 @@ function toggleAllRoles() {
 defineExpose({
   validate: () => {
     let isValid = true
-    
+
     if (!formData.value.userName) {
       errors.userName = '用户名不能为空'
       isValid = false
     } else {
       errors.userName = ''
     }
-    
+
     if (!formData.value.nickName) {
       errors.nickName = '昵称不能为空'
       isValid = false
     } else {
       errors.nickName = ''
     }
-    
+
     if (!props.isEdit && !formData.value.password) {
       errors.password = '密码不能为空'
       isValid = false
     }
-    
+
     if (formData.value.email && !validateEmail(formData.value.email)) {
       errors.email = '邮箱格式不正确'
       isValid = false
     }
-    
+
     if (formData.value.phonenumber && !validatePhone(formData.value.phonenumber)) {
       errors.phonenumber = '手机号格式不正确'
       isValid = false
     }
-    
+
     return isValid
-  }
+  },
 })
 </script>
 
@@ -222,12 +229,7 @@ defineExpose({
             <Upload class="mr-2 h-4 w-4" />
             上传头像
           </Button>
-          <input
-            type="file"
-            accept="image/*"
-            class="hidden"
-            @change="handleAvatarUpload"
-          />
+          <input type="file" accept="image/*" class="hidden" @change="handleAvatarUpload" />
         </Label>
         <p class="text-xs text-muted-foreground mt-1">支持 JPG、PNG 格式,大小不超过 2MB</p>
       </div>
@@ -236,9 +238,7 @@ defineExpose({
     <!-- 基本信息 -->
     <div class="grid grid-cols-2 gap-4">
       <div class="grid gap-2">
-        <Label for="userName">
-          用户名 <span class="text-red-500">*</span>
-        </Label>
+        <Label for="userName"> 用户名 <span class="text-red-500">*</span> </Label>
         <Input
           id="userName"
           v-model="formData.userName"
@@ -248,11 +248,9 @@ defineExpose({
         />
         <p v-if="errors.userName" class="text-xs text-red-500">{{ errors.userName }}</p>
       </div>
-      
+
       <div class="grid gap-2">
-        <Label for="nickName">
-          用户昵称 <span class="text-red-500">*</span>
-        </Label>
+        <Label for="nickName"> 用户昵称 <span class="text-red-500">*</span> </Label>
         <Input
           id="nickName"
           v-model="formData.nickName"
@@ -266,11 +264,7 @@ defineExpose({
     <!-- 部门 -->
     <div class="grid gap-2">
       <Label for="deptId">归属部门</Label>
-      <DeptTreeSelect
-        v-model="formData.deptId!"
-        :depts="depts"
-        placeholder="请选择部门"
-      />
+      <DeptTreeSelect v-model="formData.deptId!" :depts="depts" placeholder="请选择部门" />
     </div>
 
     <!-- 联系方式 -->
@@ -285,7 +279,7 @@ defineExpose({
         />
         <p v-if="errors.phonenumber" class="text-xs text-red-500">{{ errors.phonenumber }}</p>
       </div>
-      
+
       <div class="grid gap-2">
         <Label for="email">邮箱</Label>
         <Input
@@ -301,14 +295,8 @@ defineExpose({
 
     <!-- 密码 (仅新增时显示) -->
     <div v-if="!isEdit" class="grid gap-2">
-      <Label for="password">
-        用户密码 <span class="text-red-500">*</span>
-      </Label>
-      <PasswordInput
-        v-model="formData.password!"
-        placeholder="请输入密码(至少6位)"
-        show-strength
-      />
+      <Label for="password"> 用户密码 <span class="text-red-500">*</span> </Label>
+      <PasswordInput v-model="formData.password!" placeholder="请输入密码(至少6位)" show-strength />
       <p v-if="errors.password" class="text-xs text-red-500">{{ errors.password }}</p>
     </div>
 
@@ -327,7 +315,7 @@ defineExpose({
           </SelectContent>
         </Select>
       </div>
-      
+
       <div class="grid gap-2">
         <Label for="status">状态</Label>
         <Select v-model="formData.status">
@@ -347,12 +335,7 @@ defineExpose({
     <div class="grid gap-2">
       <div class="flex items-center justify-between">
         <Label>岗位</Label>
-        <Button
-          variant="link"
-          size="sm"
-          class="h-auto p-0 text-xs"
-          @click="toggleAllPosts"
-        >
+        <Button variant="link" size="sm" class="h-auto p-0 text-xs" @click="toggleAllPosts">
           {{ formData.postIds?.length === posts.length ? '取消全选' : '全选' }}
         </Button>
       </div>
@@ -376,12 +359,7 @@ defineExpose({
     <div class="grid gap-2">
       <div class="flex items-center justify-between">
         <Label>角色</Label>
-        <Button
-          variant="link"
-          size="sm"
-          class="h-auto p-0 text-xs"
-          @click="toggleAllRoles"
-        >
+        <Button variant="link" size="sm" class="h-auto p-0 text-xs" @click="toggleAllRoles">
           {{ formData.roleIds?.length === roles.length ? '取消全选' : '全选' }}
         </Button>
       </div>
@@ -404,11 +382,7 @@ defineExpose({
     <!-- 备注 -->
     <div class="grid gap-2">
       <Label for="remark">备注</Label>
-      <Input
-        id="remark"
-        v-model="formData.remark"
-        placeholder="请输入备注"
-      />
+      <Input id="remark" v-model="formData.remark" placeholder="请输入备注" />
     </div>
   </div>
 </template>

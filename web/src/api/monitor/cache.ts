@@ -19,7 +19,7 @@ export interface CacheInfo {
 export function getCache() {
   return request<{ data: CacheInfo }>({
     url: '/monitor/cache',
-    method: 'get'
+    method: 'get',
   }).then((res: any) => res.data)
 }
 
@@ -27,21 +27,21 @@ export function clearCacheName(cacheName: string) {
   return request<{ msg: string; code: number }>({
     url: '/monitor/cache/clearCacheName',
     method: 'get',
-    params: { cacheName }
+    params: { cacheName },
   }).then((res: any) => res)
 }
 
 export function clearCacheAll() {
   return request<{ msg: string; code: number }>({
     url: '/monitor/cache/clearCacheAll',
-    method: 'get'
+    method: 'get',
   }).then((res: any) => res)
 }
 
 export function listCacheName() {
   return request<{ data: any[] }>({
     url: '/monitor/cache/listCacheName',
-    method: 'get'
+    method: 'get',
   }).then((res: any) => res.data)
 }
 
@@ -49,7 +49,7 @@ export function listCacheKey(cacheName: string) {
   return request<{ data: string[] }>({
     url: '/monitor/cache/listCacheKey',
     method: 'get',
-    params: { cacheName }
+    params: { cacheName },
   }).then((res: any) => res.data)
 }
 
@@ -57,6 +57,6 @@ export function getCacheValue(cacheName: string, cacheKey: string) {
   return request<{ data: any }>({
     url: '/monitor/cache/getCacheValue',
     method: 'get',
-    params: { cacheName, cacheKey }
+    params: { cacheName, cacheKey },
   }).then((res: any) => res.data)
 }

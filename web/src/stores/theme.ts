@@ -26,7 +26,7 @@ export const useThemeStore = defineStore('theme', () => {
   const sidebarItemHeight = useStorage('sidebarItemHeight', 48)
 
   const currentTheme = computed(() => {
-    return themes.find(t => t.name === themeName.value) || themes[0]
+    return themes.find((t) => t.name === themeName.value) || themes[0]
   })
 
   function setTheme(name: string) {
@@ -109,6 +109,6 @@ export const useThemeStore = defineStore('theme', () => {
     setSidebarExpandedWidth,
     setSidebarCollapsedWidth,
     setSidebarItemHeight,
-    resetToDefault
+    resetToDefault,
   }
 })

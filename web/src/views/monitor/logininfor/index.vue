@@ -30,14 +30,13 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { Trash2, RefreshCw, Search } from 'lucide-vue-next'
-import { listLogininfor, delLogininfor, cleanLogininfor, type LogininforQuery } from '@/api/monitor/logininfor'
+import { listLogininfor, cleanLogininfor, type LogininforQuery } from '@/api/monitor/logininfor'
 import type { SysLoginLog } from '@/api/system/types'
 import { formatDate } from '@/utils/format'
-import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
 const { toast } = useToast()
 
@@ -52,11 +51,9 @@ const queryParams = reactive<LogininforQuery & { status: string }>({
   ipaddr: '',
   status: ALL_OPTION_VALUE,
   beginTime: undefined,
-  endTime: undefined
+  endTime: undefined,
 })
 const showCleanDialog = ref(false)
-const showDeleteDialog = ref(false)
-const deleteTarget = ref<SysLoginLog | null>(null)
 
 // Fetch Data
 async function getList() {
@@ -64,7 +61,7 @@ async function getList() {
   try {
     const res = await listLogininfor({
       ...queryParams,
-      status: toQueryValue(queryParams.status)
+      status: toQueryValue(queryParams.status),
     })
     logList.value = res.rows
     total.value = res.total
@@ -88,23 +85,9 @@ function resetQuery() {
   handleQuery()
 }
 
-function confirmDelete(row: SysLoginLog) {
-  deleteTarget.value = row
-  showDeleteDialog.value = true
-}
-
-async function handleDelete() {
-  if (!deleteTarget.value) return
-  await delLogininfor([deleteTarget.value.infoId])
-  toast({ title: "删除成功", description: "日志已删除" })
-  showDeleteDialog.value = false
-  deleteTarget.value = null
-  getList()
-}
-
 async function handleClean() {
   await cleanLogininfor()
-  toast({ title: "清空成功", description: "日志已清空" })
+  toast({ title: '清空成功', description: '日志已清空' })
   showCleanDialog.value = false
   getList()
 }
@@ -120,9 +103,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">登录日志</h2>
-        <p class="text-muted-foreground">
-          记录系统登录日志信息
-        </p>
+        <p class="text-muted-foreground">记录系统登录日志信息</p>
       </div>
       <div class="flex items-center gap-2">
         <AlertDialog v-model:open="showCleanDialog">
@@ -147,21 +128,23 @@ onMounted(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">用户名称</span>
-        <Input 
-          v-model="queryParams.userName" 
-          placeholder="请输入用户名称" 
+        <Input
+          v-model="queryParams.userName"
+          placeholder="请输入用户名称"
           class="w-[150px]"
           @keyup.enter="handleQuery"
         />
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">登录地址</span>
-        <Input 
-          v-model="queryParams.ipaddr" 
-          placeholder="请输入IP地址" 
+        <Input
+          v-model="queryParams.ipaddr"
+          placeholder="请输入IP地址"
           class="w-[150px]"
           @keyup.enter="handleQuery"
         />
@@ -173,7 +156,11 @@ onMounted(() => {
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in getStatusOptionsWithAll('successFail')" :key="opt.value" :value="opt.value">
+            <SelectItem
+              v-for="opt in getStatusOptionsWithAll('successFail')"
+              :key="opt.value"
+              :value="opt.value"
+            >
               {{ opt.label }}
             </SelectItem>
           </SelectContent>
@@ -181,17 +168,9 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">登录时间</span>
-        <Input 
-          v-model="queryParams.beginTime" 
-          type="date" 
-          class="w-[140px]"
-        />
+        <Input v-model="queryParams.beginTime" type="date" class="w-[140px]" />
         <span class="text-muted-foreground">至</span>
-        <Input 
-          v-model="queryParams.endTime" 
-          type="date" 
-          class="w-[140px]"
-        />
+        <Input v-model="queryParams.endTime" type="date" class="w-[140px]" />
       </div>
       <div class="flex gap-2 ml-auto">
         <Button @click="handleQuery">
@@ -209,14 +188,14 @@ onMounted(() => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="8" :rows="10" :show-actions="false" />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="logList.length === 0"
         title="暂无登录日志"
         description="系统登录日志将在此显示"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>

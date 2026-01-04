@@ -23,7 +23,6 @@ export class TokenBlacklistService {
     // 解析 Token 获取过期时间
     let ttl = 60; // 默认最小 60 秒
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const decoded = this.jwtService.decode(token);
       if (
         decoded &&

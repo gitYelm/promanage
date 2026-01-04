@@ -79,7 +79,6 @@ export function formatRelativeTime(dateString: string | undefined): string {
   return `${years}年前`
 }
 
-
 /**
  * 解析 Cron 表达式为人类可读的中文说明
  * 支持 6 位格式: 秒 分 时 日 月 周
@@ -93,12 +92,12 @@ export function formatCronExpression(cron: string | undefined): string {
   if (parts.length < 5 || parts.length > 6) return ''
 
   // 标准化为 6 位 (秒 分 时 日 月 周)
-  let s: string, m: string, h: string, d: string, mo: string, w: string
+  let s: string, m: string, h: string, d: string, _mo: string, w: string
   if (parts.length === 5) {
-    ;[m, h, d, mo, w] = parts as [string, string, string, string, string]
+    ;[m, h, d, _mo, w] = parts as [string, string, string, string, string]
     s = '0'
   } else {
-    ;[s, m, h, d, mo, w] = parts as [string, string, string, string, string, string]
+    ;[s, m, h, d, _mo, w] = parts as [string, string, string, string, string, string]
   }
 
   // 优先匹配常见模式，返回简洁描述
@@ -122,10 +121,20 @@ export function formatCronExpression(cron: string | undefined): string {
   // 每周固定时间
   if (w !== '?' && w !== '*') {
     const weekMap: Record<string, string> = {
-      MON: '周一', TUE: '周二', WED: '周三', THU: '周四',
-      FRI: '周五', SAT: '周六', SUN: '周日',
-      '1': '周日', '2': '周一', '3': '周二', '4': '周三',
-      '5': '周四', '6': '周五', '7': '周六',
+      MON: '周一',
+      TUE: '周二',
+      WED: '周三',
+      THU: '周四',
+      FRI: '周五',
+      SAT: '周六',
+      SUN: '周日',
+      '1': '周日',
+      '2': '周一',
+      '3': '周二',
+      '4': '周三',
+      '5': '周四',
+      '6': '周五',
+      '7': '周六',
     }
     const dayName = weekMap[w.toUpperCase()] || w
     if (h !== '*' && m !== '*') {

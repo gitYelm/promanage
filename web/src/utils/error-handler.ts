@@ -6,9 +6,9 @@ import { toast } from '@/components/ui/toast'
  */
 export function handleError(error: unknown, context?: string) {
   console.error(`[${context || 'Error'}]`, error)
-  
+
   let message = '操作失败'
-  
+
   if (error instanceof Error) {
     message = error.message
   } else if (typeof error === 'string') {
@@ -16,11 +16,11 @@ export function handleError(error: unknown, context?: string) {
   } else if (error && typeof error === 'object' && 'message' in error) {
     message = String((error as any).message)
   }
-  
+
   toast({
     title: '错误',
     description: message,
-    variant: 'destructive'
+    variant: 'destructive',
   })
 }
 

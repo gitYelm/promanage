@@ -13,11 +13,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { Button } from '@/components/ui/button'
 import { Toggle } from '@/components/ui/toggle'
 import { Separator } from '@/components/ui/separator'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -66,12 +62,28 @@ const showImagePopover = ref(false)
 
 // 颜色选项
 const textColors = [
-  '#000000', '#374151', '#6B7280', '#EF4444', '#F97316', '#EAB308',
-  '#22C55E', '#14B8A6', '#3B82F6', '#8B5CF6', '#EC4899', '#F43F5E'
+  '#000000',
+  '#374151',
+  '#6B7280',
+  '#EF4444',
+  '#F97316',
+  '#EAB308',
+  '#22C55E',
+  '#14B8A6',
+  '#3B82F6',
+  '#8B5CF6',
+  '#EC4899',
+  '#F43F5E',
 ]
 
 const highlightColors = [
-  '#FEF08A', '#FED7AA', '#FECACA', '#BBF7D0', '#A5F3FC', '#DDD6FE', '#FBCFE8'
+  '#FEF08A',
+  '#FED7AA',
+  '#FECACA',
+  '#BBF7D0',
+  '#A5F3FC',
+  '#DDD6FE',
+  '#FBCFE8',
 ]
 
 const editor = useEditor({
@@ -335,11 +347,7 @@ function setHighlight(color: string) {
       >
         <Quote class="h-4 w-4" />
       </Toggle>
-      <Toggle
-        size="sm"
-        :pressed="false"
-        @click="editor.chain().focus().setHorizontalRule().run()"
-      >
+      <Toggle size="sm" :pressed="false" @click="editor.chain().focus().setHorizontalRule().run()">
         <Minus class="h-4 w-4" />
       </Toggle>
 

@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateExportTaskDto,
@@ -74,9 +79,7 @@ export class ExportTaskService implements OnModuleInit {
       dto.taskName ||
       `${provider.getModuleName()}导出_${new Date().toLocaleString('zh-CN')}`;
     const fileExpireHours = await this.getFileExpireHours();
-    const expireTime = new Date(
-      Date.now() + fileExpireHours * 60 * 60 * 1000,
-    );
+    const expireTime = new Date(Date.now() + fileExpireHours * 60 * 60 * 1000);
 
     // 创建任务记录
     await this.prisma.sysExportTask.create({

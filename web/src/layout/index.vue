@@ -42,33 +42,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { 
-  LayoutDashboard, 
-  User,
-  PanelLeft,
-  Package2,
-  LogOut,
-  ChevronsUpDown
-} from 'lucide-vue-next'
+import { LayoutDashboard, User, PanelLeft, Package2, LogOut, ChevronsUpDown } from 'lucide-vue-next'
 import * as icons from 'lucide-vue-next'
 import UserMenuButton from '@/components/UserMenuButton.vue'
 import DynamicMenu from '@/components/DynamicMenu.vue'
@@ -85,7 +65,7 @@ const { toast } = useToast()
 // 使用 store 的折叠状态（持久化）
 const isCollapsed = computed({
   get: () => appStore.sidebarCollapsed,
-  set: (val) => appStore.setSidebarCollapsed(val)
+  set: (val) => appStore.setSidebarCollapsed(val),
 })
 
 // 菜单模式
@@ -99,26 +79,37 @@ const activeTopMenu = ref<string>('')
 // 混合模式下的二级菜单
 const mixedSubMenus = computed(() => {
   if (!isMixedMode.value || !activeTopMenu.value) return []
-  const topMenu = menuStore.menuList.find(m => m.path === activeTopMenu.value)
+  const topMenu = menuStore.menuList.find((m) => m.path === activeTopMenu.value)
   return topMenu?.children || []
 })
 
 // 监听路由变化，更新混合模式下的一级菜单选中状态
-watch(() => route.path, (path) => {
-  if (isMixedMode.value) {
-    const topMenu = menuStore.menuList.find(m => 
-      path.startsWith(m.path) || m.children?.some(c => path === (c.path.startsWith('/') ? c.path : `${m.path}/${c.path}`))
-    )
-    if (topMenu) {
-      activeTopMenu.value = topMenu.path
+watch(
+  () => route.path,
+  (path) => {
+    if (isMixedMode.value) {
+      const topMenu = menuStore.menuList.find(
+        (m) =>
+          path.startsWith(m.path) ||
+          m.children?.some(
+            (c) => path === (c.path.startsWith('/') ? c.path : `${m.path}/${c.path}`)
+          )
+      )
+      if (topMenu) {
+        activeTopMenu.value = topMenu.path
+      }
     }
-  }
-}, { immediate: true })
+  },
+  { immediate: true }
+)
 
 // 图标工具函数
 function toPascalCase(str: string): string {
   if (!str) return ''
-  return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')
+  return str
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('')
 }
 
 function getIcon(iconName: string) {
@@ -129,9 +120,9 @@ function getIcon(iconName: string) {
 
 // 侧边栏宽度样式
 const sidebarStyle = computed(() => ({
-  width: isCollapsed.value 
-    ? `${themeStore.sidebarCollapsedWidth}px` 
-    : `${themeStore.sidebarExpandedWidth}px`
+  width: isCollapsed.value
+    ? `${themeStore.sidebarCollapsedWidth}px`
+    : `${themeStore.sidebarExpandedWidth}px`,
 }))
 
 // 页面切换动画类名
@@ -140,7 +131,7 @@ const transitionName = computed(() => {
     slide: 'slide-fade',
     fade: 'fade',
     scale: 'scale',
-    none: ''
+    none: '',
   }
   return map[themeStore.pageTransition] || ''
 })
@@ -188,8 +179,8 @@ const confirmLogout = async () => {
   const loginPath = appStore.siteConfig.loginPath || '/login'
   await userStore.logout()
   toast({
-    title: "退出成功",
-    description: "您已安全退出系统",
+    title: '退出成功',
+    description: '您已安全退出系统',
   })
   router.push(loginPath)
 }
@@ -213,9 +204,13 @@ const handleOpenEditDialog = (userId: string) => {
 <template>
   <div class="flex min-h-screen w-full flex-col bg-muted/40">
     <!-- Desktop Sidebar (normal 和 mixed 模式) -->
-    <aside 
+    <aside
       v-if="isNormalMode || isMixedMode"
-      :class="cn('fixed inset-y-0 left-0 z-10 hidden flex-col border-r bg-background sm:flex transition-all duration-300')"
+      :class="
+        cn(
+          'fixed inset-y-0 left-0 z-10 hidden flex-col border-r bg-background sm:flex transition-all duration-300'
+        )
+      "
       :style="sidebarStyle"
     >
       <nav class="flex flex-col gap-4 px-2 sm:py-5">
@@ -225,7 +220,9 @@ const handleOpenEditDialog = (userId: string) => {
               <img :src="siteLogo" :alt="siteName" class="h-8 max-w-[160px] object-contain" />
             </template>
             <template v-else>
-              <div class="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base">
+              <div
+                class="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
+              >
                 <Package2 class="h-4 w-4 transition-all group-hover:scale-110" />
               </div>
             </template>
@@ -241,18 +238,20 @@ const handleOpenEditDialog = (userId: string) => {
                 <TooltipTrigger as-child>
                   <router-link
                     to="/dashboard"
-                    :class="cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
-                      isActive('/dashboard') ? 'bg-muted text-primary' : 'text-muted-foreground',
-                      isCollapsed ? 'justify-center h-9 w-9 p-0' : ''
-                    )"
+                    :class="
+                      cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
+                        isActive('/dashboard') ? 'bg-muted text-primary' : 'text-muted-foreground',
+                        isCollapsed ? 'justify-center h-9 w-9 p-0' : ''
+                      )
+                    "
                   >
                     <LayoutDashboard class="h-4 w-4" />
                     <span v-if="!isCollapsed">仪表盘</span>
                     <span v-else class="sr-only">仪表盘</span>
                   </router-link>
                 </TooltipTrigger>
-                <TooltipContent side="right" v-if="isCollapsed">仪表盘</TooltipContent>
+                <TooltipContent v-if="isCollapsed" side="right">仪表盘</TooltipContent>
               </Tooltip>
               <DynamicMenu />
             </div>
@@ -262,53 +261,67 @@ const handleOpenEditDialog = (userId: string) => {
                 <TooltipTrigger as-child>
                   <router-link
                     to="/dashboard"
-                    :class="cn(
-                      'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
-                      isActive('/dashboard') ? 'bg-muted text-primary' : 'text-muted-foreground hover:text-primary hover:bg-muted'
-                    )"
+                    :class="
+                      cn(
+                        'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
+                        isActive('/dashboard')
+                          ? 'bg-muted text-primary'
+                          : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                      )
+                    "
                   >
                     <LayoutDashboard class="h-4 w-4" />
                   </router-link>
                 </TooltipTrigger>
                 <TooltipContent side="right">仪表盘</TooltipContent>
               </Tooltip>
-              
+
               <!-- 动态菜单 - 使用 HoverCard 显示子菜单 -->
-              <HoverCard 
-                v-for="menu in menuStore.menuList" 
-                :key="menu.path" 
-                :open-delay="0" 
+              <HoverCard
+                v-for="menu in menuStore.menuList"
+                :key="menu.path"
+                :open-delay="0"
                 :close-delay="100"
               >
                 <HoverCardTrigger as-child>
                   <button
-                    :class="cn(
-                      'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
-                      route.path.startsWith(menu.path) ? 'bg-muted text-primary' : 'text-muted-foreground hover:text-primary hover:bg-muted'
-                    )"
+                    :class="
+                      cn(
+                        'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
+                        route.path.startsWith(menu.path)
+                          ? 'bg-muted text-primary'
+                          : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                      )
+                    "
                   >
                     <component :is="getIcon(menu.meta?.icon)" class="h-4 w-4" />
                   </button>
                 </HoverCardTrigger>
-                <HoverCardContent 
-                  side="right" 
-                  align="start" 
-                  :side-offset="8" 
+                <HoverCardContent
+                  side="right"
+                  align="start"
+                  :side-offset="8"
                   class="w-48 p-2"
-                  @pointerDownOutside="(e: Event) => e.preventDefault()"
+                  @pointer-down-outside="(e: Event) => e.preventDefault()"
                 >
-                  <div class="text-sm font-medium mb-2 px-2 text-foreground">{{ menu.meta?.title }}</div>
+                  <div class="text-sm font-medium mb-2 px-2 text-foreground">
+                    {{ menu.meta?.title }}
+                  </div>
                   <div class="space-y-1">
-                    <router-link 
-                      v-for="child in menu.children" 
+                    <router-link
+                      v-for="child in menu.children"
                       :key="child.path"
                       :to="child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`"
-                      :class="cn(
-                        'flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors',
-                        isActive(child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`) 
-                          ? 'bg-muted text-primary' 
-                          : 'text-muted-foreground hover:bg-muted hover:text-primary'
-                      )"
+                      :class="
+                        cn(
+                          'flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors',
+                          isActive(
+                            child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`
+                          )
+                            ? 'bg-muted text-primary'
+                            : 'text-muted-foreground hover:bg-muted hover:text-primary'
+                        )
+                      "
                     >
                       <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
                       {{ child.meta?.title }}
@@ -322,14 +335,20 @@ const handleOpenEditDialog = (userId: string) => {
           <!-- Mixed 模式：只显示二级菜单 -->
           <template v-if="isMixedMode">
             <div v-if="!isCollapsed && mixedSubMenus.length" class="space-y-1">
-              <router-link 
-                v-for="child in mixedSubMenus" 
+              <router-link
+                v-for="child in mixedSubMenus"
                 :key="child.path"
-                :to="child.path.startsWith('/') ? child.path : `${activeTopMenu}/${child.path}`" 
-                :class="cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:text-primary', 
-                  isActive(child.path.startsWith('/') ? child.path : `${activeTopMenu}/${child.path}`) ? 'bg-muted text-primary' : 'text-muted-foreground'
-                )"
+                :to="child.path.startsWith('/') ? child.path : `${activeTopMenu}/${child.path}`"
+                :class="
+                  cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:text-primary',
+                    isActive(
+                      child.path.startsWith('/') ? child.path : `${activeTopMenu}/${child.path}`
+                    )
+                      ? 'bg-muted text-primary'
+                      : 'text-muted-foreground'
+                  )
+                "
               >
                 <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
                 {{ child.meta?.title }}
@@ -338,12 +357,18 @@ const handleOpenEditDialog = (userId: string) => {
             <div v-else-if="isCollapsed" class="flex flex-col gap-2 items-center">
               <Tooltip v-for="child in mixedSubMenus" :key="child.path" :delay-duration="0">
                 <TooltipTrigger as-child>
-                  <router-link 
+                  <router-link
                     :to="child.path.startsWith('/') ? child.path : `${activeTopMenu}/${child.path}`"
-                    :class="cn(
-                      'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
-                      isActive(child.path.startsWith('/') ? child.path : `${activeTopMenu}/${child.path}`) ? 'bg-muted text-primary' : 'text-muted-foreground hover:text-primary'
-                    )"
+                    :class="
+                      cn(
+                        'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
+                        isActive(
+                          child.path.startsWith('/') ? child.path : `${activeTopMenu}/${child.path}`
+                        )
+                          ? 'bg-muted text-primary'
+                          : 'text-muted-foreground hover:text-primary'
+                      )
+                    "
                   >
                     <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
                   </router-link>
@@ -354,35 +379,59 @@ const handleOpenEditDialog = (userId: string) => {
           </template>
         </TooltipProvider>
       </nav>
-      
+
       <!-- User Profile & Footer -->
       <div class="mt-auto p-4">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="ghost" :class="cn('flex items-center gap-2 w-full h-auto py-2', isCollapsed ? 'justify-center px-0' : 'justify-between px-2')">
+            <Button
+              variant="ghost"
+              :class="
+                cn(
+                  'flex items-center gap-2 w-full h-auto py-2',
+                  isCollapsed ? 'justify-center px-0' : 'justify-between px-2'
+                )
+              "
+            >
               <div class="flex items-center gap-2 overflow-hidden">
                 <Avatar class="h-8 w-8 rounded-lg">
                   <AvatarImage :src="getAvatarUrl(userStore.avatar)" :alt="userStore.name" />
-                  <AvatarFallback class="rounded-lg">{{ userStore.name ? userStore.name.slice(0, 2).toUpperCase() : 'AD' }}</AvatarFallback>
+                  <AvatarFallback class="rounded-lg">{{
+                    userStore.name ? userStore.name.slice(0, 2).toUpperCase() : 'AD'
+                  }}</AvatarFallback>
                 </Avatar>
-                <div v-if="!isCollapsed" class="flex flex-col items-start text-left text-sm leading-tight overflow-hidden">
+                <div
+                  v-if="!isCollapsed"
+                  class="flex flex-col items-start text-left text-sm leading-tight overflow-hidden"
+                >
                   <span class="font-semibold truncate w-full">{{ userStore.name || 'Admin' }}</span>
-                  <span class="text-xs text-muted-foreground truncate w-full">{{ userStore.email || '暂无邮箱' }}</span>
+                  <span class="text-xs text-muted-foreground truncate w-full">{{
+                    userStore.email || '暂无邮箱'
+                  }}</span>
                 </div>
               </div>
               <ChevronsUpDown v-if="!isCollapsed" class="ml-auto h-4 w-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg" side="bottom" align="end" :side-offset="4">
+          <DropdownMenuContent
+            class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            side="bottom"
+            align="end"
+            :side-offset="4"
+          >
             <DropdownMenuLabel class="p-0 font-normal">
               <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar class="h-8 w-8 rounded-lg">
                   <AvatarImage :src="getAvatarUrl(userStore.avatar)" :alt="userStore.name" />
-                  <AvatarFallback class="rounded-lg">{{ userStore.name ? userStore.name.slice(0, 2).toUpperCase() : 'AD' }}</AvatarFallback>
+                  <AvatarFallback class="rounded-lg">{{
+                    userStore.name ? userStore.name.slice(0, 2).toUpperCase() : 'AD'
+                  }}</AvatarFallback>
                 </Avatar>
                 <div class="grid flex-1 text-left text-sm leading-tight">
                   <span class="truncate font-semibold">{{ userStore.name || 'Admin' }}</span>
-                  <span class="truncate text-xs text-muted-foreground">{{ userStore.email || '暂无邮箱' }}</span>
+                  <span class="truncate text-xs text-muted-foreground">{{
+                    userStore.email || '暂无邮箱'
+                  }}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -392,7 +441,10 @@ const handleOpenEditDialog = (userId: string) => {
               个人中心
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem class="text-destructive focus:text-destructive" @click="handleLogoutClick">
+            <DropdownMenuItem
+              class="text-destructive focus:text-destructive"
+              @click="handleLogoutClick"
+            >
               <LogOut class="mr-2 h-4 w-4" />
               退出登录
             </DropdownMenuItem>
@@ -402,228 +454,288 @@ const handleOpenEditDialog = (userId: string) => {
     </aside>
 
     <!-- Main Content -->
-    <div 
+    <div
       class="flex flex-col sm:py-4 transition-all duration-300"
       :class="{ 'sm:pl-[var(--sidebar-width)]': isNormalMode || isMixedMode }"
-      :style="{ '--sidebar-width': (isNormalMode || isMixedMode) ? `${isCollapsed ? themeStore.sidebarCollapsedWidth : themeStore.sidebarExpandedWidth}px` : '0' } as any"
+      :style="
+        {
+          '--sidebar-width':
+            isNormalMode || isMixedMode
+              ? `${isCollapsed ? themeStore.sidebarCollapsedWidth : themeStore.sidebarExpandedWidth}px`
+              : '0',
+        } as any
+      "
     >
-       <header class="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-          <!-- Mobile Toggle -->
-          <Sheet>
-            <SheetTrigger as-child>
-              <Button size="icon" variant="outline" class="sm:hidden">
-                <PanelLeft class="h-5 w-5" />
-                <span class="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" class="w-64 p-0 flex flex-col h-full">
-               <nav class="flex flex-col h-full">
-                <!-- Logo -->
-                <div class="flex items-center gap-2 px-4 py-4 border-b">
-                  <router-link to="/" class="flex items-center gap-2">
-                    <template v-if="siteLogo">
-                      <img :src="siteLogo" :alt="siteName" class="h-8 max-w-[160px] object-contain" />
-                    </template>
-                    <template v-else>
-                      <div class="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-                        <Package2 class="h-4 w-4 transition-all group-hover:scale-110" />
-                      </div>
-                    </template>
-                    <span class="font-semibold text-lg">{{ siteName }}</span>
-                  </router-link>
-                </div>
+      <header
+        class="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6"
+      >
+        <!-- Mobile Toggle -->
+        <Sheet>
+          <SheetTrigger as-child>
+            <Button size="icon" variant="outline" class="sm:hidden">
+              <PanelLeft class="h-5 w-5" />
+              <span class="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" class="w-64 p-0 flex flex-col h-full">
+            <nav class="flex flex-col h-full">
+              <!-- Logo -->
+              <div class="flex items-center gap-2 px-4 py-4 border-b">
+                <router-link to="/" class="flex items-center gap-2">
+                  <template v-if="siteLogo">
+                    <img :src="siteLogo" :alt="siteName" class="h-8 max-w-[160px] object-contain" />
+                  </template>
+                  <template v-else>
+                    <div
+                      class="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground"
+                    >
+                      <Package2 class="h-4 w-4 transition-all group-hover:scale-110" />
+                    </div>
+                  </template>
+                  <span class="font-semibold text-lg">{{ siteName }}</span>
+                </router-link>
+              </div>
 
-                <!-- 菜单区域 -->
-                <div class="flex-1 overflow-y-auto px-2 py-4 space-y-1">
-                  <!-- 仪表盘 -->
-                  <router-link
-                    to="/dashboard"
-                    :class="cn(
+              <!-- 菜单区域 -->
+              <div class="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+                <!-- 仪表盘 -->
+                <router-link
+                  to="/dashboard"
+                  :class="
+                    cn(
                       'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
                       isActive('/dashboard') ? 'bg-muted text-primary' : 'text-muted-foreground'
-                    )"
+                    )
+                  "
+                >
+                  <LayoutDashboard class="h-4 w-4" />
+                  <span>仪表盘</span>
+                </router-link>
+
+                <!-- 动态菜单 -->
+                <Accordion type="single" collapsible class="w-full" default-value="item-0">
+                  <AccordionItem
+                    v-for="(item, index) in menuStore.menuList"
+                    :key="item.path"
+                    :value="`item-${index}`"
+                    class="border-b-0"
                   >
-                    <LayoutDashboard class="h-4 w-4" />
-                    <span>仪表盘</span>
-                  </router-link>
-
-                  <!-- 动态菜单 -->
-                  <Accordion type="single" collapsible class="w-full" default-value="item-0">
-                    <AccordionItem 
-                      v-for="(item, index) in menuStore.menuList" 
-                      :key="item.path" 
-                      :value="`item-${index}`" 
-                      class="border-b-0"
+                    <AccordionTrigger
+                      class="py-2 hover:no-underline hover:text-primary text-muted-foreground px-3 rounded-lg hover:bg-muted/50"
                     >
-                      <AccordionTrigger class="py-2 hover:no-underline hover:text-primary text-muted-foreground px-3 rounded-lg hover:bg-muted/50">
-                        <div class="flex items-center gap-3">
-                          <component :is="getIcon(item.meta?.icon)" class="h-4 w-4" />
-                          {{ item.meta?.title }}
+                      <div class="flex items-center gap-3">
+                        <component :is="getIcon(item.meta?.icon)" class="h-4 w-4" />
+                        {{ item.meta?.title }}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent class="pb-0 pl-4 space-y-1 mt-1">
+                      <router-link
+                        v-for="child in item.children"
+                        :key="child.path"
+                        :to="child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`"
+                        :class="
+                          cn(
+                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:text-primary',
+                            isActive(
+                              child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`
+                            )
+                              ? 'bg-muted text-primary'
+                              : 'text-muted-foreground'
+                          )
+                        "
+                      >
+                        <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
+                        {{ child.meta?.title }}
+                      </router-link>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+
+              <!-- 用户信息 -->
+              <div class="mt-auto shrink-0 border-t p-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <Button
+                      variant="ghost"
+                      class="flex items-center gap-3 w-full h-auto py-2 px-2 justify-between"
+                    >
+                      <div class="flex items-center gap-3 overflow-hidden">
+                        <Avatar class="h-9 w-9 rounded-lg">
+                          <AvatarImage
+                            :src="getAvatarUrl(userStore.avatar)"
+                            :alt="userStore.name"
+                          />
+                          <AvatarFallback class="rounded-lg">{{
+                            userStore.name ? userStore.name.slice(0, 2).toUpperCase() : 'AD'
+                          }}</AvatarFallback>
+                        </Avatar>
+                        <div class="flex-1 min-w-0 text-left">
+                          <p class="text-sm font-medium truncate">
+                            {{ userStore.name || 'Admin' }}
+                          </p>
+                          <p class="text-xs text-muted-foreground truncate">
+                            {{ userStore.email || '暂无邮箱' }}
+                          </p>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent class="pb-0 pl-4 space-y-1 mt-1">
-                        <router-link 
-                          v-for="child in item.children" 
-                          :key="child.path"
-                          :to="child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`" 
-                          :class="cn(
-                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:text-primary', 
-                            isActive(child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`) ? 'bg-muted text-primary' : 'text-muted-foreground'
-                          )"
-                        >
-                          <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
-                          {{ child.meta?.title }}
-                        </router-link>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </div>
+                      </div>
+                      <ChevronsUpDown class="h-4 w-4 text-muted-foreground shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    class="w-[--radix-dropdown-menu-trigger-width] min-w-48 rounded-lg"
+                    side="top"
+                    align="start"
+                    :side-offset="4"
+                  >
+                    <DropdownMenuItem @click="handleProfile">
+                      <User class="mr-2 h-4 w-4" />
+                      个人中心
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      class="text-destructive focus:text-destructive"
+                      @click="handleLogoutClick"
+                    >
+                      <LogOut class="mr-2 h-4 w-4" />
+                      退出登录
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </nav>
+          </SheetContent>
+        </Sheet>
 
-                <!-- 用户信息 -->
-                <div class="mt-auto shrink-0 border-t p-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" class="flex items-center gap-3 w-full h-auto py-2 px-2 justify-between">
-                        <div class="flex items-center gap-3 overflow-hidden">
-                          <Avatar class="h-9 w-9 rounded-lg">
-                            <AvatarImage :src="getAvatarUrl(userStore.avatar)" :alt="userStore.name" />
-                            <AvatarFallback class="rounded-lg">{{ userStore.name ? userStore.name.slice(0, 2).toUpperCase() : 'AD' }}</AvatarFallback>
-                          </Avatar>
-                          <div class="flex-1 min-w-0 text-left">
-                            <p class="text-sm font-medium truncate">{{ userStore.name || 'Admin' }}</p>
-                            <p class="text-xs text-muted-foreground truncate">{{ userStore.email || '暂无邮箱' }}</p>
-                          </div>
-                        </div>
-                        <ChevronsUpDown class="h-4 w-4 text-muted-foreground shrink-0" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent class="w-[--radix-dropdown-menu-trigger-width] min-w-48 rounded-lg" side="top" align="start" :side-offset="4">
-                      <DropdownMenuItem @click="handleProfile">
-                        <User class="mr-2 h-4 w-4" />
-                        个人中心
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem class="text-destructive focus:text-destructive" @click="handleLogoutClick">
-                        <LogOut class="mr-2 h-4 w-4" />
-                        退出登录
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </nav>
-            </SheetContent>
-          </Sheet>
+        <!-- Desktop Collapse Toggle (normal 和 mixed 模式) -->
+        <Button
+          v-if="isNormalMode || isMixedMode"
+          size="icon"
+          variant="outline"
+          class="hidden sm:flex"
+          @click="toggleSidebar"
+        >
+          <PanelLeft class="h-5 w-5" />
+          <span class="sr-only">Toggle Sidebar</span>
+        </Button>
 
-          <!-- Desktop Collapse Toggle (normal 和 mixed 模式) -->
-          <Button v-if="isNormalMode || isMixedMode" size="icon" variant="outline" class="hidden sm:flex" @click="toggleSidebar">
-             <PanelLeft class="h-5 w-5" />
-             <span class="sr-only">Toggle Sidebar</span>
-          </Button>
+        <!-- Top 模式：Logo -->
+        <div v-if="isTopMode" class="hidden sm:flex items-center gap-2 shrink-0">
+          <router-link to="/" class="flex items-center gap-2">
+            <template v-if="siteLogo">
+              <img :src="siteLogo" :alt="siteName" class="h-8 max-w-[160px] object-contain" />
+            </template>
+            <template v-else>
+              <div
+                class="group flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+              >
+                <Package2 class="h-4 w-4" />
+              </div>
+            </template>
+            <span class="font-semibold text-lg whitespace-nowrap">{{ siteName }}</span>
+          </router-link>
+        </div>
 
-          <!-- Top 模式：Logo -->
-          <div v-if="isTopMode" class="hidden sm:flex items-center gap-2 shrink-0">
-            <router-link to="/" class="flex items-center gap-2">
-              <template v-if="siteLogo">
-                <img :src="siteLogo" :alt="siteName" class="h-8 max-w-[160px] object-contain" />
-              </template>
-              <template v-else>
-                <div class="group flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Package2 class="h-4 w-4" />
-                </div>
-              </template>
-              <span class="font-semibold text-lg whitespace-nowrap">{{ siteName }}</span>
-            </router-link>
-          </div>
-
-          <!-- Top 模式 / Mixed 模式：顶部菜单 -->
-          <NavigationMenu v-if="isTopMode || isMixedMode" class="hidden sm:flex">
-            <NavigationMenuList>
-              <!-- 仪表盘 -->
-              <NavigationMenuItem>
-                <router-link to="/dashboard">
-                  <NavigationMenuLink 
-                    :class="cn(
+        <!-- Top 模式 / Mixed 模式：顶部菜单 -->
+        <NavigationMenu v-if="isTopMode || isMixedMode" class="hidden sm:flex">
+          <NavigationMenuList>
+            <!-- 仪表盘 -->
+            <NavigationMenuItem>
+              <router-link to="/dashboard">
+                <NavigationMenuLink
+                  :class="
+                    cn(
                       'group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50',
                       isActive('/dashboard') && 'bg-accent text-accent-foreground'
-                    )"
-                  >
-                    <LayoutDashboard class="mr-2 h-4 w-4" />
-                    仪表盘
-                  </NavigationMenuLink>
-                </router-link>
-              </NavigationMenuItem>
+                    )
+                  "
+                >
+                  <LayoutDashboard class="mr-2 h-4 w-4" />
+                  仪表盘
+                </NavigationMenuLink>
+              </router-link>
+            </NavigationMenuItem>
 
-              <!-- Top 模式：展开子菜单 -->
-              <template v-if="isTopMode">
-                <NavigationMenuItem v-for="menu in menuStore.menuList" :key="menu.path">
-                  <NavigationMenuTrigger class="h-9">
-                    <component :is="getIcon(menu.meta?.icon)" class="mr-2 h-4 w-4" />
-                    {{ menu.meta?.title }}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul class="grid w-[200px] gap-1 p-2">
-                      <li v-for="child in menu.children" :key="child.path">
-                        <router-link :to="child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`">
-                          <NavigationMenuLink 
-                            :class="cn(
+            <!-- Top 模式：展开子菜单 -->
+            <template v-if="isTopMode">
+              <NavigationMenuItem v-for="menu in menuStore.menuList" :key="menu.path">
+                <NavigationMenuTrigger class="h-9">
+                  <component :is="getIcon(menu.meta?.icon)" class="mr-2 h-4 w-4" />
+                  {{ menu.meta?.title }}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul class="grid w-[200px] gap-1 p-2">
+                    <li v-for="child in menu.children" :key="child.path">
+                      <router-link
+                        :to="child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`"
+                      >
+                        <NavigationMenuLink
+                          :class="
+                            cn(
                               'block select-none rounded-md p-2 text-sm leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
-                              isActive(child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`) && 'bg-accent'
-                            )"
-                          >
-                            <div class="flex items-center gap-2">
-                              <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
-                              {{ child.meta?.title }}
-                            </div>
-                          </NavigationMenuLink>
-                        </router-link>
-                      </li>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </template>
+                              isActive(
+                                child.path.startsWith('/')
+                                  ? child.path
+                                  : `${menu.path}/${child.path}`
+                              ) && 'bg-accent'
+                            )
+                          "
+                        >
+                          <div class="flex items-center gap-2">
+                            <component :is="getIcon(child.meta?.icon)" class="h-4 w-4" />
+                            {{ child.meta?.title }}
+                          </div>
+                        </NavigationMenuLink>
+                      </router-link>
+                    </li>
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </template>
 
-              <!-- Mixed 模式：一级菜单作为切换按钮 -->
-              <template v-if="isMixedMode">
-                <NavigationMenuItem v-for="menu in menuStore.menuList" :key="menu.path">
-                  <NavigationMenuLink 
-                    :class="cn(
+            <!-- Mixed 模式：一级菜单作为切换按钮 -->
+            <template v-if="isMixedMode">
+              <NavigationMenuItem v-for="menu in menuStore.menuList" :key="menu.path">
+                <NavigationMenuLink
+                  :class="
+                    cn(
                       'group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer',
                       activeTopMenu === menu.path && 'bg-accent text-accent-foreground'
-                    )"
-                    @click="activeTopMenu = menu.path"
-                  >
-                    <component :is="getIcon(menu.meta?.icon)" class="mr-2 h-4 w-4" />
-                    {{ menu.meta?.title }}
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              </template>
-            </NavigationMenuList>
-          </NavigationMenu>
+                    )
+                  "
+                  @click="activeTopMenu = menu.path"
+                >
+                  <component :is="getIcon(menu.meta?.icon)" class="mr-2 h-4 w-4" />
+                  {{ menu.meta?.title }}
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </template>
+          </NavigationMenuList>
+        </NavigationMenu>
 
-          <div class="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-            <div class="ml-auto flex-1 sm:flex-initial">
-            </div>
-            <ThemeCustomizer />
-            <ThemeToggle />
-            <UserMenuButton />
-          </div>
-       </header>
-       
-       <!-- 标签页 -->
-       <TabsView v-if="themeStore.showTabs" />
-       
-       <main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-         <RouterView v-slot="{ Component }">
-           <Transition :name="transitionName" mode="out-in">
-             <component :is="Component" />
-           </Transition>
-         </RouterView>
-       </main>
+        <div class="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
+          <div class="ml-auto flex-1 sm:flex-initial"></div>
+          <ThemeCustomizer />
+          <ThemeToggle />
+          <UserMenuButton />
+        </div>
+      </header>
+
+      <!-- 标签页 -->
+      <TabsView v-if="themeStore.showTabs" />
+
+      <main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <RouterView v-slot="{ Component }">
+          <Transition :name="transitionName" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
+      </main>
     </div>
 
     <!-- 个人资料对话框 -->
-    <ProfileDialog 
-      v-model:open="showProfile" 
+    <ProfileDialog
+      v-model:open="showProfile"
       @open-settings="showSettings = true"
       @open-edit-dialog="handleOpenEditDialog"
     />

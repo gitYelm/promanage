@@ -35,7 +35,7 @@ export function login(data: LoginData) {
   return request<LoginResult>({
     url: '/auth/login',
     method: 'post',
-    data: data
+    data: data,
   })
 }
 
@@ -43,7 +43,7 @@ export function login(data: LoginData) {
 export function getCaptchaImage() {
   return request<CaptchaResult>({
     url: '/auth/captchaImage',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -51,7 +51,7 @@ export function getCaptchaImage() {
 export function getInfo() {
   return request({
     url: '/system/user/getInfo',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -59,7 +59,7 @@ export function getInfo() {
 export function logout() {
   return request({
     url: '/auth/logout',
-    method: 'post'
+    method: 'post',
   })
 }
 
@@ -67,7 +67,7 @@ export function logout() {
 export function getRouters() {
   return request({
     url: '/getRouters',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -77,7 +77,7 @@ export function getRouters() {
 export function getTwoFactorStatus() {
   return request<TwoFactorStatusResult>({
     url: '/auth/twoFactor/status',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -86,7 +86,7 @@ export function verifyTwoFactor(data: { tempToken: string; code: string }) {
   return request<{ token: string }>({
     url: '/auth/twoFactor/verify',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -94,7 +94,7 @@ export function verifyTwoFactor(data: { tempToken: string; code: string }) {
 export function getTwoFactorSetup() {
   return request<TwoFactorSetupResult>({
     url: '/auth/twoFactor/setup',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -103,7 +103,7 @@ export function enableTwoFactor(data: { secret: string; code: string }) {
   return request({
     url: '/auth/twoFactor/enable',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -111,6 +111,6 @@ export function enableTwoFactor(data: { secret: string; code: string }) {
 export function disableTwoFactor() {
   return request({
     url: '/auth/twoFactor/disable',
-    method: 'post'
+    method: 'post',
   })
 }

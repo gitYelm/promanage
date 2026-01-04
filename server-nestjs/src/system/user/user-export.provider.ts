@@ -25,7 +25,7 @@ export class UserExportProvider implements ExportDataProvider, OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private exportTaskService: ExportTaskService,
-  ) { }
+  ) {}
 
   onModuleInit() {
     // 注册到导出任务服务

@@ -9,9 +9,7 @@ const docType = ref<DocType>('swagger')
 
 const docUrl = computed(() => {
   const apiUrl = import.meta.env.VITE_API_URL || ''
-  return docType.value === 'swagger'
-    ? `${apiUrl}/api-docs`
-    : `${apiUrl}/redoc`
+  return docType.value === 'swagger' ? `${apiUrl}/api-docs` : `${apiUrl}/redoc`
 })
 
 function openInNewWindow() {
@@ -41,11 +39,7 @@ function openInNewWindow() {
 
     <!-- API Docs iframe -->
     <div class="flex-1 min-h-0">
-      <iframe
-        :src="docUrl"
-        class="w-full h-full border-0"
-        title="API 文档"
-      />
+      <iframe :src="docUrl" class="w-full h-full border-0" title="API 文档" />
     </div>
   </div>
 </template>

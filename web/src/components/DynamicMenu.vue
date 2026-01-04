@@ -18,7 +18,7 @@ const themeStore = useThemeStore()
 
 // 菜单项高度样式
 const menuItemStyle = computed(() => ({
-  height: `${themeStore.sidebarItemHeight}px`
+  height: `${themeStore.sidebarItemHeight}px`,
 }))
 
 const menuList = computed(() => menuStore.menuList)
@@ -30,7 +30,7 @@ function toPascalCase(str: string): string {
   if (!str) return ''
   return str
     .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join('')
 }
 
@@ -44,13 +44,13 @@ function getIcon(iconName: string) {
 
 <template>
   <Accordion type="single" collapsible class="w-full" default-value="item-0">
-    <AccordionItem 
-      v-for="(item, index) in menuList" 
-      :key="item.path" 
-      :value="`item-${index}`" 
+    <AccordionItem
+      v-for="(item, index) in menuList"
+      :key="item.path"
+      :value="`item-${index}`"
       class="border-b-0"
     >
-      <AccordionTrigger 
+      <AccordionTrigger
         class="hover:no-underline hover:text-primary text-muted-foreground px-3 rounded-lg hover:bg-muted/50"
         :style="menuItemStyle"
       >
@@ -60,14 +60,18 @@ function getIcon(iconName: string) {
         </div>
       </AccordionTrigger>
       <AccordionContent class="pb-0 pl-4 space-y-1 mt-1">
-        <router-link 
-          v-for="child in item.children" 
+        <router-link
+          v-for="child in item.children"
           :key="child.path"
-          :to="child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`" 
-          :class="cn(
-            'flex items-center gap-3 rounded-lg px-3 text-sm transition-all hover:text-primary', 
-            isActive(child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`) ? 'bg-muted text-primary' : 'text-muted-foreground'
-          )"
+          :to="child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`"
+          :class="
+            cn(
+              'flex items-center gap-3 rounded-lg px-3 text-sm transition-all hover:text-primary',
+              isActive(child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`)
+                ? 'bg-muted text-primary'
+                : 'text-muted-foreground'
+            )
+          "
           :style="menuItemStyle"
         >
           <component :is="getIcon(child.meta.icon)" class="h-4 w-4" />

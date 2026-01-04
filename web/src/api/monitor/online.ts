@@ -23,13 +23,13 @@ export function listOnline(query: OnlineQuery): Promise<PageResult<SysUserOnline
   return request<{ data: PageResult<SysUserOnline> }>({
     url: '/monitor/online/list',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: unknown) => (res as { data: PageResult<SysUserOnline> }).data)
 }
 
 export function forceLogout(tokenId: string) {
   return request<{ msg: string }>({
     url: `/monitor/online/${tokenId}`,
-    method: 'delete'
+    method: 'delete',
   })
 }

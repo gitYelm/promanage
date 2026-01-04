@@ -45,8 +45,10 @@ const changelog: ChangelogEntry[] = [
       { type: 'perf', content: '分页列表默认每页 20 条数据' },
       { type: 'perf', content: '优化登录日志表格列宽和行高' },
       { type: 'perf', content: '优化字典管理页面交互体验' },
+      { type: 'perf', content: '升级 ESLint v9 flat config，优化前后端代码规范检查' },
       { type: 'refactor', content: '统一所有页面的状态筛选下拉框' },
       { type: 'refactor', content: '接口文档路由改为 /tool/apidoc' },
+      { type: 'refactor', content: '清理未使用的导入和变量，修复代码规范问题' },
     ],
   },
   {
@@ -58,7 +60,7 @@ const changelog: ChangelogEntry[] = [
       { type: 'fix', content: '修复 Swagger 接口文档在 Docker 环境下无法加载' },
       { type: 'perf', content: '数据库改由 Prisma 统一管理，移除 SQL 文件初始化' },
       { type: 'perf', content: 'db.sh 脚本优化：端口配置、备份恢复交互式选择' },
-      { type: 'perf', content: 'nginx 添加 /api-docs 代理支持 Swagger UI' },
+      { type: 'perf', content: 'nginx 添加 /api-docs 和 /redoc 代理支持接口文档' },
     ],
   },
   {
@@ -105,11 +107,7 @@ const changelog: ChangelogEntry[] = [
         </CardHeader>
         <CardContent>
           <ul class="space-y-3">
-            <li
-              v-for="(change, idx) in entry.changes"
-              :key="idx"
-              class="flex items-start gap-3"
-            >
+            <li v-for="(change, idx) in entry.changes" :key="idx" class="flex items-start gap-3">
               <Badge :variant="typeConfig[change.type].variant" class="shrink-0 mt-0.5">
                 <component :is="typeConfig[change.type].icon" class="h-3 w-3 mr-1" />
                 {{ typeConfig[change.type].label }}

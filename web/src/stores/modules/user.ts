@@ -31,7 +31,7 @@ export const useUserStore = defineStore('user', {
     roles: [],
     roleList: [],
     permissions: [],
-    isLoggedIn: false
+    isLoggedIn: false,
   }),
   actions: {
     // 登录（不自动设置 token，用于两步验证场景）
@@ -43,15 +43,15 @@ export const useUserStore = defineStore('user', {
       // 登录前先清除旧 token，避免状态残留
       removeToken()
       this.token = ''
-      
+
       const res = await login(userInfo)
       const data = res.data as { token?: string; requireTwoFactor?: boolean; tempToken?: string }
-      
+
       // 如果需要两步验证，不设置 token
       if (data.requireTwoFactor) {
         return res
       }
-      
+
       if (data.token) {
         this.token = data.token
         setToken(data.token)
@@ -62,7 +62,7 @@ export const useUserStore = defineStore('user', {
     async getInfo() {
       const res = await getInfo()
       const data = res.data // { user, roles, roleList, permissions }
-      
+
       if (data.roles && data.roles.length > 0) {
         this.roles = data.roles
         this.roleList = data.roleList || []
@@ -71,7 +71,7 @@ export const useUserStore = defineStore('user', {
         this.roles = ['ROLE_DEFAULT']
         this.roleList = []
       }
-      
+
       this.userId = data.user.userId?.toString() || ''
       this.name = data.user.nickName || data.user.userName
       this.avatar = data.user.avatar || ''
@@ -91,10 +91,10 @@ export const useUserStore = defineStore('user', {
       this.permissions = []
       this.isLoggedIn = false
       removeToken()
-      
+
       // 清空菜单缓存
       const menuStore = useMenuStore()
       menuStore.clearMenus()
-    }
-  }
+    },
+  },
 })

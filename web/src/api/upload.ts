@@ -18,8 +18,8 @@ export function uploadAvatar(file: File): Promise<UploadResult> {
     method: 'post',
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+      'Content-Type': 'multipart/form-data',
+    },
   }).then((res: unknown) => (res as { data: UploadResult }).data)
 }
 
@@ -34,7 +34,7 @@ export function uploadSystem(file: File): Promise<UploadResult> {
     method: 'post',
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+      'Content-Type': 'multipart/form-data',
+    },
   }).then((res: unknown) => (res as { data: UploadResult }).data)
 }

@@ -41,7 +41,7 @@ function loadView(view: string) {
 
 // 转换菜单为路由
 function filterAsyncRouter(asyncRouterMap: MenuItem[]): RouteRecordRaw[] {
-  return asyncRouterMap.map(route => {
+  return asyncRouterMap.map((route) => {
     const routeRecord: any = {
       path: route.path,
       name: route.name,
@@ -74,7 +74,7 @@ function filterAsyncRouter(asyncRouterMap: MenuItem[]): RouteRecordRaw[] {
 // 收集路由名称（用于移除动态路由）
 function collectRouteNames(routes: RouteRecordRaw[]): string[] {
   const names: string[] = []
-  routes.forEach(route => {
+  routes.forEach((route) => {
     if (route.name) {
       names.push(route.name as string)
     }
@@ -105,18 +105,18 @@ export const useMenuStore = defineStore('menu', () => {
   function registerRoutes(menus: MenuItem[]) {
     // 先移除旧的动态路由
     removeRoutes()
-    
+
     const accessRoutes = filterAsyncRouter(menus)
     addedRouteNames = collectRouteNames(accessRoutes)
-    
-    accessRoutes.forEach(route => {
+
+    accessRoutes.forEach((route) => {
       router.addRoute(route)
     })
   }
 
   // 移除动态路由
   function removeRoutes() {
-    addedRouteNames.forEach(name => {
+    addedRouteNames.forEach((name) => {
       if (router.hasRoute(name)) {
         router.removeRoute(name)
       }
@@ -130,17 +130,17 @@ export const useMenuStore = defineStore('menu', () => {
     if (menuList.value.length > 0 && checkRoutesRegistered()) {
       return menuList.value
     }
-    
+
     loading.value = true
     try {
       const res = await getRouters()
       menuList.value = res.data || []
-      
+
       // 动态注册路由
       if (menuList.value.length > 0) {
         registerRoutes(menuList.value)
       }
-      
+
       return menuList.value
     } catch (error) {
       console.error('获取菜单失败:', error)
@@ -160,6 +160,6 @@ export const useMenuStore = defineStore('menu', () => {
     menuList,
     loading,
     fetchMenus,
-    clearMenus
+    clearMenus,
   }
 })

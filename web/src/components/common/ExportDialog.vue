@@ -59,7 +59,11 @@ const formatOptions = [
 // 范围选项
 const scopeOptions = computed(() => [
   { value: 'all', label: '全部数据' },
-  { value: 'selected', label: `选中数据 (${props.selectedCount || 0} 条)`, disabled: !props.selectedCount },
+  {
+    value: 'selected',
+    label: `选中数据 (${props.selectedCount || 0} 条)`,
+    disabled: !props.selectedCount,
+  },
 ])
 
 // 加载可导出列
@@ -78,17 +82,20 @@ async function loadColumns() {
 }
 
 // 监听打开
-watch(() => props.open, (val) => {
-  if (val) {
-    loadColumns()
-    format.value = 'xlsx'
-    scope.value = props.selectedCount ? 'selected' : 'all'
+watch(
+  () => props.open,
+  (val) => {
+    if (val) {
+      loadColumns()
+      format.value = 'xlsx'
+      scope.value = props.selectedCount ? 'selected' : 'all'
+    }
   }
-})
+)
 
 // 全选/取消全选
-const allSelected = computed(() => 
-  selectedColumnKeys.value.length === availableColumns.value.length
+const allSelected = computed(
+  () => selectedColumnKeys.value.length === availableColumns.value.length
 )
 function toggleSelectAll() {
   if (allSelected.value) {
@@ -125,8 +132,8 @@ async function handleExport() {
 
   loading.value = true
   try {
-    const columns = availableColumns.value.filter(c => selectedColumnKeys.value.includes(c.key))
-    
+    const columns = availableColumns.value.filter((c) => selectedColumnKeys.value.includes(c.key))
+
     const result = await createExportTask({
       module: props.module,
       format: format.value,
@@ -160,16 +167,8 @@ async function handleExport() {
         <div class="space-y-3">
           <Label>导出格式</Label>
           <RadioGroup v-model="format" class="grid grid-cols-3 gap-3">
-            <div
-              v-for="opt in formatOptions"
-              :key="opt.value"
-              class="relative"
-            >
-              <RadioGroupItem
-                :value="opt.value"
-                :id="`format-${opt.value}`"
-                class="peer sr-only"
-              />
+            <div v-for="opt in formatOptions" :key="opt.value" class="relative">
+              <RadioGroupItem :id="`format-${opt.value}`" :value="opt.value" class="peer sr-only" />
               <Label
                 :for="`format-${opt.value}`"
                 class="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer"
@@ -185,20 +184,13 @@ async function handleExport() {
         <div class="space-y-3">
           <Label>导出范围</Label>
           <RadioGroup v-model="scope" class="space-y-2">
-            <div
-              v-for="opt in scopeOptions"
-              :key="opt.value"
-              class="flex items-center space-x-2"
-            >
+            <div v-for="opt in scopeOptions" :key="opt.value" class="flex items-center space-x-2">
               <RadioGroupItem
-                :value="opt.value"
                 :id="`scope-${opt.value}`"
+                :value="opt.value"
                 :disabled="opt.disabled"
               />
-              <Label
-                :for="`scope-${opt.value}`"
-                :class="{ 'text-muted-foreground': opt.disabled }"
-              >
+              <Label :for="`scope-${opt.value}`" :class="{ 'text-muted-foreground': opt.disabled }">
                 {{ opt.label }}
               </Label>
             </div>
@@ -213,7 +205,7 @@ async function handleExport() {
               {{ allSelected ? '取消全选' : '全选' }}
             </Button>
           </div>
-          
+
           <ScrollArea class="h-[200px] rounded-md border p-3">
             <div v-if="columnsLoading" class="flex items-center justify-center h-full">
               <Loader2Icon class="h-5 w-5 animate-spin text-muted-foreground" />
@@ -240,7 +232,7 @@ async function handleExport() {
 
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)">取消</Button>
-        <Button @click="handleExport" :disabled="loading || selectedColumnKeys.length === 0">
+        <Button :disabled="loading || selectedColumnKeys.length === 0" @click="handleExport">
           <Loader2Icon v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
           开始导出
         </Button>

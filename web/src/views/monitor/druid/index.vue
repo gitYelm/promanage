@@ -2,7 +2,14 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { getDatabase, type DatabaseInfo } from '@/api/monitor/database'
@@ -99,15 +106,11 @@ onUnmounted(() => {
         <span v-if="lastUpdateTime" class="text-xs text-muted-foreground">
           更新于 {{ lastUpdateTime }}
         </span>
-        <Button
-          :variant="autoRefresh ? 'default' : 'outline'"
-          size="sm"
-          @click="toggleAutoRefresh"
-        >
+        <Button :variant="autoRefresh ? 'default' : 'outline'" size="sm" @click="toggleAutoRefresh">
           <Activity class="mr-2 h-4 w-4" :class="{ 'animate-pulse': autoRefresh }" />
           {{ autoRefresh ? '自动刷新中' : '自动刷新' }}
         </Button>
-        <Button variant="outline" size="sm" @click="getData" :disabled="loading">
+        <Button variant="outline" size="sm" :disabled="loading" @click="getData">
           <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': loading }" />
           刷新
         </Button>
@@ -127,7 +130,9 @@ onUnmounted(() => {
             <Server class="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div class="text-xl sm:text-2xl font-bold">{{ data.database.version.replace('PostgreSQL ', '') }}</div>
+            <div class="text-xl sm:text-2xl font-bold">
+              {{ data.database.version.replace('PostgreSQL ', '') }}
+            </div>
             <p class="text-xs text-muted-foreground">{{ data.database.name }}</p>
           </CardContent>
         </Card>
@@ -160,7 +165,11 @@ onUnmounted(() => {
           </CardHeader>
           <CardContent>
             <div class="text-xl sm:text-2xl font-bold">{{ data.connections.usage }}%</div>
-            <Progress :model-value="data.connections.usage" class="mt-2" :class="connectionUsageColor" />
+            <Progress
+              :model-value="data.connections.usage"
+              class="mt-2"
+              :class="connectionUsageColor"
+            />
             <p class="text-xs text-muted-foreground mt-1">
               {{ data.connections.total }} / {{ data.connections.max }}
             </p>
@@ -284,7 +293,9 @@ onUnmounted(() => {
                   <li>数据量较大（万级以上），想优化查询性能</li>
                   <li>生产环境做性能调优和监控</li>
                 </ul>
-                <p class="text-xs mt-2 text-muted-foreground">开发环境或小规模使用通常无需开启，该扩展有轻微性能开销（约 1-3%）</p>
+                <p class="text-xs mt-2 text-muted-foreground">
+                  开发环境或小规模使用通常无需开启，该扩展有轻微性能开销（约 1-3%）
+                </p>
               </div>
               <div class="space-y-3">
                 <p class="font-medium text-foreground">如需开启，请按以下步骤操作：</p>
@@ -304,8 +315,12 @@ onUnmounted(() => {
                   </code>
                 </div>
                 <div>
-                  <p class="font-medium text-foreground mb-1">4. 如果使用 Docker，可在 docker-compose.yml 中添加：</p>
-                  <code class="block p-2 bg-background rounded text-xs whitespace-pre">command: postgres -c shared_preload_libraries=pg_stat_statements</code>
+                  <p class="font-medium text-foreground mb-1">
+                    4. 如果使用 Docker，可在 docker-compose.yml 中添加：
+                  </p>
+                  <code class="block p-2 bg-background rounded text-xs whitespace-pre"
+                    >command: postgres -c shared_preload_libraries=pg_stat_statements</code
+                  >
                 </div>
               </div>
             </div>

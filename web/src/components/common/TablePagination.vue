@@ -85,25 +85,13 @@ function handleNext() {
 
     <!-- 右侧：分页按钮 -->
     <div v-if="totalPages > 0" class="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        :disabled="pageNum === 1"
-        @click="handlePrevious"
-      >
+      <Button variant="outline" size="sm" :disabled="pageNum === 1" @click="handlePrevious">
         上一页
       </Button>
-      
-      <span class="text-sm text-muted-foreground">
-        第 {{ pageNum }}/{{ totalPages }} 页
-      </span>
-      
-      <Button
-        variant="outline"
-        size="sm"
-        :disabled="pageNum === totalPages"
-        @click="handleNext"
-      >
+
+      <span class="text-sm text-muted-foreground"> 第 {{ pageNum }}/{{ totalPages }} 页 </span>
+
+      <Button variant="outline" size="sm" :disabled="pageNum === totalPages" @click="handleNext">
         下一页
       </Button>
     </div>

@@ -17,8 +17,22 @@ import { generateVueCode as generateCodeUtil } from './utils/code-generator'
 const { toast } = useToast()
 
 const fields = ref<FormField[]>([
-  { id: '1', type: 'input', label: '用户名', key: 'username', placeholder: '请输入用户名', required: true },
-  { id: '2', type: 'input', label: '密码', key: 'password', placeholder: '请输入密码', required: true }
+  {
+    id: '1',
+    type: 'input',
+    label: '用户名',
+    key: 'username',
+    placeholder: '请输入用户名',
+    required: true,
+  },
+  {
+    id: '2',
+    type: 'input',
+    label: '密码',
+    key: 'password',
+    placeholder: '请输入密码',
+    required: true,
+  },
 ])
 
 const selectedFieldId = ref<string | null>(null)
@@ -26,8 +40,8 @@ const showPreview = ref(false)
 const showCode = ref(false)
 const generatedCode = ref('')
 
-const selectedField = computed(() => 
-  fields.value.find(f => f.id === selectedFieldId.value) || null
+const selectedField = computed(
+  () => fields.value.find((f) => f.id === selectedFieldId.value) || null
 )
 
 // --- Field Management ---
@@ -39,13 +53,13 @@ function addField(type: FormField['type']) {
     label: '新字段',
     key: `field_${id}`,
     placeholder: '请输入...',
-    required: false
+    required: false,
   }
 
   if (type === 'select' || type === 'radio') {
     field.options = [
       { label: '选项1', value: '1' },
-      { label: '选项2', value: '2' }
+      { label: '选项2', value: '2' },
     ]
   } else if (type === 'slider') {
     field.label = '滑块'
@@ -66,7 +80,7 @@ function addField(type: FormField['type']) {
     field.options = [
       { label: '左', value: 'left' },
       { label: '中', value: 'center' },
-      { label: '右', value: 'right' }
+      { label: '右', value: 'right' },
     ]
   } else if (type === 'toggle') {
     field.label = '切换按钮'
@@ -75,7 +89,7 @@ function addField(type: FormField['type']) {
     field.placeholder = '请选择'
     field.options = [
       { label: '选项1', value: '1' },
-      { label: '选项2', value: '2' }
+      { label: '选项2', value: '2' },
     ]
   } else if ((type as any) === 'separator') {
     field.label = '分隔线'
@@ -89,13 +103,13 @@ function addField(type: FormField['type']) {
     field.label = '手风琴'
     field.options = [
       { label: '项一', value: 'item-1' },
-      { label: '项二', value: 'item-2' }
+      { label: '项二', value: 'item-2' },
     ]
   } else if (type === 'tabs') {
     field.label = '标签页'
     field.options = [
       { label: 'Tab A', value: 'a' },
-      { label: 'Tab B', value: 'b' }
+      { label: 'Tab B', value: 'b' },
     ]
   } else if (type === 'alert-dialog') {
     field.label = '确认弹窗'
@@ -112,46 +126,44 @@ function addField(type: FormField['type']) {
     field.label = '下拉菜单'
     field.options = [
       { label: '操作一', value: 'op1' },
-      { label: '操作二', value: 'op2' }
+      { label: '操作二', value: 'op2' },
     ]
   } else if (type === 'menubar') {
     field.label = '菜单栏'
     field.options = [
       { label: '文件', value: 'file' },
-      { label: '编辑', value: 'edit' }
+      { label: '编辑', value: 'edit' },
     ]
   } else if (type === 'navigation-menu') {
     field.label = '导航菜单'
     field.options = [
       { label: '首页', value: 'home' },
-      { label: '设置', value: 'settings' }
+      { label: '设置', value: 'settings' },
     ]
   } else if (type === 'context-menu') {
     field.label = '右键菜单'
     field.options = [
       { label: '复制', value: 'copy' },
-      { label: '粘贴', value: 'paste' }
+      { label: '粘贴', value: 'paste' },
     ]
   } else if (type === 'breadcrumb') {
     field.label = '面包屑'
     field.options = [
       { label: '首页', value: 'home' },
       { label: '设置', value: 'settings' },
-      { label: '详情', value: 'detail' }
+      { label: '详情', value: 'detail' },
     ]
   } else if (type === 'pagination') {
     field.label = '分页'
   } else if (type === 'collapsible') {
     field.label = '可折叠区块'
-    field.options = [
-      { label: '折叠项', value: 'item' }
-    ]
+    field.options = [{ label: '折叠项', value: 'item' }]
   } else if (type === 'carousel') {
     field.label = '轮播'
     field.options = [
       { label: '幻灯 1', value: 's1' },
       { label: '幻灯 2', value: 's2' },
-      { label: '幻灯 3', value: 's3' }
+      { label: '幻灯 3', value: 's3' },
     ]
   } else if (type === 'aspect-ratio') {
     field.label = '比例容器'
@@ -160,7 +172,7 @@ function addField(type: FormField['type']) {
     field.label = '表格'
     field.options = [
       { label: '名称', value: 'name' },
-      { label: '年龄', value: 'age' }
+      { label: '年龄', value: 'age' },
     ]
   }
 
@@ -179,12 +191,12 @@ function removeField(index: number) {
 function copyField(index: number) {
   const original = fields.value[index]
   if (!original) return
-  
+
   const newField = JSON.parse(JSON.stringify(original))
   newField.id = Date.now().toString()
   newField.key = `${original.key}_copy`
   newField.label = `${original.label} (复制)`
-  
+
   fields.value.splice(index + 1, 0, newField)
   selectedFieldId.value = newField.id
 }
@@ -202,7 +214,7 @@ function generateVueCode() {
 }
 
 function handleSave() {
-  toast({ title: "保存成功", description: "表单配置已保存" })
+  toast({ title: '保存成功', description: '表单配置已保存' })
 }
 </script>
 
@@ -212,9 +224,7 @@ function handleSave() {
     <div class="flex items-center justify-between flex-none">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">表单构建</h2>
-        <p class="text-muted-foreground">
-          拖拽式表单生成器
-        </p>
+        <p class="text-muted-foreground">拖拽式表单生成器</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" @click="showPreview = true">
@@ -226,8 +236,8 @@ function handleSave() {
           生成代码
         </Button>
         <Button @click="handleSave">
-           <Save class="mr-2 h-4 w-4" />
-           保存设计
+          <Save class="mr-2 h-4 w-4" />
+          保存设计
         </Button>
       </div>
     </div>
@@ -237,26 +247,26 @@ function handleSave() {
       <ResizablePanel :default-size="20" :min-size="15" :max-size="30" class="bg-background">
         <LeftPanel @add-field="addField" />
       </ResizablePanel>
-      
+
       <ResizableHandle />
 
       <!-- Center: Canvas -->
       <ResizablePanel :default-size="60">
-        <CenterPanel 
-          :fields="fields" 
+        <CenterPanel
+          :fields="fields"
           :selected-field-id="selectedFieldId"
-          @select="(id) => selectedFieldId = id"
+          @select="(id) => (selectedFieldId = id)"
           @delete="removeField"
           @copy="copyField"
           @reorder="handleReorder"
         />
       </ResizablePanel>
-      
+
       <ResizableHandle />
 
       <!-- Right Sidebar: Properties -->
       <ResizablePanel :default-size="20" :min-size="15" :max-size="30" class="bg-background">
-        <RightPanel :selected-field="selectedField" />
+        <RightPanel v-model:selected-field="selectedField" />
       </ResizablePanel>
 
       <!-- Preview Dialog -->
@@ -264,7 +274,6 @@ function handleSave() {
 
       <!-- Code Generation Dialog -->
       <CodeModal v-model:open="showCode" :code="generatedCode" />
-
     </ResizablePanelGroup>
   </div>
 </template>

@@ -175,7 +175,9 @@ const handleChangePassword = async () => {
                   v-model="userInfo.avatar"
                   accept=".png,.jpg,.jpeg,image/png,image/jpeg"
                 />
-                <p class="text-xs text-muted-foreground mt-2">支持 JPG、PNG 格式，建议尺寸 200x200</p>
+                <p class="text-xs text-muted-foreground mt-2">
+                  支持 JPG、PNG 格式，建议尺寸 200x200
+                </p>
               </div>
             </div>
 
@@ -206,7 +208,7 @@ const handleChangePassword = async () => {
                 </Select>
               </div>
             </div>
-            <Button @click="handleUpdateProfile" :disabled="loading">
+            <Button :disabled="loading" @click="handleUpdateProfile">
               <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
               保存修改
             </Button>
@@ -246,7 +248,7 @@ const handleChangePassword = async () => {
                 placeholder="请再次输入新密码"
               />
             </div>
-            <Button @click="handleChangePassword" :disabled="passwordLoading">
+            <Button :disabled="passwordLoading" @click="handleChangePassword">
               <Loader2 v-if="passwordLoading" class="mr-2 h-4 w-4 animate-spin" />
               修改密码
             </Button>

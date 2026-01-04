@@ -138,12 +138,15 @@ async function getData() {
   }
 }
 
-
 async function handleSubmit() {
   // 校验所有字段
   if (hasValidationError.value) {
     const firstError = Object.values(formErrors).find((e) => e !== '')
-    toast({ title: '保存失败', description: firstError || '请检查表单填写', variant: 'destructive' })
+    toast({
+      title: '保存失败',
+      description: firstError || '请检查表单填写',
+      variant: 'destructive',
+    })
     return
   }
 
@@ -169,7 +172,7 @@ async function handleSubmit() {
             configValue: value,
             configType: 'Y',
             remark: getConfigRemark(key),
-          }),
+          })
         )
       }
     }
@@ -206,18 +209,26 @@ async function handleSubmit() {
 async function handleTestMail() {
   // 先保存当前配置
   await handleSubmit()
-  
+
   testMailLoading.value = true
   try {
-    const res = await testMail() as unknown as { data: { success: boolean; message: string } }
+    const res = (await testMail()) as unknown as { data: { success: boolean; message: string } }
     const result = res.data
     if (result.success) {
       toast({ title: '发送成功', description: result.message || '测试邮件已发送，请检查收件箱' })
     } else {
-      toast({ title: '发送失败', description: result.message || '请检查邮件配置', variant: 'destructive' })
+      toast({
+        title: '发送失败',
+        description: result.message || '请检查邮件配置',
+        variant: 'destructive',
+      })
     }
   } catch (error: any) {
-    toast({ title: '发送失败', description: error?.message || '请检查邮件配置', variant: 'destructive' })
+    toast({
+      title: '发送失败',
+      description: error?.message || '请检查邮件配置',
+      variant: 'destructive',
+    })
   } finally {
     testMailLoading.value = false
   }
@@ -276,14 +287,14 @@ const captchaEnabled = computed({
   get: () => form['sys.account.captchaEnabled'] === 'true',
   set: (val: boolean) => {
     form['sys.account.captchaEnabled'] = val ? 'true' : 'false'
-  }
+  },
 })
 
 const twoFactorEnabled = computed({
   get: () => form['sys.account.twoFactorEnabled'] === 'true',
   set: (val: boolean) => {
     form['sys.account.twoFactorEnabled'] = val ? 'true' : 'false'
-  }
+  },
 })
 
 // 登录路径输入（不含前缀 /）
@@ -349,50 +360,74 @@ watch(loginPathInput, (val) => {
 })
 
 // 从 form 初始化 loginPathInput（去掉前缀 /）
-watch(() => form['sys.security.loginPath'], (val) => {
-  const path = val?.startsWith('/') ? val.slice(1) : val
-  if (path !== loginPathInput.value) {
-    loginPathInput.value = path || ''
-  }
-}, { immediate: true })
+watch(
+  () => form['sys.security.loginPath'],
+  (val) => {
+    const path = val?.startsWith('/') ? val.slice(1) : val
+    if (path !== loginPathInput.value) {
+      loginPathInput.value = path || ''
+    }
+  },
+  { immediate: true }
+)
 
 // 监听其他字段校验
-watch(() => form['sys.app.email'], (val) => {
-  formErrors.email = validators.email(val)
-})
-watch(() => form['sys.login.maxRetry'], (val) => {
-  formErrors.maxRetry = validators.positiveInt(val, 1, 10, '失败锁定次数')
-})
-watch(() => form['sys.login.lockTime'], (val) => {
-  formErrors.lockTime = validators.positiveInt(val, 1, 1440, '锁定时长')
-})
-watch(() => form['sys.session.timeout'], (val) => {
-  formErrors.sessionTimeout = validators.positiveInt(val, 5, 10080, '会话超时')
-})
-watch(() => form['sys.mail.port'], (val) => {
-  formErrors.mailPort = validators.port(val)
-})
-watch(() => form['sys.mail.from'], (val) => {
-  // 仅在启用邮件时校验
-  if (form['sys.mail.enabled'] === 'true' && val) {
-    formErrors.mailFrom = validators.email(val)
-  } else {
-    formErrors.mailFrom = ''
+watch(
+  () => form['sys.app.email'],
+  (val) => {
+    formErrors.email = validators.email(val)
   }
-})
+)
+watch(
+  () => form['sys.login.maxRetry'],
+  (val) => {
+    formErrors.maxRetry = validators.positiveInt(val, 1, 10, '失败锁定次数')
+  }
+)
+watch(
+  () => form['sys.login.lockTime'],
+  (val) => {
+    formErrors.lockTime = validators.positiveInt(val, 1, 1440, '锁定时长')
+  }
+)
+watch(
+  () => form['sys.session.timeout'],
+  (val) => {
+    formErrors.sessionTimeout = validators.positiveInt(val, 5, 10080, '会话超时')
+  }
+)
+watch(
+  () => form['sys.mail.port'],
+  (val) => {
+    formErrors.mailPort = validators.port(val)
+  }
+)
+watch(
+  () => form['sys.mail.from'],
+  (val) => {
+    // 仅在启用邮件时校验
+    if (form['sys.mail.enabled'] === 'true' && val) {
+      formErrors.mailFrom = validators.email(val)
+    } else {
+      formErrors.mailFrom = ''
+    }
+  }
+)
 
 const mailEnabled = computed({
   get: () => form['sys.mail.enabled'] === 'true',
   set: (val: boolean) => {
     form['sys.mail.enabled'] = val ? 'true' : 'false'
-  }
+  },
 })
 
 // 加载被锁定的账户列表
 async function loadLockedAccounts() {
   lockedLoading.value = true
   try {
-    const res = await getLockedAccounts() as unknown as { data: { rows: LockedAccount[]; total: number } }
+    const res = (await getLockedAccounts()) as unknown as {
+      data: { rows: LockedAccount[]; total: number }
+    }
     lockedAccounts.value = res.data?.rows || []
   } catch (error) {
     console.error('获取锁定账户失败:', error)
@@ -407,7 +442,7 @@ async function handleUnlock(username: string) {
     await unlockAccount(username)
     toast({ title: '解锁成功', description: `账户 ${username} 已解锁` })
     await loadLockedAccounts()
-  } catch (error) {
+  } catch {
     toast({ title: '解锁失败', description: '请稍后重试', variant: 'destructive' })
   }
 }
@@ -418,7 +453,6 @@ onMounted(() => {
 })
 </script>
 
-
 <template>
   <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -427,10 +461,10 @@ onMounted(() => {
         <p class="text-muted-foreground">管理系统的各项配置参数</p>
       </div>
       <div class="flex gap-2">
-        <Button variant="outline" @click="handleReset" :disabled="submitLoading">
+        <Button variant="outline" :disabled="submitLoading" @click="handleReset">
           <RefreshCw class="mr-2 h-4 w-4" />重置
         </Button>
-        <Button @click="handleSubmit" :disabled="submitLoading">
+        <Button :disabled="submitLoading" @click="handleSubmit">
           <Save class="mr-2 h-4 w-4" />保存设置
         </Button>
       </div>
@@ -459,28 +493,44 @@ onMounted(() => {
               </div>
               <div class="grid gap-2">
                 <Label>联系邮箱</Label>
-                <Input 
-                  v-model="form['sys.app.email']" 
+                <Input
+                  v-model="form['sys.app.email']"
                   placeholder="support@example.com"
                   :class="{ 'border-destructive focus-visible:ring-destructive': formErrors.email }"
                 />
-                <p v-if="formErrors.email" class="text-xs text-destructive">{{ formErrors.email }}</p>
+                <p v-if="formErrors.email" class="text-xs text-destructive">
+                  {{ formErrors.email }}
+                </p>
               </div>
             </div>
             <div class="grid gap-2">
               <Label>网站描述</Label>
-              <Textarea v-model="form['sys.app.description']" placeholder="请输入网站描述" rows="2" />
+              <Textarea
+                v-model="form['sys.app.description']"
+                placeholder="请输入网站描述"
+                rows="2"
+              />
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="grid gap-2">
                 <Label>网站 Logo</Label>
-                <ImageUpload v-model="form['sys.app.logo']" accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" />
-                <p class="text-xs text-muted-foreground">建议高度 32-40px，正方形或横向均可，支持 PNG/JPG/SVG</p>
+                <ImageUpload
+                  v-model="form['sys.app.logo']"
+                  accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml"
+                />
+                <p class="text-xs text-muted-foreground">
+                  建议高度 32-40px，正方形或横向均可，支持 PNG/JPG/SVG
+                </p>
               </div>
               <div class="grid gap-2">
                 <Label>网站 Favicon</Label>
-                <ImageUpload v-model="form['sys.app.favicon']" accept=".ico,.png,image/png,image/x-icon" />
-                <p class="text-xs text-muted-foreground">建议尺寸 32x32px 或 16x16px，支持 ICO/PNG</p>
+                <ImageUpload
+                  v-model="form['sys.app.favicon']"
+                  accept=".ico,.png,image/png,image/x-icon"
+                />
+                <p class="text-xs text-muted-foreground">
+                  建议尺寸 32x32px 或 16x16px，支持 ICO/PNG
+                </p>
               </div>
             </div>
           </CardContent>
@@ -494,7 +544,10 @@ onMounted(() => {
           <CardContent class="space-y-4">
             <div class="grid gap-2">
               <Label>版权信息</Label>
-              <Input v-model="form['sys.app.copyright']" placeholder="© 2025 RBAC Admin. All rights reserved." />
+              <Input
+                v-model="form['sys.app.copyright']"
+                placeholder="© 2025 RBAC Admin. All rights reserved."
+              />
             </div>
             <div class="grid gap-2">
               <Label>ICP 备案号</Label>
@@ -502,32 +555,40 @@ onMounted(() => {
             </div>
           </CardContent>
         </Card>
-
       </TabsContent>
-
 
       <!-- 安全设置 -->
       <TabsContent value="security" class="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle class="flex items-center gap-2"><KeyRound class="h-5 w-5" />安全入口</CardTitle>
+            <CardTitle class="flex items-center gap-2"
+              ><KeyRound class="h-5 w-5" />安全入口</CardTitle
+            >
             <CardDescription>配置管理后台的登录页访问路径，隐藏默认入口增强安全性</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="grid gap-2">
               <Label>登录页路径</Label>
               <div class="flex">
-                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">/</span>
-                <Input 
-                  v-model="loginPathInput" 
-                  placeholder="login" 
+                <span
+                  class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm"
+                  >/</span
+                >
+                <Input
+                  v-model="loginPathInput"
+                  placeholder="login"
                   class="rounded-l-none"
-                  :class="{ 'border-destructive focus-visible:ring-destructive': formErrors.loginPath }"
+                  :class="{
+                    'border-destructive focus-visible:ring-destructive': formErrors.loginPath,
+                  }"
                 />
               </div>
-              <p v-if="formErrors.loginPath" class="text-xs text-destructive">{{ formErrors.loginPath }}</p>
+              <p v-if="formErrors.loginPath" class="text-xs text-destructive">
+                {{ formErrors.loginPath }}
+              </p>
               <p class="text-xs text-muted-foreground">
-                自定义登录页访问路径，例如：admin-login、secure-entry 等。修改后需要使用新路径访问登录页。
+                自定义登录页访问路径，例如：admin-login、secure-entry
+                等。修改后需要使用新路径访问登录页。
               </p>
             </div>
           </CardContent>
@@ -541,15 +602,21 @@ onMounted(() => {
           <CardContent class="space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div class="space-y-0.5">
-                <Label class="text-base flex items-center gap-2"><KeyRound class="h-4 w-4" />登录验证码</Label>
+                <Label class="text-base flex items-center gap-2"
+                  ><KeyRound class="h-4 w-4" />登录验证码</Label
+                >
                 <p class="text-sm text-muted-foreground">开启后，用户登录时需要输入图形验证码</p>
               </div>
               <Switch v-model:checked="captchaEnabled" />
             </div>
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div class="space-y-0.5">
-                <Label class="text-base flex items-center gap-2"><Shield class="h-4 w-4" />两步验证</Label>
-                <p class="text-sm text-muted-foreground">开启后，用户可以绑定手机或邮箱进行二次验证</p>
+                <Label class="text-base flex items-center gap-2"
+                  ><Shield class="h-4 w-4" />两步验证</Label
+                >
+                <p class="text-sm text-muted-foreground">
+                  开启后，用户可以绑定手机或邮箱进行二次验证
+                </p>
               </div>
               <Switch v-model:checked="twoFactorEnabled" />
             </div>
@@ -558,42 +625,56 @@ onMounted(() => {
 
         <Card>
           <CardHeader>
-            <CardTitle class="flex items-center gap-2"><Clock class="h-5 w-5" />登录限制与会话</CardTitle>
+            <CardTitle class="flex items-center gap-2"
+              ><Clock class="h-5 w-5" />登录限制与会话</CardTitle
+            >
             <CardDescription>配置登录失败锁定和会话超时</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="grid gap-2">
                 <Label>失败锁定次数</Label>
-                <Input 
-                  v-model="form['sys.login.maxRetry']" 
-                  type="number" 
-                  min="1" 
+                <Input
+                  v-model="form['sys.login.maxRetry']"
+                  type="number"
+                  min="1"
                   max="10"
-                  :class="{ 'border-destructive focus-visible:ring-destructive': formErrors.maxRetry }"
+                  :class="{
+                    'border-destructive focus-visible:ring-destructive': formErrors.maxRetry,
+                  }"
                 />
-                <p v-if="formErrors.maxRetry" class="text-xs text-destructive">{{ formErrors.maxRetry }}</p>
+                <p v-if="formErrors.maxRetry" class="text-xs text-destructive">
+                  {{ formErrors.maxRetry }}
+                </p>
                 <p v-else class="text-xs text-muted-foreground">连续失败N次后锁定</p>
               </div>
               <div class="grid gap-2">
                 <Label>锁定时长（分钟）</Label>
-                <Input 
-                  v-model="form['sys.login.lockTime']" 
-                  type="number" 
+                <Input
+                  v-model="form['sys.login.lockTime']"
+                  type="number"
                   min="1"
-                  :class="{ 'border-destructive focus-visible:ring-destructive': formErrors.lockTime }"
+                  :class="{
+                    'border-destructive focus-visible:ring-destructive': formErrors.lockTime,
+                  }"
                 />
-                <p v-if="formErrors.lockTime" class="text-xs text-destructive">{{ formErrors.lockTime }}</p>
+                <p v-if="formErrors.lockTime" class="text-xs text-destructive">
+                  {{ formErrors.lockTime }}
+                </p>
               </div>
               <div class="grid gap-2">
                 <Label>会话超时（分钟）</Label>
-                <Input 
-                  v-model="form['sys.session.timeout']" 
-                  type="number" 
+                <Input
+                  v-model="form['sys.session.timeout']"
+                  type="number"
                   min="5"
-                  :class="{ 'border-destructive focus-visible:ring-destructive': formErrors.sessionTimeout }"
+                  :class="{
+                    'border-destructive focus-visible:ring-destructive': formErrors.sessionTimeout,
+                  }"
                 />
-                <p v-if="formErrors.sessionTimeout" class="text-xs text-destructive">{{ formErrors.sessionTimeout }}</p>
+                <p v-if="formErrors.sessionTimeout" class="text-xs text-destructive">
+                  {{ formErrors.sessionTimeout }}
+                </p>
                 <p v-else class="text-xs text-muted-foreground">无操作超过此时间后自动退出</p>
               </div>
             </div>
@@ -604,17 +685,24 @@ onMounted(() => {
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
               <Lock class="h-5 w-5" />锁定账户管理
-              <Button variant="ghost" size="icon" class="h-6 w-6 ml-auto" @click="loadLockedAccounts" :disabled="lockedLoading">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-6 w-6 ml-auto"
+                :disabled="lockedLoading"
+                @click="loadLockedAccounts"
+              >
                 <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': lockedLoading }" />
               </Button>
             </CardTitle>
             <CardDescription>查看和解锁因登录失败被锁定的账户</CardDescription>
           </CardHeader>
           <CardContent>
-            <div v-if="lockedLoading" class="text-center py-4 text-muted-foreground">
-              加载中...
-            </div>
-            <div v-else-if="lockedAccounts.length === 0" class="text-center py-4 text-muted-foreground">
+            <div v-if="lockedLoading" class="text-center py-4 text-muted-foreground">加载中...</div>
+            <div
+              v-else-if="lockedAccounts.length === 0"
+              class="text-center py-4 text-muted-foreground"
+            >
               暂无被锁定的账户
             </div>
             <div v-else class="space-y-2">
@@ -641,7 +729,6 @@ onMounted(() => {
         </Card>
       </TabsContent>
 
-
       <!-- 邮件设置 -->
       <TabsContent value="mail" class="space-y-4">
         <Card>
@@ -664,18 +751,41 @@ onMounted(() => {
                   SMTP 服务器
                   <Collapsible class="inline">
                     <CollapsibleTrigger as-child>
-                      <button type="button" class="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                        type="button"
+                        class="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                      >
                         <HelpCircle class="h-4 w-4" />
                       </button>
                     </CollapsibleTrigger>
-                    <CollapsibleContent class="absolute z-10 mt-2 w-80 rounded-lg border bg-popover p-3 text-sm shadow-md">
+                    <CollapsibleContent
+                      class="absolute z-10 mt-2 w-80 rounded-lg border bg-popover p-3 text-sm shadow-md"
+                    >
                       <p class="font-medium mb-2">常用邮箱 SMTP 配置：</p>
                       <ul class="text-muted-foreground space-y-1 text-xs">
-                        <li><span class="text-foreground">QQ：</span>smtp.qq.com:465，<a href="https://service.mail.qq.com/detail/0/75" target="_blank" class="text-primary hover:underline">获取授权码</a></li>
+                        <li>
+                          <span class="text-foreground">QQ：</span>smtp.qq.com:465，<a
+                            href="https://service.mail.qq.com/detail/0/75"
+                            target="_blank"
+                            class="text-primary hover:underline"
+                            >获取授权码</a
+                          >
+                        </li>
                         <li><span class="text-foreground">163：</span>smtp.163.com:465</li>
-                        <li><span class="text-foreground">Gmail：</span>smtp.gmail.com:465，<a href="https://support.google.com/accounts/answer/185833" target="_blank" class="text-primary hover:underline">应用密码</a></li>
-                        <li><span class="text-foreground">Outlook：</span>smtp.office365.com:587</li>
-                        <li><span class="text-foreground">阿里企业：</span>smtp.qiye.aliyun.com:465</li>
+                        <li>
+                          <span class="text-foreground">Gmail：</span>smtp.gmail.com:465，<a
+                            href="https://support.google.com/accounts/answer/185833"
+                            target="_blank"
+                            class="text-primary hover:underline"
+                            >应用密码</a
+                          >
+                        </li>
+                        <li>
+                          <span class="text-foreground">Outlook：</span>smtp.office365.com:587
+                        </li>
+                        <li>
+                          <span class="text-foreground">阿里企业：</span>smtp.qiye.aliyun.com:465
+                        </li>
                       </ul>
                     </CollapsibleContent>
                   </Collapsible>
@@ -684,12 +794,16 @@ onMounted(() => {
               </div>
               <div class="grid gap-2">
                 <Label>SMTP 端口</Label>
-                <Input 
-                  v-model="form['sys.mail.port']" 
+                <Input
+                  v-model="form['sys.mail.port']"
                   placeholder="465"
-                  :class="{ 'border-destructive focus-visible:ring-destructive': formErrors.mailPort }"
+                  :class="{
+                    'border-destructive focus-visible:ring-destructive': formErrors.mailPort,
+                  }"
                 />
-                <p v-if="formErrors.mailPort" class="text-xs text-destructive">{{ formErrors.mailPort }}</p>
+                <p v-if="formErrors.mailPort" class="text-xs text-destructive">
+                  {{ formErrors.mailPort }}
+                </p>
               </div>
               <div class="grid gap-2">
                 <Label>SSL/TLS</Label>
@@ -711,27 +825,39 @@ onMounted(() => {
               </div>
               <div class="grid gap-2">
                 <Label>邮箱密码/授权码</Label>
-                <Input v-model="form['sys.mail.password']" type="password" placeholder="邮箱密码或授权码" />
+                <Input
+                  v-model="form['sys.mail.password']"
+                  type="password"
+                  placeholder="邮箱密码或授权码"
+                />
                 <p class="text-xs text-muted-foreground">QQ/163 等邮箱需使用授权码，非登录密码</p>
               </div>
             </div>
 
             <div class="grid gap-2">
               <Label>发件人地址</Label>
-              <Input 
-                v-model="form['sys.mail.from']" 
+              <Input
+                v-model="form['sys.mail.from']"
                 placeholder="noreply@example.com"
-                :class="{ 'border-destructive focus-visible:ring-destructive': formErrors.mailFrom }"
+                :class="{
+                  'border-destructive focus-visible:ring-destructive': formErrors.mailFrom,
+                }"
               />
-              <p v-if="formErrors.mailFrom" class="text-xs text-destructive">{{ formErrors.mailFrom }}</p>
-              <p v-else class="text-xs text-muted-foreground">收件人看到的发件人，QQ 邮箱需与账号一致</p>
+              <p v-if="formErrors.mailFrom" class="text-xs text-destructive">
+                {{ formErrors.mailFrom }}
+              </p>
+              <p v-else class="text-xs text-muted-foreground">
+                收件人看到的发件人，QQ 邮箱需与账号一致
+              </p>
             </div>
 
             <div class="pt-4 border-t">
-              <Button variant="outline" @click="handleTestMail" :disabled="testMailLoading">
+              <Button variant="outline" :disabled="testMailLoading" @click="handleTestMail">
                 <Send class="mr-2 h-4 w-4" />测试发送
               </Button>
-              <p class="text-xs text-muted-foreground mt-2">发送测试邮件到发件人地址，验证配置是否正确</p>
+              <p class="text-xs text-muted-foreground mt-2">
+                发送测试邮件到发件人地址，验证配置是否正确
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -763,44 +889,158 @@ onMounted(() => {
             <div v-if="form['sys.storage.type'] === 'local'" class="grid gap-2">
               <Label>存储路径</Label>
               <Input v-model="form['sys.storage.local.path']" placeholder="./uploads" />
-              <p class="text-xs text-muted-foreground">文件存储的本地目录路径，相对于后端项目根目录</p>
+              <p class="text-xs text-muted-foreground">
+                文件存储的本地目录路径，相对于后端项目根目录
+              </p>
             </div>
 
             <div v-else class="space-y-4">
               <!-- 云存储配置说明 - 可折叠 -->
               <Collapsible>
                 <CollapsibleTrigger as-child>
-                  <button type="button" class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                  >
                     <HelpCircle class="h-4 w-4" />
                     <span>如何获取 {{ form['sys.storage.type'].toUpperCase() }} 配置？</span>
-                    <ChevronDown class="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                    <ChevronDown
+                      class="h-4 w-4 transition-transform group-data-[state=open]:rotate-180"
+                    />
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div class="rounded-lg bg-muted/50 p-3 text-sm mt-2">
-                    <ul v-if="form['sys.storage.type'] === 's3'" class="text-muted-foreground space-y-1 text-xs">
-                      <li>1. 登录 <a href="https://console.aws.amazon.com/s3" target="_blank" class="text-primary hover:underline">AWS S3 控制台</a> 创建存储桶</li>
-                      <li>2. Endpoint：<code class="bg-muted px-1 rounded">s3.{region}.amazonaws.com</code></li>
-                      <li>3. 在 <a href="https://console.aws.amazon.com/iam" target="_blank" class="text-primary hover:underline">IAM</a> 创建用户获取 AccessKey</li>
+                    <ul
+                      v-if="form['sys.storage.type'] === 's3'"
+                      class="text-muted-foreground space-y-1 text-xs"
+                    >
+                      <li>
+                        1. 登录
+                        <a
+                          href="https://console.aws.amazon.com/s3"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >AWS S3 控制台</a
+                        >
+                        创建存储桶
+                      </li>
+                      <li>
+                        2. Endpoint：<code class="bg-muted px-1 rounded"
+                          >s3.{region}.amazonaws.com</code
+                        >
+                      </li>
+                      <li>
+                        3. 在
+                        <a
+                          href="https://console.aws.amazon.com/iam"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >IAM</a
+                        >
+                        创建用户获取 AccessKey
+                      </li>
                     </ul>
-                    <ul v-else-if="form['sys.storage.type'] === 'gcs'" class="text-muted-foreground space-y-1 text-xs">
-                      <li>1. 登录 <a href="https://console.cloud.google.com/storage" target="_blank" class="text-primary hover:underline">Google Cloud Console</a> 创建存储桶</li>
-                      <li>2. Endpoint：<code class="bg-muted px-1 rounded">storage.googleapis.com</code></li>
+                    <ul
+                      v-else-if="form['sys.storage.type'] === 'gcs'"
+                      class="text-muted-foreground space-y-1 text-xs"
+                    >
+                      <li>
+                        1. 登录
+                        <a
+                          href="https://console.cloud.google.com/storage"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >Google Cloud Console</a
+                        >
+                        创建存储桶
+                      </li>
+                      <li>
+                        2. Endpoint：<code class="bg-muted px-1 rounded"
+                          >storage.googleapis.com</code
+                        >
+                      </li>
                       <li>3. 创建服务账号，生成 HMAC 密钥</li>
                     </ul>
-                    <ul v-else-if="form['sys.storage.type'] === 'oss'" class="text-muted-foreground space-y-1 text-xs">
-                      <li>1. 登录 <a href="https://oss.console.aliyun.com" target="_blank" class="text-primary hover:underline">阿里云 OSS 控制台</a> 创建 Bucket</li>
-                      <li>2. Endpoint：<code class="bg-muted px-1 rounded">oss-{region}.aliyuncs.com</code></li>
-                      <li>3. 在 <a href="https://ram.console.aliyun.com" target="_blank" class="text-primary hover:underline">RAM</a> 创建用户获取 AccessKey</li>
+                    <ul
+                      v-else-if="form['sys.storage.type'] === 'oss'"
+                      class="text-muted-foreground space-y-1 text-xs"
+                    >
+                      <li>
+                        1. 登录
+                        <a
+                          href="https://oss.console.aliyun.com"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >阿里云 OSS 控制台</a
+                        >
+                        创建 Bucket
+                      </li>
+                      <li>
+                        2. Endpoint：<code class="bg-muted px-1 rounded"
+                          >oss-{region}.aliyuncs.com</code
+                        >
+                      </li>
+                      <li>
+                        3. 在
+                        <a
+                          href="https://ram.console.aliyun.com"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >RAM</a
+                        >
+                        创建用户获取 AccessKey
+                      </li>
                     </ul>
-                    <ul v-else-if="form['sys.storage.type'] === 'cos'" class="text-muted-foreground space-y-1 text-xs">
-                      <li>1. 登录 <a href="https://console.cloud.tencent.com/cos" target="_blank" class="text-primary hover:underline">腾讯云 COS 控制台</a> 创建存储桶</li>
-                      <li>2. Endpoint：<code class="bg-muted px-1 rounded">cos.{region}.myqcloud.com</code></li>
-                      <li>3. 在 <a href="https://console.cloud.tencent.com/cam" target="_blank" class="text-primary hover:underline">CAM</a> 创建子用户获取密钥</li>
+                    <ul
+                      v-else-if="form['sys.storage.type'] === 'cos'"
+                      class="text-muted-foreground space-y-1 text-xs"
+                    >
+                      <li>
+                        1. 登录
+                        <a
+                          href="https://console.cloud.tencent.com/cos"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >腾讯云 COS 控制台</a
+                        >
+                        创建存储桶
+                      </li>
+                      <li>
+                        2. Endpoint：<code class="bg-muted px-1 rounded"
+                          >cos.{region}.myqcloud.com</code
+                        >
+                      </li>
+                      <li>
+                        3. 在
+                        <a
+                          href="https://console.cloud.tencent.com/cam"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >CAM</a
+                        >
+                        创建子用户获取密钥
+                      </li>
                     </ul>
-                    <ul v-else-if="form['sys.storage.type'] === 'r2'" class="text-muted-foreground space-y-1 text-xs">
-                      <li>1. 登录 <a href="https://dash.cloudflare.com" target="_blank" class="text-primary hover:underline">Cloudflare</a> → R2 创建存储桶</li>
-                      <li>2. Endpoint：<code class="bg-muted px-1 rounded">{account_id}.r2.cloudflarestorage.com</code></li>
+                    <ul
+                      v-else-if="form['sys.storage.type'] === 'r2'"
+                      class="text-muted-foreground space-y-1 text-xs"
+                    >
+                      <li>
+                        1. 登录
+                        <a
+                          href="https://dash.cloudflare.com"
+                          target="_blank"
+                          class="text-primary hover:underline"
+                          >Cloudflare</a
+                        >
+                        → R2 创建存储桶
+                      </li>
+                      <li>
+                        2. Endpoint：<code class="bg-muted px-1 rounded"
+                          >{account_id}.r2.cloudflarestorage.com</code
+                        >
+                      </li>
                       <li>3. 在 R2 API 令牌中创建密钥</li>
                     </ul>
                   </div>
@@ -812,7 +1052,17 @@ onMounted(() => {
                   <Label>服务端点 (Endpoint)</Label>
                   <Input
                     v-model="form['sys.storage.oss.endpoint']"
-                    :placeholder="form['sys.storage.type'] === 's3' ? 's3.us-east-1.amazonaws.com' : form['sys.storage.type'] === 'gcs' ? 'storage.googleapis.com' : form['sys.storage.type'] === 'oss' ? 'oss-cn-hangzhou.aliyuncs.com' : form['sys.storage.type'] === 'cos' ? 'cos.ap-guangzhou.myqcloud.com' : 'xxxx.r2.cloudflarestorage.com'"
+                    :placeholder="
+                      form['sys.storage.type'] === 's3'
+                        ? 's3.us-east-1.amazonaws.com'
+                        : form['sys.storage.type'] === 'gcs'
+                          ? 'storage.googleapis.com'
+                          : form['sys.storage.type'] === 'oss'
+                            ? 'oss-cn-hangzhou.aliyuncs.com'
+                            : form['sys.storage.type'] === 'cos'
+                              ? 'cos.ap-guangzhou.myqcloud.com'
+                              : 'xxxx.r2.cloudflarestorage.com'
+                    "
                   />
                 </div>
                 <div class="grid gap-2">
@@ -822,20 +1072,26 @@ onMounted(() => {
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="grid gap-2">
-                  <Label>{{ form['sys.storage.type'] === 'r2' ? 'Access Key ID' : 'AccessKey ID' }}</Label>
+                  <Label>{{
+                    form['sys.storage.type'] === 'r2' ? 'Access Key ID' : 'AccessKey ID'
+                  }}</Label>
                   <Input v-model="form['sys.storage.oss.accessKey']" placeholder="LTAI5t..." />
                 </div>
                 <div class="grid gap-2">
-                  <Label>{{ form['sys.storage.type'] === 'r2' ? 'Secret Access Key' : 'AccessKey Secret' }}</Label>
-                  <Input v-model="form['sys.storage.oss.secretKey']" type="password" placeholder="••••••••" />
+                  <Label>{{
+                    form['sys.storage.type'] === 'r2' ? 'Secret Access Key' : 'AccessKey Secret'
+                  }}</Label>
+                  <Input
+                    v-model="form['sys.storage.oss.secretKey']"
+                    type="password"
+                    placeholder="••••••••"
+                  />
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </TabsContent>
-
-
     </Tabs>
 
     <!-- 未保存更改确认弹窗 -->

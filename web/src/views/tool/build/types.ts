@@ -5,7 +5,36 @@ export interface FormOption {
 
 export interface FormField {
   id: string
-  type: 'input' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'slider' | 'date' | 'alert' | 'pin-input' | 'toggle-group' | 'toggle' | 'combobox' | 'accordion' | 'tabs' | 'alert-dialog' | 'drawer' | 'sheet' | 'hover-card' | 'dropdown-menu' | 'menubar' | 'navigation-menu' | 'context-menu' | 'breadcrumb' | 'pagination' | 'collapsible' | 'carousel' | 'aspect-ratio' | 'table'
+  type:
+    | 'input'
+    | 'textarea'
+    | 'select'
+    | 'radio'
+    | 'checkbox'
+    | 'switch'
+    | 'slider'
+    | 'date'
+    | 'alert'
+    | 'pin-input'
+    | 'toggle-group'
+    | 'toggle'
+    | 'combobox'
+    | 'accordion'
+    | 'tabs'
+    | 'alert-dialog'
+    | 'drawer'
+    | 'sheet'
+    | 'hover-card'
+    | 'dropdown-menu'
+    | 'menubar'
+    | 'navigation-menu'
+    | 'context-menu'
+    | 'breadcrumb'
+    | 'pagination'
+    | 'collapsible'
+    | 'carousel'
+    | 'aspect-ratio'
+    | 'table'
   label: string
   key: string // Field name for v-model
   placeholder?: string

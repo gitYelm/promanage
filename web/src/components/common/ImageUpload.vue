@@ -51,7 +51,11 @@ function parseAcceptFormats(): { mimes: string[]; exts: string[]; desc: string }
     descParts.push('JPG', 'PNG', 'GIF', 'WebP', 'SVG')
   } else {
     // 解析具体的 MIME 类型和扩展名
-    if (acceptStr.includes('image/jpeg') || acceptStr.includes('.jpg') || acceptStr.includes('.jpeg')) {
+    if (
+      acceptStr.includes('image/jpeg') ||
+      acceptStr.includes('.jpg') ||
+      acceptStr.includes('.jpeg')
+    ) {
       mimes.push('image/jpeg')
       exts.push('jpg', 'jpeg')
       if (!descParts.includes('JPG')) descParts.push('JPG')
@@ -145,7 +149,7 @@ async function handleFileChange(e: Event) {
 
     emit('update:modelValue', res.data.url)
     toast({ title: '上传成功' })
-  } catch (error) {
+  } catch {
     toast({ title: '上传失败', description: '请稍后重试', variant: 'destructive' })
   } finally {
     uploading.value = false
@@ -161,24 +165,11 @@ function handleRemove() {
 
 <template>
   <div class="space-y-2">
-    <input
-      ref="fileInput"
-      type="file"
-      :accept="accept"
-      class="hidden"
-      @change="handleFileChange"
-    />
+    <input ref="fileInput" type="file" :accept="accept" class="hidden" @change="handleFileChange" />
 
     <!-- 预览区域 -->
-    <div
-      v-if="modelValue"
-      class="relative inline-block rounded-lg border bg-muted/50 p-2"
-    >
-      <img
-        :src="previewUrl"
-        alt="preview"
-        class="h-16 w-auto object-contain"
-      />
+    <div v-if="modelValue" class="relative inline-block rounded-lg border bg-muted/50 p-2">
+      <img :src="previewUrl" alt="preview" class="h-16 w-auto object-contain" />
       <button
         type="button"
         class="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
@@ -189,13 +180,7 @@ function handleRemove() {
     </div>
 
     <!-- 上传按钮 -->
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      :disabled="uploading"
-      @click="triggerUpload"
-    >
+    <Button type="button" variant="outline" size="sm" :disabled="uploading" @click="triggerUpload">
       <Loader2 v-if="uploading" class="mr-2 h-4 w-4 animate-spin" />
       <Upload v-else class="mr-2 h-4 w-4" />
       {{ uploading ? '上传中...' : '选择文件' }}

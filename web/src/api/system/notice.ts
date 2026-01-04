@@ -17,14 +17,14 @@ export function listNotice(query: NoticeQuery) {
   return request<{ data: PageResult<SysNotice> }>({
     url: '/system/notice',
     method: 'get',
-    params: query
+    params: query,
   }).then((res: any) => res.data)
 }
 
 export function getNotice(noticeId: string) {
   return request<{ data: SysNotice }>({
     url: `/system/notice/${noticeId}`,
-    method: 'get'
+    method: 'get',
   }).then((res: any) => res.data)
 }
 
@@ -32,7 +32,7 @@ export function addNotice(data: NoticeForm) {
   return request({
     url: '/system/notice',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -40,7 +40,7 @@ export function updateNotice(data: NoticeForm) {
   return request({
     url: `/system/notice/${data.noticeId}`,
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -48,7 +48,7 @@ export function delNotice(noticeIds: string[]) {
   return request({
     url: '/system/notice',
     method: 'delete',
-    params: { ids: noticeIds.join(',') }
+    params: { ids: noticeIds.join(',') },
   })
 }
 
@@ -56,6 +56,6 @@ export function changeNoticeStatus(noticeId: string, status: string) {
   return request({
     url: '/system/notice/changeStatus',
     method: 'put',
-    data: { noticeId, status }
+    data: { noticeId, status },
   })
 }

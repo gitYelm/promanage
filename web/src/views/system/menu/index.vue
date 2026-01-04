@@ -29,7 +29,18 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, RefreshCw, Search, Loader2, Maximize2, Minimize2, Menu as MenuIcon } from 'lucide-vue-next'
+import {
+  Plus,
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  Loader2,
+  Maximize2,
+  Minimize2,
+} from 'lucide-vue-next'
 import IconPicker from '@/components/common/IconPicker.vue'
 import * as icons from 'lucide-vue-next'
 
@@ -38,27 +49,22 @@ function getIconComponent(name: string) {
   if (!name) return null
   const pascalName = name
     .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join('')
   return (icons as any)[pascalName]
 }
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
-import { listMenu, getMenu, delMenu, addMenu, updateMenu, changeMenuStatus } from '@/api/system/menu'
+import { listMenu, delMenu, addMenu, updateMenu, changeMenuStatus } from '@/api/system/menu'
 import type { SysMenu } from '@/api/system/types'
-import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import {
+  getStatusOptionsWithAll,
+  getStatusOptions,
+  toQueryValue,
+  ALL_OPTION_VALUE,
+} from '@/utils/options'
 
 const { toast } = useToast()
 
@@ -67,7 +73,7 @@ const loading = ref(true)
 const menuList = ref<SysMenu[]>([])
 const queryParams = reactive({
   menuName: '',
-  status: ALL_OPTION_VALUE as string
+  status: ALL_OPTION_VALUE as string,
 })
 const isExpanded = ref<Record<string, boolean>>({})
 const expandedAll = ref(true) // 默认展开第一级
@@ -92,7 +98,7 @@ const form = reactive<Partial<SysMenu>>({
   visible: '0',
   status: '0',
   perms: '',
-  icon: ''
+  icon: '',
 })
 
 // Fetch Data
@@ -101,12 +107,12 @@ async function getList() {
   try {
     const res = await listMenu({
       ...queryParams,
-      status: toQueryValue(queryParams.status)
+      status: toQueryValue(queryParams.status),
     })
     menuList.value = toTreeMenu(res)
     // Default expand first level
     if (expandedAll.value) {
-      menuList.value.forEach(m => isExpanded.value[m.menuId] = true)
+      menuList.value.forEach((m) => (isExpanded.value[m.menuId] = true))
     }
   } finally {
     loading.value = false
@@ -114,7 +120,7 @@ async function getList() {
 }
 
 function expandAllMenus(menus: SysMenu[]) {
-  menus.forEach(menu => {
+  menus.forEach((menu) => {
     isExpanded.value[menu.menuId] = true
     if (menu.children) {
       expandAllMenus(menu.children)
@@ -123,7 +129,7 @@ function expandAllMenus(menus: SysMenu[]) {
 }
 
 function collapseAllMenus(menus: SysMenu[]) {
-  menus.forEach(menu => {
+  menus.forEach((menu) => {
     isExpanded.value[menu.menuId] = false
     if (menu.children) {
       collapseAllMenus(menu.children)
@@ -150,7 +156,7 @@ async function getMenuTree() {
 const menuMap = computed(() => {
   const map = new Map<string, SysMenu>()
   const traverse = (nodes: SysMenu[]) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       map.set(node.menuId, node)
       if (node.children && node.children.length > 0) {
         traverse(node.children)
@@ -163,9 +169,9 @@ const menuMap = computed(() => {
 
 // Helper to flatten tree for table display with expansion control
 const flattenMenus = computed(() => {
-  const result: (SysMenu & { level: number, hasChildren: boolean })[] = []
+  const result: (SysMenu & { level: number; hasChildren: boolean })[] = []
   const traverse = (nodes: SysMenu[], level = 0) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const hasChildren = !!(node.children && node.children.length > 0)
       result.push({ ...node, level, hasChildren })
       if (hasChildren && isExpanded.value[node.menuId]) {
@@ -188,7 +194,10 @@ function updateMenuStatus(menuId: string, status: string) {
 // Helper for Select options (flattened with indentation)
 const flattenedOptions = computed(() => {
   const result: Array<{ id: string; label: string }> = []
-  const traverse = (nodes: Array<{ menuId: string; menuName: string; children?: any[] }>, prefix = '') => {
+  const traverse = (
+    nodes: Array<{ menuId: string; menuName: string; children?: any[] }>,
+    prefix = ''
+  ) => {
     for (const node of nodes || []) {
       result.push({ id: node.menuId, label: prefix + node.menuName })
       if (node.children && node.children.length) {
@@ -241,7 +250,7 @@ async function confirmDelete() {
   if (!menuToDelete.value) return
   try {
     await delMenu(menuToDelete.value.menuId)
-    toast({ title: "删除成功", description: "菜单已删除" })
+    toast({ title: '删除成功', description: '菜单已删除' })
     getList()
     showDeleteDialog.value = false
   } catch (error) {
@@ -251,7 +260,7 @@ async function confirmDelete() {
 
 async function handleSubmit() {
   if (!form.menuName) {
-    toast({ title: "验证失败", description: "菜单名称不能为空", variant: "destructive" })
+    toast({ title: '验证失败', description: '菜单名称不能为空', variant: 'destructive' })
     return
   }
 
@@ -259,10 +268,10 @@ async function handleSubmit() {
   try {
     if (form.menuId) {
       await updateMenu(form)
-      toast({ title: "修改成功", description: "菜单信息已更新" })
+      toast({ title: '修改成功', description: '菜单信息已更新' })
     } else {
       await addMenu(form)
-      toast({ title: "新增成功", description: "菜单已创建" })
+      toast({ title: '新增成功', description: '菜单已创建' })
     }
     showDialog.value = false
     getList()
@@ -324,9 +333,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">菜单管理</h2>
-        <p class="text-muted-foreground">
-          管理系统菜单、路由及按钮权限
-        </p>
+        <p class="text-muted-foreground">管理系统菜单、路由及按钮权限</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" size="sm" @click="toggleExpandAll">
@@ -342,12 +349,14 @@ onMounted(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">菜单名称</span>
-        <Input 
-          v-model="queryParams.menuName" 
-          placeholder="请输入菜单名称" 
+        <Input
+          v-model="queryParams.menuName"
+          placeholder="请输入菜单名称"
           class="w-[200px]"
           @keyup.enter="handleQuery"
         />
@@ -359,7 +368,11 @@ onMounted(() => {
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in getStatusOptionsWithAll()" :key="opt.value" :value="opt.value">
+            <SelectItem
+              v-for="opt in getStatusOptionsWithAll()"
+              :key="opt.value"
+              :value="opt.value"
+            >
               {{ opt.label }}
             </SelectItem>
           </SelectContent>
@@ -381,7 +394,7 @@ onMounted(() => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="6" :rows="10" />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="flattenMenus.length === 0"
@@ -390,7 +403,7 @@ onMounted(() => {
         action-text="新增菜单"
         @action="handleAdd()"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>
@@ -407,35 +420,45 @@ onMounted(() => {
         <TableBody>
           <TableRow v-for="item in flattenMenus" :key="item.menuId">
             <TableCell>
-               <div class="flex items-center" :style="{ paddingLeft: `${item.level * 24}px` }">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  class="h-6 w-6 mr-1 p-0 hover:bg-transparent" 
+              <div class="flex items-center" :style="{ paddingLeft: `${item.level * 24}px` }">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-6 w-6 mr-1 p-0 hover:bg-transparent"
+                  :class="{ invisible: !item.hasChildren }"
                   @click="toggleExpand(item.menuId)"
-                  :class="{ 'invisible': !item.hasChildren }"
                 >
                   <ChevronDown v-if="isExpanded[item.menuId]" class="h-4 w-4" />
                   <ChevronRight v-else class="h-4 w-4" />
                 </Button>
                 <span class="mr-2 font-medium">{{ item.menuName }}</span>
-                <Badge :variant="item.menuType === 'M' ? 'default' : (item.menuType === 'C' ? 'secondary' : 'outline')">
-                  {{ item.menuType === 'M' ? '目录' : (item.menuType === 'C' ? '菜单' : '按钮') }}
+                <Badge
+                  :variant="
+                    item.menuType === 'M'
+                      ? 'default'
+                      : item.menuType === 'C'
+                        ? 'secondary'
+                        : 'outline'
+                  "
+                >
+                  {{ item.menuType === 'M' ? '目录' : item.menuType === 'C' ? '菜单' : '按钮' }}
                 </Badge>
               </div>
             </TableCell>
             <TableCell>
               <div class="flex items-center gap-2">
                 <component
-                  v-if="item.icon && getIconComponent(item.icon)"
                   :is="getIconComponent(item.icon)"
+                  v-if="item.icon && getIconComponent(item.icon)"
                   class="h-4 w-4 text-muted-foreground"
                 />
                 <span class="text-xs text-muted-foreground">{{ item.icon }}</span>
               </div>
             </TableCell>
             <TableCell>{{ item.orderNum }}</TableCell>
-            <TableCell><Badge variant="outline" v-if="item.perms">{{ item.perms }}</Badge></TableCell>
+            <TableCell
+              ><Badge v-if="item.perms" variant="outline">{{ item.perms }}</Badge></TableCell
+            >
             <TableCell class="max-w-[200px] truncate">{{ item.component }}</TableCell>
             <TableCell>
               <StatusSwitch
@@ -449,10 +472,20 @@ onMounted(() => {
               <Button variant="ghost" size="icon" @click="handleUpdate(item)">
                 <Edit class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" @click="handleAdd(item.menuId)" v-if="item.menuType !== 'F'">
+              <Button
+                v-if="item.menuType !== 'F'"
+                variant="ghost"
+                size="icon"
+                @click="handleAdd(item.menuId)"
+              >
                 <Plus class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" class="text-destructive" @click="handleDelete(item)">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="text-destructive"
+                @click="handleDelete(item)"
+              >
                 <Trash2 class="w-4 h-4" />
               </Button>
             </TableCell>
@@ -466,11 +499,9 @@ onMounted(() => {
       <DialogContent class="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{{ isEdit ? '修改菜单' : '新增菜单' }}</DialogTitle>
-          <DialogDescription>
-            请填写菜单信息
-          </DialogDescription>
+          <DialogDescription> 请填写菜单信息 </DialogDescription>
         </DialogHeader>
-        
+
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
             <Label for="parentId">上级菜单</Label>
@@ -479,8 +510,8 @@ onMounted(() => {
                 <SelectValue placeholder="选择上级菜单" />
               </SelectTrigger>
               <SelectContent>
-                 <SelectItem value="0">主类目</SelectItem>
-                 <SelectItem v-for="menu in flattenedOptions" :key="menu.id" :value="menu.id">
+                <SelectItem value="0">主类目</SelectItem>
+                <SelectItem v-for="menu in flattenedOptions" :key="menu.id" :value="menu.id">
                   {{ menu.label }}
                 </SelectItem>
               </SelectContent>
@@ -491,15 +522,15 @@ onMounted(() => {
             <Label>菜单类型</Label>
             <RadioGroup v-model="form.menuType" class="flex items-center gap-4">
               <div class="flex items-center space-x-2">
-                <RadioGroupItem value="M" id="typeM" />
+                <RadioGroupItem id="typeM" value="M" />
                 <Label for="typeM">目录</Label>
               </div>
               <div class="flex items-center space-x-2">
-                <RadioGroupItem value="C" id="typeC" />
+                <RadioGroupItem id="typeC" value="C" />
                 <Label for="typeC">菜单</Label>
               </div>
               <div class="flex items-center space-x-2">
-                <RadioGroupItem value="F" id="typeF" />
+                <RadioGroupItem id="typeF" value="F" />
                 <Label for="typeF">按钮</Label>
               </div>
             </RadioGroup>
@@ -512,40 +543,44 @@ onMounted(() => {
             </div>
             <div class="grid gap-2">
               <Label for="orderNum">显示排序</Label>
-              <Input id="orderNum" type="number" v-model="form.orderNum" />
+              <Input id="orderNum" v-model="form.orderNum" type="number" />
             </div>
           </div>
 
-          <div class="grid gap-2" v-if="form.menuType !== 'F'">
+          <div v-if="form.menuType !== 'F'" class="grid gap-2">
             <Label for="icon">菜单图标</Label>
             <IconPicker v-model="form.icon" />
           </div>
 
-          <div class="grid grid-cols-2 gap-4" v-if="form.menuType !== 'F'">
-             <div class="grid gap-2">
+          <div v-if="form.menuType !== 'F'" class="grid grid-cols-2 gap-4">
+            <div class="grid gap-2">
               <Label for="path">路由地址</Label>
               <Input id="path" v-model="form.path" placeholder="请输入路由地址" />
             </div>
-            <div class="grid gap-2" v-if="form.menuType === 'C'">
+            <div v-if="form.menuType === 'C'" class="grid gap-2">
               <Label for="component">组件路径</Label>
               <Input id="component" v-model="form.component" placeholder="请输入组件路径" />
             </div>
           </div>
 
-          <div class="grid gap-2" v-if="form.menuType !== 'M'">
+          <div v-if="form.menuType !== 'M'" class="grid gap-2">
             <Label for="perms">权限字符</Label>
             <Input id="perms" v-model="form.perms" placeholder="system:user:list" />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
-             <div class="grid gap-2">
+            <div class="grid gap-2">
               <Label for="visible">显示状态</Label>
               <Select v-model="form.visible">
                 <SelectTrigger>
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="opt in getStatusOptions('showHide')" :key="opt.value" :value="opt.value">
+                  <SelectItem
+                    v-for="opt in getStatusOptions('showHide')"
+                    :key="opt.value"
+                    :value="opt.value"
+                  >
                     {{ opt.label }}
                   </SelectItem>
                 </SelectContent>
@@ -569,7 +604,7 @@ onMounted(() => {
 
         <DialogFooter>
           <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button @click="handleSubmit" :disabled="submitLoading">
+          <Button :disabled="submitLoading" @click="handleSubmit">
             <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
             确定
           </Button>

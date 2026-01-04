@@ -4,39 +4,39 @@
  */
 
 export interface SelectOption {
-    label: string
-    value: string
+  label: string
+  value: string
 }
 
 /**
  * 常用状态选项定义
  */
 export const STATUS_OPTIONS = {
-    /** 正常/停用 */
-    normalDisable: [
-        { label: '正常', value: '0' },
-        { label: '停用', value: '1' },
-    ],
-    /** 显示/隐藏 */
-    showHide: [
-        { label: '显示', value: '0' },
-        { label: '隐藏', value: '1' },
-    ],
-    /** 正常/关闭 */
-    normalClose: [
-        { label: '正常', value: '0' },
-        { label: '关闭', value: '1' },
-    ],
-    /** 正常/暂停 (定时任务) */
-    normalPause: [
-        { label: '正常', value: '0' },
-        { label: '暂停', value: '1' },
-    ],
-    /** 成功/失败 */
-    successFail: [
-        { label: '成功', value: '0' },
-        { label: '失败', value: '1' },
-    ],
+  /** 正常/停用 */
+  normalDisable: [
+    { label: '正常', value: '0' },
+    { label: '停用', value: '1' },
+  ],
+  /** 显示/隐藏 */
+  showHide: [
+    { label: '显示', value: '0' },
+    { label: '隐藏', value: '1' },
+  ],
+  /** 正常/关闭 */
+  normalClose: [
+    { label: '正常', value: '0' },
+    { label: '关闭', value: '1' },
+  ],
+  /** 正常/暂停 (定时任务) */
+  normalPause: [
+    { label: '正常', value: '0' },
+    { label: '暂停', value: '1' },
+  ],
+  /** 成功/失败 */
+  successFail: [
+    { label: '成功', value: '0' },
+    { label: '失败', value: '1' },
+  ],
 } as const
 
 /** "全部"选项的特殊值（shadcn-vue SelectItem 不支持空字符串） */
@@ -49,10 +49,10 @@ export const ALL_OPTION_VALUE = '__all__'
  * @returns 包含"全部"选项的新列表
  */
 export function withAllOption(
-    options: readonly SelectOption[] | SelectOption[],
-    allLabel = '全部'
+  options: readonly SelectOption[] | SelectOption[],
+  allLabel = '全部'
 ): SelectOption[] {
-    return [{ label: allLabel, value: ALL_OPTION_VALUE }, ...options]
+  return [{ label: allLabel, value: ALL_OPTION_VALUE }, ...options]
 }
 
 /**
@@ -61,7 +61,7 @@ export function withAllOption(
  * @returns 实际查询值
  */
 export function toQueryValue(value: string | undefined): string | undefined {
-    return value === ALL_OPTION_VALUE ? undefined : value
+  return value === ALL_OPTION_VALUE ? undefined : value
 }
 
 /**
@@ -70,9 +70,9 @@ export function toQueryValue(value: string | undefined): string | undefined {
  * @returns 包含"全部"选项的状态列表
  */
 export function getStatusOptionsWithAll(
-    type: keyof typeof STATUS_OPTIONS = 'normalDisable'
+  type: keyof typeof STATUS_OPTIONS = 'normalDisable'
 ): SelectOption[] {
-    return withAllOption(STATUS_OPTIONS[type])
+  return withAllOption(STATUS_OPTIONS[type])
 }
 
 /**
@@ -81,9 +81,9 @@ export function getStatusOptionsWithAll(
  * @returns 状态选项列表
  */
 export function getStatusOptions(
-    type: keyof typeof STATUS_OPTIONS = 'normalDisable'
+  type: keyof typeof STATUS_OPTIONS = 'normalDisable'
 ): SelectOption[] {
-    return [...STATUS_OPTIONS[type]]
+  return [...STATUS_OPTIONS[type]]
 }
 
 /**
@@ -93,8 +93,8 @@ export function getStatusOptions(
  * @returns 对应的标签，未找到返回 value 本身
  */
 export function getOptionLabel(
-    options: readonly SelectOption[] | SelectOption[],
-    value: string
+  options: readonly SelectOption[] | SelectOption[],
+  value: string
 ): string {
-    return options.find((opt) => opt.value === value)?.label ?? value
+  return options.find((opt) => opt.value === value)?.label ?? value
 }

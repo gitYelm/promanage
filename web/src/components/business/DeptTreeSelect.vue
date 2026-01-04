@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -20,7 +16,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: '请选择部门',
-  disabled: false
+  disabled: false,
 })
 
 const emit = defineEmits<{
@@ -31,7 +27,11 @@ const open = ref(false)
 const searchText = ref('')
 
 // 扁平化部门树并保留层级信息
-const flattenDepts = (depts: SysDept[], level = 0, prefix = ''): Array<{ dept: SysDept; level: number; label: string }> => {
+const flattenDepts = (
+  depts: SysDept[],
+  level = 0,
+  prefix = ''
+): Array<{ dept: SysDept; level: number; label: string }> => {
   const result: Array<{ dept: SysDept; level: number; label: string }> = []
   for (const dept of depts) {
     const label = prefix + dept.deptName
@@ -49,15 +49,13 @@ const flatDepts = computed(() => flattenDepts(props.depts))
 const filteredDepts = computed(() => {
   if (!searchText.value) return flatDepts.value
   const search = searchText.value.toLowerCase()
-  return flatDepts.value.filter(item => 
-    item.dept.deptName.toLowerCase().includes(search)
-  )
+  return flatDepts.value.filter((item) => item.dept.deptName.toLowerCase().includes(search))
 })
 
 // 当前选中的部门
 const selectedDept = computed(() => {
   if (!props.modelValue) return null
-  return flatDepts.value.find(item => item.dept.deptId === props.modelValue)
+  return flatDepts.value.find((item) => item.dept.deptId === props.modelValue)
 })
 
 const displayValue = computed(() => {
@@ -119,14 +117,17 @@ watch(open, (newVal) => {
             :key="item.dept.deptId"
             :class="[
               'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground',
-              modelValue === item.dept.deptId && 'bg-accent text-accent-foreground'
+              modelValue === item.dept.deptId && 'bg-accent text-accent-foreground',
             ]"
             :style="{ paddingLeft: `${item.level * 16 + 8}px` }"
             @click="selectDept(item.dept.deptId)"
           >
             {{ item.dept.deptName }}
           </div>
-          <div v-if="filteredDepts.length === 0" class="py-6 text-center text-sm text-muted-foreground">
+          <div
+            v-if="filteredDepts.length === 0"
+            class="py-6 text-center text-sm text-muted-foreground"
+          >
             未找到部门
           </div>
         </div>

@@ -1,40 +1,44 @@
 import type { FormField } from '../types'
 
 export function generateVueCode(fields: FormField[]): string {
-  const hasDate = fields.some(f => f.type === 'date')
-  const hasPinInput = fields.some(f => f.type === 'pin-input')
-  const hasToggleGroup = fields.some(f => f.type === 'toggle-group')
-  const hasToggle = fields.some(f => f.type === 'toggle')
-  const hasCombobox = fields.some(f => f.type === 'combobox')
-  const hasAccordion = fields.some(f => f.type === 'accordion')
-  const hasTabs = fields.some(f => f.type === 'tabs')
-  const hasAlertDialog = fields.some(f => f.type === 'alert-dialog')
-  const hasDrawer = fields.some(f => f.type === 'drawer')
-  const hasSheet = fields.some(f => f.type === 'sheet')
-  const hasHoverCard = fields.some(f => f.type === 'hover-card')
-  const hasDropdownMenu = fields.some(f => f.type === 'dropdown-menu')
-  const hasMenubar = fields.some(f => f.type === 'menubar')
-  const hasNavigationMenu = fields.some(f => f.type === 'navigation-menu')
-  const hasContextMenu = fields.some(f => f.type === 'context-menu')
-  const hasBreadcrumb = fields.some(f => f.type === 'breadcrumb')
-  const hasPagination = fields.some(f => f.type === 'pagination')
-  const hasCollapsible = fields.some(f => f.type === 'collapsible')
-  const hasCarousel = fields.some(f => f.type === 'carousel')
-  const hasAspectRatio = fields.some(f => f.type === 'aspect-ratio')
-  const hasTable = fields.some(f => f.type === 'table')
-  const hasSeparator = fields.some(f => (f as any).type === 'separator')
-  const hasProgress = fields.some(f => (f as any).type === 'progress')
-  const hasSkeleton = fields.some(f => (f as any).type === 'skeleton')
-  const hasTooltip = fields.some(f => !!f.tooltip)
-  
+  const hasDate = fields.some((f) => f.type === 'date')
+  const hasPinInput = fields.some((f) => f.type === 'pin-input')
+  const hasToggleGroup = fields.some((f) => f.type === 'toggle-group')
+  const hasToggle = fields.some((f) => f.type === 'toggle')
+  const hasCombobox = fields.some((f) => f.type === 'combobox')
+  const hasAccordion = fields.some((f) => f.type === 'accordion')
+  const hasTabs = fields.some((f) => f.type === 'tabs')
+  const hasAlertDialog = fields.some((f) => f.type === 'alert-dialog')
+  const hasDrawer = fields.some((f) => f.type === 'drawer')
+  const hasSheet = fields.some((f) => f.type === 'sheet')
+  const hasHoverCard = fields.some((f) => f.type === 'hover-card')
+  const hasDropdownMenu = fields.some((f) => f.type === 'dropdown-menu')
+  const hasMenubar = fields.some((f) => f.type === 'menubar')
+  const hasNavigationMenu = fields.some((f) => f.type === 'navigation-menu')
+  const hasContextMenu = fields.some((f) => f.type === 'context-menu')
+  const hasBreadcrumb = fields.some((f) => f.type === 'breadcrumb')
+  const hasPagination = fields.some((f) => f.type === 'pagination')
+  const hasCollapsible = fields.some((f) => f.type === 'collapsible')
+  const hasCarousel = fields.some((f) => f.type === 'carousel')
+  const hasAspectRatio = fields.some((f) => f.type === 'aspect-ratio')
+  const hasTable = fields.some((f) => f.type === 'table')
+  const hasSeparator = fields.some((f) => (f as any).type === 'separator')
+  const hasProgress = fields.some((f) => (f as any).type === 'progress')
+  const hasSkeleton = fields.some((f) => (f as any).type === 'skeleton')
+  const hasTooltip = fields.some((f) => !!f.tooltip)
+
   const scriptContent = `
 <script setup lang="ts">
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { cn } from '@/lib/utils'
-${hasDate ? `import { DateFormatter, type DateValue, getLocalTimeZone, parseDate } from '@internationalized/date'
-import { Calendar as CalendarIcon } from 'lucide-vue-next'` : ''}
+${
+  hasDate
+    ? `import { DateFormatter, type DateValue, getLocalTimeZone, parseDate } from '@internationalized/date'
+import { Calendar as CalendarIcon } from 'lucide-vue-next'`
+    : ''
+}
 
 import { Button } from '@/components/ui/button'
 import {
@@ -53,23 +57,35 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-${hasPinInput ? `import {
+${
+  hasPinInput
+    ? `import {
   PinInput,
   PinInputGroup,
   PinInputSeparator,
   PinInputSlot,
-} from '@/components/ui/pin-input'` : ''}
+} from '@/components/ui/pin-input'`
+    : ''
+}
 ${hasToggleGroup ? `import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'` : ''}
  ${hasToggle ? `import { Toggle } from '@/components/ui/toggle'` : ''}
-${hasDate ? `import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'` : ''}
-${hasTooltip ? `import {
+${
+  hasDate
+    ? `import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'`
+    : ''
+}
+${
+  hasTooltip
+    ? `import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { HelpCircle } from 'lucide-vue-next'` : ''}
+import { HelpCircle } from 'lucide-vue-next'`
+    : ''
+}
  ${hasCombobox ? `import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'` : ''}
  ${hasSeparator ? `import { Separator } from '@/components/ui/separator'` : ''}
  ${hasProgress ? `import { Progress } from '@/components/ui/progress'` : ''}
@@ -95,33 +111,38 @@ import { toast } from '@/components/ui/toast/use-toast'
 ${hasDate ? `const df = new DateFormatter('zh-CN', { dateStyle: 'long' })` : ''}
 
 const formSchema = toTypedSchema(z.object({
-${fields.filter(f => !(['alert', 'separator', 'progress', 'skeleton'] as any).includes((f as any).type)).map(f => {
-  let schema = `  ${f.key}: z`
-  if (f.type === 'checkbox' || f.type === 'switch') {
-    schema += '.boolean()'
-  } else if (f.type === 'toggle') {
-    schema += '.boolean()'
-  } else if (f.type === 'slider') {
-    schema += '.array(z.number())'
-  } else if (f.type === 'date') {
-    schema += '.string().optional()'
-  } else if (f.type === 'pin-input') {
-    schema += '.array(z.string())'
-  } else {
-    schema += '.string()'
-  }
-  
-  if (f.required) {
-    if (!['checkbox', 'switch', 'toggle', 'slider', 'date', 'alert', 'pin-input'].includes(f.type)) {
-      schema += `.min(1, { message: '${f.label}不能为空' })`
+${fields
+  .filter((f) => !(['alert', 'separator', 'progress', 'skeleton'] as any).includes((f as any).type))
+  .map((f) => {
+    let schema = `  ${f.key}: z`
+    if (f.type === 'checkbox' || f.type === 'switch') {
+      schema += '.boolean()'
+    } else if (f.type === 'toggle') {
+      schema += '.boolean()'
+    } else if (f.type === 'slider') {
+      schema += '.array(z.number())'
+    } else if (f.type === 'date') {
+      schema += '.string().optional()'
     } else if (f.type === 'pin-input') {
-       schema += `.min(${f.pinCount || 4}, { message: '请输入完整验证码' })`
+      schema += '.array(z.string())'
+    } else {
+      schema += '.string()'
     }
-  } else {
-    schema += '.optional()'
-  }
-  return schema
-}).join(',\n')}
+
+    if (f.required) {
+      if (
+        !['checkbox', 'switch', 'toggle', 'slider', 'date', 'alert', 'pin-input'].includes(f.type)
+      ) {
+        schema += `.min(1, { message: '${f.label}不能为空' })`
+      } else if (f.type === 'pin-input') {
+        schema += `.min(${f.pinCount || 4}, { message: '请输入完整验证码' })`
+      }
+    } else {
+      schema += '.optional()'
+    }
+    return schema
+  })
+  .join(',\n')}
 }))
 
 const form = useForm({
@@ -140,15 +161,16 @@ const onSubmit = form.handleSubmit((values) => {
   const templateContent = `
 <template>
   <form @submit="onSubmit" class="space-y-6">
-${fields.map(f => {
-  let componentCode = ''
-  
-  if (f.type === 'input') {
-    componentCode = `<Input v-bind="componentField" placeholder="${f.placeholder}" />`
-  } else if (f.type === 'textarea') {
-    componentCode = `<Textarea v-bind="componentField" placeholder="${f.placeholder}" class="resize-none" />`
-  } else if (f.type === 'select') {
-    componentCode = `
+${fields
+  .map((f) => {
+    let componentCode = ''
+
+    if (f.type === 'input') {
+      componentCode = `<Input v-bind="componentField" placeholder="${f.placeholder}" />`
+    } else if (f.type === 'textarea') {
+      componentCode = `<Textarea v-bind="componentField" placeholder="${f.placeholder}" class="resize-none" />`
+    } else if (f.type === 'select') {
+      componentCode = `
               <Select v-bind="componentField">
                 <FormControl>
                   <SelectTrigger>
@@ -156,16 +178,18 @@ ${fields.map(f => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  ${f.options?.map(o => `<SelectItem value="${o.value}">${o.label}</SelectItem>`).join('\n                  ')}
+                  ${f.options?.map((o) => `<SelectItem value="${o.value}">${o.label}</SelectItem>`).join('\n                  ')}
                 </SelectContent>
               </Select>`
-  } else if (f.type === 'radio') {
-    componentCode = `
+    } else if (f.type === 'radio') {
+      componentCode = `
               <RadioGroup
                 v-bind="componentField"
                 class="flex flex-col space-y-1"
               >
-                ${f.options?.map(o => `
+                ${f.options
+                  ?.map(
+                    (o) => `
                 <FormItem class="flex items-center space-y-0 gap-3">
                   <FormControl>
                     <RadioGroupItem value="${o.value}" />
@@ -173,10 +197,12 @@ ${fields.map(f => {
                   <FormLabel class="font-normal">
                     ${o.label}
                   </FormLabel>
-                </FormItem>`).join('')}
+                </FormItem>`
+                  )
+                  .join('')}
               </RadioGroup>`
-  } else if (f.type === 'combobox') {
-    componentCode = `
+    } else if (f.type === 'combobox') {
+      componentCode = `
               <Popover>
                 <PopoverTrigger as-child>
                   <FormControl>
@@ -194,14 +220,14 @@ ${fields.map(f => {
                     <CommandEmpty>未找到</CommandEmpty>
                     <CommandList>
                       <CommandGroup>
-                        ${f.options?.map(o => `<CommandItem value="${o.value}" @select="() => componentField.onChange('${o.value}')">${o.label}</CommandItem>`).join('\n                        ')}
+                        ${f.options?.map((o) => `<CommandItem value="${o.value}" @select="() => componentField.onChange('${o.value}')">${o.label}</CommandItem>`).join('\n                        ')}
                       </CommandGroup>
                     </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>`
-  } else if (f.type === 'checkbox') {
-    componentCode = `
+    } else if (f.type === 'checkbox') {
+      componentCode = `
               <div class="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
                   <Checkbox :model-value="componentField.value" @update:model-value="componentField.onChange" />
@@ -213,8 +239,8 @@ ${fields.map(f => {
                   ${f.tooltip ? `<div class="text-sm text-muted-foreground">${f.tooltip}</div>` : ''}
                 </div>
               </div>`
-  } else if (f.type === 'switch') {
-    componentCode = `
+    } else if (f.type === 'switch') {
+      componentCode = `
               <div class="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div class="space-y-0.5">
                   <FormLabel class="text-base">
@@ -229,8 +255,8 @@ ${fields.map(f => {
                   />
                 </FormControl>
               </div>`
-  } else if (f.type === 'toggle') {
-    componentCode = `
+    } else if (f.type === 'toggle') {
+      componentCode = `
               <div class="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div class="space-y-0.5">
                   <FormLabel class="text-base">
@@ -242,8 +268,8 @@ ${fields.map(f => {
                   <Toggle :pressed="componentField.value" @update:pressed="componentField.onChange" />
                 </FormControl>
               </div>`
-  } else if (f.type === 'slider') {
-    componentCode = `
+    } else if (f.type === 'slider') {
+      componentCode = `
               <Slider
                 v-bind="componentField"
                 :model-value="componentField.value || [${f.min || 0}]"
@@ -252,8 +278,8 @@ ${fields.map(f => {
                 :min="${f.min || 0}"
                 :step="${f.step || 1}"
               />`
-  } else if (f.type === 'date') {
-    componentCode = `
+    } else if (f.type === 'date') {
+      componentCode = `
               <Popover>
                 <PopoverTrigger as-child>
                   <FormControl>
@@ -278,8 +304,8 @@ ${fields.map(f => {
                   />
                 </PopoverContent>
               </Popover>`
-  } else if (f.type === 'pin-input') {
-    componentCode = `
+    } else if (f.type === 'pin-input') {
+      componentCode = `
               <PinInput
                 id="${f.key}"
                 v-bind="componentField"
@@ -287,44 +313,50 @@ ${fields.map(f => {
                 @update:model-value="componentField.onChange"
               >
                 <PinInputGroup>
-                  ${Array.from({ length: f.pinCount || 4 }).map((_, i) => `<PinInputSlot :index="${i}" />`).join('\n                  ')}
+                  ${Array.from({ length: f.pinCount || 4 })
+                    .map((_, i) => `<PinInputSlot :index="${i}" />`)
+                    .join('\n                  ')}
                 </PinInputGroup>
               </PinInput>`
-  } else if (f.type === 'toggle-group') {
-    componentCode = `
+    } else if (f.type === 'toggle-group') {
+      componentCode = `
               <ToggleGroup type="single" v-bind="componentField" @update:model-value="componentField.onChange">
-                ${f.options?.map(o => `<ToggleGroupItem value="${o.value}">${o.label}</ToggleGroupItem>`).join('\n                ')}
+                ${f.options?.map((o) => `<ToggleGroupItem value="${o.value}">${o.label}</ToggleGroupItem>`).join('\n                ')}
               </ToggleGroup>`
-  } else if (f.type === 'alert') {
-    return `    <Alert>
+    } else if (f.type === 'alert') {
+      return `    <Alert>
       <AlertTitle>${f.label}</AlertTitle>
       <AlertDescription>
         ${f.description}
       </AlertDescription>
     </Alert>`
-  } else if ((f as any).type === 'separator') {
-    return `    <Separator />`
-  } else if ((f as any).type === 'progress') {
-    return `    <Progress :model-value=${(f as any).progress || 50} />`
-  } else if ((f as any).type === 'skeleton') {
-    return `    <Skeleton class="${(f as any).skeletonSize === 'sm' ? 'h-4 w-full' : (f as any).skeletonSize === 'lg' ? 'h-8 w-full' : 'h-6 w-full'} rounded-md bg-muted" />`
-  } else if (f.type === 'accordion') {
-    return `    <Accordion type="single" collapsible>
-      ${f.options?.map(o => `
+    } else if ((f as any).type === 'separator') {
+      return `    <Separator />`
+    } else if ((f as any).type === 'progress') {
+      return `    <Progress :model-value=${(f as any).progress || 50} />`
+    } else if ((f as any).type === 'skeleton') {
+      return `    <Skeleton class="${(f as any).skeletonSize === 'sm' ? 'h-4 w-full' : (f as any).skeletonSize === 'lg' ? 'h-8 w-full' : 'h-6 w-full'} rounded-md bg-muted" />`
+    } else if (f.type === 'accordion') {
+      return `    <Accordion type="single" collapsible>
+      ${f.options
+        ?.map(
+          (o) => `
       <AccordionItem value="${o.value}">
         <AccordionTrigger>${o.label}</AccordionTrigger>
         <AccordionContent>内容占位</AccordionContent>
-      </AccordionItem>`).join('\n      ')}
+      </AccordionItem>`
+        )
+        .join('\n      ')}
     </Accordion>`
-  } else if (f.type === 'tabs') {
-    return `    <Tabs default-value="${f.options?.[0]?.value || 'a'}">
+    } else if (f.type === 'tabs') {
+      return `    <Tabs default-value="${f.options?.[0]?.value || 'a'}">
       <TabsList>
-        ${f.options?.map(o => `<TabsTrigger value="${o.value}">${o.label}</TabsTrigger>`).join('\n        ')}
+        ${f.options?.map((o) => `<TabsTrigger value="${o.value}">${o.label}</TabsTrigger>`).join('\n        ')}
       </TabsList>
-      ${f.options?.map(o => `<TabsContent value="${o.value}"><div class=\"border rounded-md p-4\">标签 ${o.label} 内容占位</div></TabsContent>`).join('\n      ')}
+      ${f.options?.map((o) => `<TabsContent value="${o.value}"><div class="border rounded-md p-4">标签 ${o.label} 内容占位</div></TabsContent>`).join('\n      ')}
     </Tabs>`
-  } else if (f.type === 'alert-dialog') {
-    return `    <AlertDialog>
+    } else if (f.type === 'alert-dialog') {
+      return `    <AlertDialog>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>${f.label}</AlertDialogTitle>
@@ -334,8 +366,8 @@ ${fields.map(f => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>`
-  } else if (f.type === 'drawer') {
-    return `    <Drawer>
+    } else if (f.type === 'drawer') {
+      return `    <Drawer>
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>${f.label}</DrawerTitle>
@@ -344,8 +376,8 @@ ${fields.map(f => {
         <DrawerFooter />
       </DrawerContent>
     </Drawer>`
-  } else if (f.type === 'sheet') {
-    return `    <Sheet>
+    } else if (f.type === 'sheet') {
+      return `    <Sheet>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>${f.label}</SheetTitle>
@@ -354,66 +386,78 @@ ${fields.map(f => {
         <SheetFooter />
       </SheetContent>
     </Sheet>`
-  } else if (f.type === 'hover-card') {
-    return `    <HoverCard>
+    } else if (f.type === 'hover-card') {
+      return `    <HoverCard>
       <HoverCardTrigger as-child>
-        <Button variant=\"outline\" size=\"sm\">悬浮查看</Button>
+        <Button variant="outline" size="sm">悬浮查看</Button>
       </HoverCardTrigger>
       <HoverCardContent>悬浮内容占位</HoverCardContent>
     </HoverCard>`
-  } else if (f.type === 'dropdown-menu') {
-    return `    <DropdownMenu>
+    } else if (f.type === 'dropdown-menu') {
+      return `    <DropdownMenu>
       <DropdownMenuTrigger as-child>
-        <Button variant=\"outline\" size=\"sm\">下拉菜单</Button>
+        <Button variant="outline" size="sm">下拉菜单</Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuLabel>操作</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        ${f.options?.map(o => `<DropdownMenuItem>${o.label}</DropdownMenuItem>`).join('\n        ')}
+        ${f.options?.map((o) => `<DropdownMenuItem>${o.label}</DropdownMenuItem>`).join('\n        ')}
       </DropdownMenuContent>
     </DropdownMenu>`
-  } else if (f.type === 'menubar') {
-    return `    <Menubar>
-      ${f.options?.map(o => `
+    } else if (f.type === 'menubar') {
+      return `    <Menubar>
+      ${f.options
+        ?.map(
+          (o) => `
       <MenubarMenu>
         <MenubarTrigger>${o.label}</MenubarTrigger>
         <MenubarContent>
           <MenubarItem>子项 1</MenubarItem>
           <MenubarItem>子项 2</MenubarItem>
         </MenubarContent>
-      </MenubarMenu>`).join('\n      ')}
+      </MenubarMenu>`
+        )
+        .join('\n      ')}
     </Menubar>`
-  } else if (f.type === 'navigation-menu') {
-    return `    <NavigationMenu>
+    } else if (f.type === 'navigation-menu') {
+      return `    <NavigationMenu>
       <NavigationMenuList>
-        ${f.options?.map(o => `
+        ${f.options
+          ?.map(
+            (o) => `
         <NavigationMenuItem>
           <NavigationMenuTrigger>${o.label}</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <div class=\"p-4\">内容占位</div>
+            <div class="p-4">内容占位</div>
           </NavigationMenuContent>
-        </NavigationMenuItem>`).join('\n        ')}
+        </NavigationMenuItem>`
+          )
+          .join('\n        ')}
       </NavigationMenuList>
     </NavigationMenu>`
-  } else if (f.type === 'context-menu') {
-    return `    <ContextMenu>
+    } else if (f.type === 'context-menu') {
+      return `    <ContextMenu>
       <ContextMenuTrigger>
-        <div class=\"border rounded-md p-4 text-sm text-muted-foreground\">右键打开菜单</div>
+        <div class="border rounded-md p-4 text-sm text-muted-foreground">右键打开菜单</div>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        ${f.options?.map(o => `<ContextMenuItem>${o.label}</ContextMenuItem>`).join('\n        ')}
+        ${f.options?.map((o) => `<ContextMenuItem>${o.label}</ContextMenuItem>`).join('\n        ')}
       </ContextMenuContent>
     </ContextMenu>`
-  } else if (f.type === 'breadcrumb') {
-    return `    <Breadcrumb>
+    } else if (f.type === 'breadcrumb') {
+      return `    <Breadcrumb>
       <BreadcrumbList>
-        ${f.options?.map((o, idx) => idx < (f.options?.length || 0) - 1
-          ? `<BreadcrumbItem><BreadcrumbLink>${o.label}</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator />`
-          : `<BreadcrumbItem><BreadcrumbPage>${o.label}</BreadcrumbPage></BreadcrumbItem>`).join('')}
+        ${f.options
+          ?.map((o, idx) =>
+            idx < (f.options?.length || 0) - 1
+              ? `<BreadcrumbItem><BreadcrumbLink>${o.label}</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator />`
+              : `<BreadcrumbItem><BreadcrumbPage>${o.label}</BreadcrumbPage></BreadcrumbItem>`
+          )
+          .join('')}
       </BreadcrumbList>
     </Breadcrumb>`
-  } else if (f.type === 'pagination') {
-    return `    <Pagination :items-per-page="10" :total="100" :page="1">
+    } else if (f.type === 'pagination') {
+      return `    <Pagination :items-per-page="10" :total="100" :page="1">
       <PaginationContent>
         <PaginationItem><PaginationPrevious /></PaginationItem>
         <PaginationItem><PaginationLink :value="1" :is-active="true" /></PaginationItem>
@@ -423,53 +467,55 @@ ${fields.map(f => {
         <PaginationItem><PaginationNext /></PaginationItem>
       </PaginationContent>
     </Pagination>`
-  } else if (f.type === 'collapsible') {
-    return `    <Collapsible>
+    } else if (f.type === 'collapsible') {
+      return `    <Collapsible>
       <CollapsibleTrigger as-child>
-        <Button variant=\"outline\" size=\"sm\">${f.options?.[0]?.label || '展开/收起'}</Button>
+        <Button variant="outline" size="sm">${f.options?.[0]?.label || '展开/收起'}</Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div class=\"border rounded-md p-4 mt-2\">折叠内容占位</div>
+        <div class="border rounded-md p-4 mt-2">折叠内容占位</div>
       </CollapsibleContent>
     </Collapsible>`
-  } else if (f.type === 'carousel') {
-    return `    <Carousel class=\"w-full max-w-sm\">
+    } else if (f.type === 'carousel') {
+      return `    <Carousel class="w-full max-w-sm">
       <CarouselContent>
-        ${f.options?.map(o => `<CarouselItem><div class=\"h-32 rounded-md bg-muted flex items-center justify-center\">${o.label}</div></CarouselItem>`).join('\n        ')}
+        ${f.options?.map((o) => `<CarouselItem><div class="h-32 rounded-md bg-muted flex items-center justify-center">${o.label}</div></CarouselItem>`).join('\n        ')}
       </CarouselContent>
       <CarouselPrevious />
       <CarouselNext />
     </Carousel>`
-  } else if (f.type === 'aspect-ratio') {
-    return `    <AspectRatio ratio=${(f as any).ratio || 1.7778} class=\"bg-muted rounded-md\">
-      <div class=\"w-full h-full flex items-center justify-center text-sm text-muted-foreground\">比例 ${(f as any).ratio || 1.7778}</div>
+    } else if (f.type === 'aspect-ratio') {
+      return `    <AspectRatio ratio=${(f as any).ratio || 1.7778} class="bg-muted rounded-md">
+      <div class="w-full h-full flex items-center justify-center text-sm text-muted-foreground">比例 ${(f as any).ratio || 1.7778}</div>
     </AspectRatio>`
-  } else if (f.type === 'table') {
-    return `    <Table>
+    } else if (f.type === 'table') {
+      return `    <Table>
       <TableHeader>
         <TableRow>
-          ${f.options?.map(col => `<TableHead>${col.label}</TableHead>`).join('\n          ')}
+          ${f.options?.map((col) => `<TableHead>${col.label}</TableHead>`).join('\n          ')}
         </TableRow>
       </TableHeader>
       <TableBody>
         <TableRow>
-          ${f.options?.map(col => `<TableCell>示例</TableCell>`).join('\n          ')}
+          ${f.options?.map(() => `<TableCell>示例</TableCell>`).join('\n          ')}
         </TableRow>
       </TableBody>
     </Table>`
-  }
+    }
 
-  if (f.type === 'checkbox' || f.type === 'switch') {
-    return `    <FormField v-slot="{ componentField, value }" name="${f.key}">
+    if (f.type === 'checkbox' || f.type === 'switch') {
+      return `    <FormField v-slot="{ componentField, value }" name="${f.key}">
       <FormItem>
         ${componentCode}
       </FormItem>
     </FormField>`
-  }
+    }
 
-  const labelCode = `<FormLabel class="flex items-center gap-2">
+    const labelCode = `<FormLabel class="flex items-center gap-2">
           ${f.label}${f.required ? ' <span class="text-destructive">*</span>' : ''}
-          ${f.tooltip ? `<TooltipProvider>
+          ${
+            f.tooltip
+              ? `<TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
                 <HelpCircle class="h-4 w-4 text-muted-foreground cursor-help" />
@@ -478,10 +524,12 @@ ${fields.map(f => {
                 <p>${f.tooltip}</p>
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>` : ''}
+          </TooltipProvider>`
+              : ''
+          }
         </FormLabel>`
 
-  return `    <FormField v-slot="{ componentField }" name="${f.key}">
+    return `    <FormField v-slot="{ componentField }" name="${f.key}">
       <FormItem>
         ${labelCode}
         <FormControl>
@@ -490,7 +538,8 @@ ${fields.map(f => {
         <FormMessage />
       </FormItem>
     </FormField>`
-}).join('\n\n')}
+  })
+  .join('\n\n')}
 
     <Button type="submit">提交</Button>
   </form>

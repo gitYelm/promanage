@@ -8,4 +8,4 @@ import { ExportTaskService } from './export-task.service';
   providers: [ExportTaskService],
   exports: [ExportTaskService],
 })
-export class ExportTaskModule { }
+export class ExportTaskModule {}

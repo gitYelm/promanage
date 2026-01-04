@@ -37,22 +37,24 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import LeaveConfirmDialog from '@/components/common/LeaveConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
-import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { getStatusOptions } from '@/utils/options'
 import { sanitizeHtml } from '@/utils/sanitize'
-import { listNotice, getNotice, delNotice, addNotice, updateNotice, changeNoticeStatus, type SysNotice } from '@/api/system/notice'
+import {
+  listNotice,
+  getNotice,
+  delNotice,
+  addNotice,
+  updateNotice,
+  changeNoticeStatus,
+  type SysNotice,
+} from '@/api/system/notice'
 import { useUnsavedChanges } from '@/composables'
 
 const { toast } = useToast()
 
 // 未保存更改提示（弹窗场景，禁用路由守卫）
-const { 
-  isDirty, 
-  markClean, 
-  showLeaveDialog, 
-  confirmLeave, 
-  cancelLeave, 
-  tryLeave 
-} = useUnsavedChanges({ enableRouteGuard: false })
+const { isDirty, markClean, showLeaveDialog, confirmLeave, cancelLeave, tryLeave } =
+  useUnsavedChanges({ enableRouteGuard: false })
 
 // State
 const loading = ref(true)
@@ -63,7 +65,7 @@ const queryParams = reactive({
   pageSize: 20,
   noticeTitle: '',
   createBy: '',
-  noticeType: undefined
+  noticeType: undefined,
 })
 
 const showDialog = ref(false)
@@ -79,7 +81,7 @@ const form = reactive({
   noticeTitle: '',
   noticeType: '1',
   noticeContent: '',
-  status: '0'
+  status: '0',
 })
 
 // 监听表单变化，标记脏状态（仅在弹窗打开时）
@@ -147,7 +149,7 @@ async function confirmDelete() {
   if (!noticeToDelete.value) return
   try {
     await delNotice([noticeToDelete.value.noticeId])
-    toast({ title: "删除成功", description: "公告已删除" })
+    toast({ title: '删除成功', description: '公告已删除' })
     getList()
   } finally {
     showDeleteDialog.value = false
@@ -162,7 +164,7 @@ function handlePreview(row: SysNotice) {
 
 async function handleSubmit() {
   if (!form.noticeTitle || !form.noticeContent) {
-    toast({ title: "验证失败", description: "标题和内容不能为空", variant: "destructive" })
+    toast({ title: '验证失败', description: '标题和内容不能为空', variant: 'destructive' })
     return
   }
 
@@ -170,10 +172,10 @@ async function handleSubmit() {
   try {
     if (form.noticeId) {
       await updateNotice(form)
-      toast({ title: "修改成功", description: "公告已更新" })
+      toast({ title: '修改成功', description: '公告已更新' })
     } else {
       await addNotice(form)
-      toast({ title: "新增成功", description: "公告已创建" })
+      toast({ title: '新增成功', description: '公告已创建' })
     }
     markClean() // 保存成功后清除脏状态
     showDialog.value = false
@@ -204,7 +206,7 @@ function resetForm() {
 function getNoticeTypeLabel(type: string) {
   const map: Record<string, string> = {
     '1': '通知',
-    '2': '公告'
+    '2': '公告',
   }
   return map[type] || '未知'
 }
@@ -225,9 +227,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">通知公告</h2>
-        <p class="text-muted-foreground">
-          发布和管理系统通知公告
-        </p>
+        <p class="text-muted-foreground">发布和管理系统通知公告</p>
       </div>
       <div class="flex items-center gap-2">
         <Button @click="handleAdd">
@@ -238,21 +238,23 @@ onMounted(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div
+      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">公告标题</span>
-        <Input 
-          v-model="queryParams.noticeTitle" 
-          placeholder="请输入公告标题" 
+        <Input
+          v-model="queryParams.noticeTitle"
+          placeholder="请输入公告标题"
           class="w-[150px]"
           @keyup.enter="handleQuery"
         />
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">操作人员</span>
-        <Input 
-          v-model="queryParams.createBy" 
-          placeholder="请输入操作人员" 
+        <Input
+          v-model="queryParams.createBy"
+          placeholder="请输入操作人员"
           class="w-[150px]"
           @keyup.enter="handleQuery"
         />
@@ -285,7 +287,7 @@ onMounted(() => {
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
       <TableSkeleton v-if="loading" :columns="6" :rows="10" />
-      
+
       <!-- 空状态 -->
       <EmptyState
         v-else-if="noticeList.length === 0"
@@ -294,7 +296,7 @@ onMounted(() => {
         action-text="新增公告"
         @action="handleAdd"
       />
-      
+
       <!-- 数据表格 -->
       <Table v-else>
         <TableHeader>
@@ -313,7 +315,7 @@ onMounted(() => {
             <TableCell>{{ item.noticeId }}</TableCell>
             <TableCell>{{ item.noticeTitle }}</TableCell>
             <TableCell>
-               <Badge variant="outline">{{ getNoticeTypeLabel(item.noticeType) }}</Badge>
+              <Badge variant="outline">{{ getNoticeTypeLabel(item.noticeType) }}</Badge>
             </TableCell>
             <TableCell>
               <StatusSwitch
@@ -326,13 +328,19 @@ onMounted(() => {
             <TableCell>{{ item.createBy }}</TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
             <TableCell class="text-right space-x-2">
-              <Button variant="ghost" size="icon" @click="handlePreview(item)" title="预览">
+              <Button variant="ghost" size="icon" title="预览" @click="handlePreview(item)">
                 <Eye class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" @click="handleUpdate(item)" title="编辑">
+              <Button variant="ghost" size="icon" title="编辑" @click="handleUpdate(item)">
                 <Edit class="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" class="text-destructive" @click="handleDelete(item)" title="删除">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="text-destructive"
+                title="删除"
+                @click="handleDelete(item)"
+              >
                 <Trash2 class="w-4 h-4" />
               </Button>
             </TableCell>
@@ -351,46 +359,52 @@ onMounted(() => {
 
     <!-- Add/Edit Dialog -->
     <Dialog :open="showDialog" @update:open="(val) => !val && handleCloseDialog()">
-      <DialogContent class="sm:max-w-[800px]" @escape-key-down.prevent="handleCloseDialog" @pointer-down-outside.prevent="handleCloseDialog">
+      <DialogContent
+        class="sm:max-w-[800px]"
+        @escape-key-down.prevent="handleCloseDialog"
+        @pointer-down-outside.prevent="handleCloseDialog"
+      >
         <DialogHeader>
           <DialogTitle>{{ isEdit ? '修改公告' : '新增公告' }}</DialogTitle>
-          <DialogDescription>
-            请填写公告信息
-          </DialogDescription>
+          <DialogDescription> 请填写公告信息 </DialogDescription>
         </DialogHeader>
-        
+
         <div class="grid gap-4 py-4">
           <div class="grid grid-cols-2 gap-4">
-             <div class="grid gap-2">
+            <div class="grid gap-2">
               <Label for="noticeTitle">公告标题 *</Label>
               <Input id="noticeTitle" v-model="form.noticeTitle" placeholder="请输入公告标题" />
             </div>
             <div class="grid gap-2">
-               <Label for="noticeType">公告类型</Label>
-               <Select v-model="form.noticeType">
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">通知</SelectItem>
-                    <SelectItem value="2">公告</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Label for="noticeType">公告类型</Label>
+              <Select v-model="form.noticeType">
+                <SelectTrigger>
+                  <SelectValue placeholder="选择类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">通知</SelectItem>
+                  <SelectItem value="2">公告</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div class="grid gap-2">
             <Label for="status">状态</Label>
-             <Select v-model="form.status">
-                <SelectTrigger>
-                  <SelectValue placeholder="选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="opt in getStatusOptions('normalClose')" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            <Select v-model="form.status">
+              <SelectTrigger>
+                <SelectValue placeholder="选择状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="opt in getStatusOptions('normalClose')"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div class="grid gap-2">
@@ -401,9 +415,7 @@ onMounted(() => {
 
         <DialogFooter>
           <Button variant="outline" @click="handleCloseDialog">取消</Button>
-          <Button @click="handleSubmit" :disabled="submitLoading">
-            确定
-          </Button>
+          <Button :disabled="submitLoading" @click="handleSubmit"> 确定 </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -431,11 +443,19 @@ onMounted(() => {
         <DialogHeader>
           <DialogTitle>{{ previewNotice?.noticeTitle }}</DialogTitle>
           <DialogDescription>
-            <Badge variant="outline" class="mr-2">{{ getNoticeTypeLabel(previewNotice?.noticeType || '1') }}</Badge>
-            <span class="text-muted-foreground">{{ previewNotice?.createBy }} 发布于 {{ formatDate(previewNotice?.createTime) }}</span>
+            <Badge variant="outline" class="mr-2">{{
+              getNoticeTypeLabel(previewNotice?.noticeType || '1')
+            }}</Badge>
+            <span class="text-muted-foreground"
+              >{{ previewNotice?.createBy }} 发布于
+              {{ formatDate(previewNotice?.createTime) }}</span
+            >
           </DialogDescription>
         </DialogHeader>
-        <div class="py-4 prose prose-sm dark:prose-invert max-w-none" v-html="sanitizedPreviewContent" />
+        <div
+          class="py-4 prose prose-sm dark:prose-invert max-w-none"
+          v-html="sanitizedPreviewContent"
+        />
         <DialogFooter>
           <Button variant="outline" @click="showPreviewDialog = false">关闭</Button>
         </DialogFooter>
