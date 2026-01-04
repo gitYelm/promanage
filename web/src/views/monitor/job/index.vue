@@ -36,18 +36,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Trash2, Plus, RefreshCw, Search, Edit, Play, MoreHorizontal } from 'lucide-vue-next'
+import { Trash2, Plus, RefreshCw, Search, Edit, Play } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -334,30 +332,34 @@ onMounted(() => {
             </TableCell>
             <TableCell>{{ item.createTime }}</TableCell>
             <TableCell class="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <Button variant="ghost" class="h-8 w-8 p-0">
-                    <span class="sr-only">Open menu</span>
-                    <MoreHorizontal class="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>操作</DropdownMenuLabel>
-                  <DropdownMenuItem @click="handleRun(item)">
-                    <Play class="mr-2 h-4 w-4" />
-                    执行一次
-                  </DropdownMenuItem>
-                  <DropdownMenuItem @click="handleUpdate(item)">
-                    <Edit class="mr-2 h-4 w-4" />
-                    修改
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem class="text-destructive" @click="handleDelete(item)">
-                    <Trash2 class="mr-2 h-4 w-4" />
-                    删除
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <TooltipProvider>
+                <div class="flex items-center justify-end gap-1">
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleRun(item)">
+                        <Play class="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>执行一次</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleUpdate(item)">
+                        <Edit class="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>修改</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button variant="ghost" size="icon" class="h-8 w-8 text-destructive hover:text-destructive" @click="handleDelete(item)">
+                        <Trash2 class="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>删除</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </TableCell>
           </TableRow>
         </TableBody>
