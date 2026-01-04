@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ClockIcon, CalendarIcon, ChevronDownIcon } from 'lucide-vue-next'
+import { formatCronExpression } from '@/utils/format'
 
 interface Props {
   modelValue?: string
@@ -96,71 +97,7 @@ function selectPreset(value: string) {
 }
 
 // 表达式说明
-const cronDescription = computed(() => {
-  const s = second.value
-  const m = minute.value
-  const h = hour.value
-  const d = day.value
-  const mo = month.value
-  const w = week.value
-
-  const parts: string[] = []
-
-  // 秒
-  if (s === '*') parts.push('每秒')
-  else if (s === '0') parts.push('')
-  else if (s.includes('/')) parts.push(`每 ${s.split('/')[1]} 秒`)
-  else parts.push(`第 ${s} 秒`)
-
-  // 分
-  if (m === '*') parts.push('每分钟')
-  else if (m.includes('/')) parts.push(`每 ${m.split('/')[1]} 分钟`)
-  else if (m !== '0') parts.push(`第 ${m} 分`)
-
-  // 时
-  if (h === '*') parts.push('每小时')
-  else if (h.includes('/')) parts.push(`每 ${h.split('/')[1]} 小时`)
-  else parts.push(`${h} 点`)
-
-  // 日
-  if (d === '*') {
-    // 不显示
-  } else if (d === '?') {
-    // 不显示
-  } else if (d.includes('/')) {
-    parts.push(`每 ${d.split('/')[1]} 天`)
-  } else {
-    parts.push(`${d} 号`)
-  }
-
-  // 月
-  if (mo !== '*') {
-    parts.push(`${mo} 月`)
-  }
-
-  // 周
-  if (w !== '?' && w !== '*') {
-    const weekMap: Record<string, string> = {
-      MON: '周一',
-      TUE: '周二',
-      WED: '周三',
-      THU: '周四',
-      FRI: '周五',
-      SAT: '周六',
-      SUN: '周日',
-      '1': '周日',
-      '2': '周一',
-      '3': '周二',
-      '4': '周三',
-      '5': '周四',
-      '6': '周五',
-      '7': '周六',
-    }
-    parts.push(weekMap[w] || `周${w}`)
-  }
-
-  return parts.filter(Boolean).join(' ') + ' 执行'
-})
+const cronDescription = computed(() => formatCronExpression(cronExpression.value))
 
 // 计算下次执行时间（简化版）
 const nextExecutions = computed(() => {

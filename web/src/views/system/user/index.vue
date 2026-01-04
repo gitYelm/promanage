@@ -66,7 +66,7 @@ import {
   Settings2,
   Download
 } from 'lucide-vue-next'
-import { listUser, getUser, delUser, addUser, updateUser, resetUserPwd, changeUserStatus, exportUserExcel, downloadUserTemplate, importUserExcel } from '@/api/system/user'
+import { listUser, getUser, delUser, addUser, updateUser, resetUserPwd, changeUserStatus, downloadUserTemplate, importUserExcel } from '@/api/system/user'
 import { listDeptTree } from '@/api/system/dept'
 import { listRole } from '@/api/system/role'
 import { listPost } from '@/api/system/post'
@@ -79,6 +79,8 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import ExportButton from '@/components/common/ExportButton.vue'
+import ExportDialog from '@/components/common/ExportDialog.vue'
+import ExportTaskList from '@/components/common/ExportTaskList.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
 import { getStatusOptionsWithAll, getStatusOptions, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
@@ -402,25 +404,17 @@ async function confirmBatchStatus() {
 }
 
 // 导出功能
-const exportLoading = ref(false)
-async function handleExport() {
-  exportLoading.value = true
-  try {
-    const res = await exportUserExcel(queryParams)
-    const blob = new Blob([res as any], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `用户数据_${Date.now()}.xlsx`
-    link.click()
-    URL.revokeObjectURL(link.href)
-    toast({ title: "导出成功", description: "用户数据已导出为 Excel" })
-  } catch {
-    toast({ title: "导出失败", variant: "destructive" })
-  } finally {
-    exportLoading.value = false
-  }
+const showExportDialog = ref(false)
+const showExportTasks = ref(false)
+const lastExportTaskId = ref<string | null>(null)
+
+function handleExport() {
+  showExportDialog.value = true
+}
+
+function handleExportSuccess(taskId: string) {
+  lastExportTaskId.value = taskId
+  showExportTasks.value = true
 }
 
 // 导入功能
@@ -660,9 +654,11 @@ onMounted(async () => {
         </Button>
         <ExportButton
           size="sm"
-          :disabled="exportLoading"
           @export="handleExport"
         />
+        <Button variant="outline" size="sm" @click="showExportTasks = true" title="导出任务">
+          <FileDown class="h-4 w-4" />
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="outline" size="icon" class="h-8 w-8 sm:h-9 sm:w-9">
@@ -1030,5 +1026,22 @@ onMounted(async () => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- Export Dialog -->
+    <ExportDialog
+      v-model:open="showExportDialog"
+      module="user"
+      module-name="用户数据"
+      :query-params="queryParams"
+      :selected-ids="selectedRows"
+      :selected-count="selectedRows.length"
+      @success="handleExportSuccess"
+    />
+
+    <!-- Export Task List -->
+    <ExportTaskList
+      v-model:open="showExportTasks"
+      :watch-task-id="lastExportTaskId"
+    />
   </div>
 </template>

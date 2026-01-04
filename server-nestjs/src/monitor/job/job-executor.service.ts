@@ -3,6 +3,7 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoggerService } from '../../common/logger/logger.service';
+import { ExportTaskService } from '../../common/export/export-task.service';
 
 interface JobTask {
   jobId: string;
@@ -34,7 +35,8 @@ export class JobExecutorService implements OnModuleInit, OnModuleDestroy {
     private schedulerRegistry: SchedulerRegistry,
     private prisma: PrismaService,
     private logger: LoggerService,
-  ) {}
+    private exportTaskService: ExportTaskService,
+  ) { }
 
   async onModuleInit() {
     // 启动时加载所有启用的定时任务
@@ -185,6 +187,7 @@ export class JobExecutorService implements OnModuleInit, OnModuleDestroy {
    * - http://xxx 或 https://xxx - HTTP 请求
    * - shell:command - Shell 命令
    * - log:message - 记录日志（测试用）
+   * - export:cleanExpiredTasks - 清理过期导出任务
    */
   private async invokeTarget(target: string): Promise<void> {
     if (!target) {
@@ -223,6 +226,16 @@ export class JobExecutorService implements OnModuleInit, OnModuleDestroy {
       const message = target.substring(4);
       this.logger.log(`定时任务日志: ${message}`, 'JobExecutor');
       return;
+    }
+
+    // 导出任务相关
+    if (target.startsWith('export:')) {
+      const method = target.substring(7);
+      if (method === 'cleanExpiredTasks') {
+        await this.exportTaskService.cleanExpiredTasks();
+        return;
+      }
+      throw new Error(`不支持的导出任务方法: ${method}`);
     }
 
     throw new Error(`不支持的调用目标格式: ${target}`);

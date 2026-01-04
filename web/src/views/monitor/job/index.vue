@@ -46,6 +46,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { Trash2, Plus, RefreshCw, Search, Edit, Play } from 'lucide-vue-next'
+import { formatCronExpression, formatDate } from '@/utils/format'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -320,7 +321,14 @@ onMounted(() => {
             <TableCell>{{ item.jobName }}</TableCell>
             <TableCell>{{ item.jobGroup }}</TableCell>
             <TableCell class="max-w-[200px] truncate">{{ item.invokeTarget }}</TableCell>
-            <TableCell><Badge variant="outline">{{ item.cronExpression }}</Badge></TableCell>
+            <TableCell>
+              <div class="space-y-1">
+                <Badge variant="outline">{{ item.cronExpression }}</Badge>
+                <p v-if="formatCronExpression(item.cronExpression)" class="text-xs text-muted-foreground">
+                  {{ formatCronExpression(item.cronExpression) }}
+                </p>
+              </div>
+            </TableCell>
             <TableCell>
               <StatusSwitch
                 :status="String(item.status)"
@@ -330,7 +338,7 @@ onMounted(() => {
                 @update:status="updateJobStatus(item.jobId, $event)"
               />
             </TableCell>
-            <TableCell>{{ item.createTime }}</TableCell>
+            <TableCell>{{ formatDate(item.createTime) }}</TableCell>
             <TableCell class="text-right">
               <TooltipProvider>
                 <div class="flex items-center justify-end gap-1">

@@ -505,3 +505,46 @@ model SysJobLog {
   @@index([status])
   @@map("sys_job_log")
 }
+
+/// 导出任务表
+model SysExportTask {
+  /// 任务ID
+  taskId        String    @id @map("task_id") @db.VarChar(36)
+  /// 任务名称
+  taskName      String    @map("task_name") @db.VarChar(100)
+  /// 模块名称
+  module        String    @db.VarChar(50)
+  /// 状态 (pending/processing/completed/failed)
+  status        String    @default("pending") @db.VarChar(20)
+  /// 导出格式 (xlsx/csv/json)
+  format        String    @default("xlsx") @db.VarChar(10)
+  /// 进度 (0-100)
+  progress      Int       @default(0)
+  /// 总行数
+  totalRows     Int?      @map("total_rows")
+  /// 已处理行数
+  processedRows Int?      @default(0) @map("processed_rows")
+  /// 文件路径
+  filePath      String?   @map("file_path") @db.VarChar(500)
+  /// 文件大小 (bytes)
+  fileSize      BigInt?   @map("file_size")
+  /// 查询参数 (JSON)
+  queryParams   String?   @map("query_params")
+  /// 导出列配置 (JSON)
+  columns       String?
+  /// 错误信息
+  errorMsg      String?   @map("error_msg") @db.VarChar(500)
+  /// 创建者
+  createBy      String?   @map("create_by") @db.VarChar(64)
+  /// 创建时间
+  createTime    DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 完成时间
+  finishTime    DateTime? @map("finish_time") @db.Timestamp(6)
+  /// 过期时间
+  expireTime    DateTime? @map("expire_time") @db.Timestamp(6)
+
+  @@index([status])
+  @@index([createBy])
+  @@index([createTime])
+  @@map("sys_export_task")
+}

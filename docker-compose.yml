@@ -64,7 +64,8 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - server_logs:/app/logs
-      - ./uploads:/app/uploads
+      - ./server-nestjs/uploads:/app/uploads
+      - ./server-nestjs/exports:/app/exports
     ports:
       - "3000:3000"
     networks:

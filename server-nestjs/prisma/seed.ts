@@ -1544,6 +1544,13 @@ async function main() {
       configValue: '',
       configType: 'Y',
     },
+    // 导出设置
+    {
+      configName: '导出文件保留时间',
+      configKey: 'sys.export.fileExpireHours',
+      configValue: '2',
+      configType: 'Y',
+    },
     // 网站Logo和图标
     {
       configName: '网站Logo',
@@ -1658,17 +1665,17 @@ async function main() {
     });
   }
 
-  // 11. 任务样例
-  const jobExist = await prisma.sysJob.findFirst({
-    where: { jobName: '示例任务' },
+  // 11. 清理过期导出任务
+  const cleanExportJobExist = await prisma.sysJob.findFirst({
+    where: { jobName: '清理过期导出任务' },
   });
-  if (!jobExist) {
+  if (!cleanExportJobExist) {
     await prisma.sysJob.create({
       data: {
-        jobName: '示例任务',
-        jobGroup: 'DEFAULT',
-        invokeTarget: 'log:示例任务执行成功',
-        cronExpression: '0/30 * * * * *',
+        jobName: '清理过期导出任务',
+        jobGroup: 'SYSTEM',
+        invokeTarget: 'export:cleanExpiredTasks',
+        cronExpression: '0 0 * * * *',
         misfirePolicy: '3',
         concurrent: '1',
         status: '0',
@@ -1676,30 +1683,7 @@ async function main() {
     });
   }
 
-  // 11.1 任务日志样例
-  const sampleJobLogCount = await prisma.sysJobLog.count();
-  if (sampleJobLogCount === 0) {
-    await prisma.sysJobLog.createMany({
-      data: [
-        {
-          jobName: '示例任务',
-          jobGroup: 'DEFAULT',
-          invokeTarget: 'log:示例任务执行成功',
-          jobMessage: '执行成功',
-          status: '0',
-        },
-        {
-          jobName: '示例任务',
-          jobGroup: 'DEFAULT',
-          invokeTarget: 'log:示例任务执行成功',
-          jobMessage: '执行失败：模拟异常',
-          status: '1',
-          exceptionInfo: 'MockError: something wrong',
-        },
-      ],
-      skipDuplicates: true,
-    });
-  }
+  // 11.1 任务日志样例（已移除示例任务）
 
   // 12. 登录日志样例
   const loginLogExist = await prisma.sysLoginLog.count();

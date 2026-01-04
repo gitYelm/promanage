@@ -11,3 +11,6 @@ logs/
 # 上传文件
 uploads/
 !uploads/avatars/.gitkeep
+
+# 导出文件
+exports/

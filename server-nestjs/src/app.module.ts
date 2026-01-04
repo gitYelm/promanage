@@ -21,6 +21,7 @@ import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware
 import { UploadModule } from './common/upload/upload.module';
 import { MailModule } from './common/mail/mail.module';
 import { ExcelModule } from './common/excel/excel.module';
+import { ExportTaskModule } from './common/export/export-task.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ExcelModule } from './common/excel/excel.module';
     UploadModule,
     MailModule,
     ExcelModule,
+    ExportTaskModule,
   ],
   controllers: [AppController],
   providers: [

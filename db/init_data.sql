@@ -274,6 +274,8 @@ VALUES
   ('OSS存储桶', 'sys.storage.oss.bucket', '', 'Y', NOW()),
   ('OSS AccessKey', 'sys.storage.oss.accessKey', '', 'Y', NOW()),
   ('OSS SecretKey', 'sys.storage.oss.secretKey', '', 'Y', NOW()),
+  -- 导出设置
+  ('导出文件保留时间', 'sys.export.fileExpireHours', '2', 'Y', NOW()),
   -- 网站Logo和图标
   ('网站Logo', 'sys.app.logo', '', 'Y', NOW()),
   ('网站图标', 'sys.app.favicon', '', 'Y', NOW()),
@@ -298,7 +300,7 @@ ON CONFLICT DO NOTHING;
 
 -- 11. 初始化定时任务
 INSERT INTO sys_job (job_name, job_group, invoke_target, cron_expression, misfire_policy, concurrent, status, create_time)
-VALUES ('示例任务', 'DEFAULT', 'log:示例任务执行成功', '0/30 * * * * *', '3', '1', '0', NOW())
+VALUES ('清理过期导出任务', 'SYSTEM', 'export:cleanExpiredTasks', '0 0 * * * *', '3', '1', '0', NOW())
 ON CONFLICT DO NOTHING;
 
 
@@ -720,12 +722,7 @@ WHERE r.role_key = 'common_user' AND r.del_flag = '0'
 ON CONFLICT DO NOTHING;
 
 
--- 15. 任务日志样例
-INSERT INTO sys_job_log (job_name, job_group, invoke_target, job_message, status, exception_info, create_time)
-VALUES 
-  ('示例任务', 'DEFAULT', 'log:示例任务执行成功', '执行成功', '0', '', NOW()),
-  ('示例任务', 'DEFAULT', 'log:示例任务执行成功', '执行失败：模拟异常', '1', 'MockError: something wrong', NOW())
-ON CONFLICT DO NOTHING;
+-- 15. 任务日志样例（已移除示例任务）
 
 
 -- 16. 登录日志样例
@@ -776,7 +773,6 @@ BEGIN
   RAISE NOTICE '- 字典类型：10 个';
   RAISE NOTICE '- 字典数据：29 条';
   RAISE NOTICE '- 系统配置：27 条';
-  RAISE NOTICE '- 任务日志样例：2 条';
   RAISE NOTICE '- 登录日志样例：2 条';
   RAISE NOTICE '- 操作日志样例：2 条';
   RAISE NOTICE '==============================================';
