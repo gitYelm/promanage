@@ -13,6 +13,7 @@ import { RedisModule } from '../redis/redis.module';
 import { CaptchaService } from './captcha.service';
 import { TwoFactorService } from './two-factor.service';
 import { SecurityConfigService } from './security-config.service';
+import { UserStatusService } from './user-status.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
@@ -43,7 +44,13 @@ import { PrismaModule } from '../prisma/prisma.module';
     CaptchaService,
     TwoFactorService,
     SecurityConfigService,
+    UserStatusService,
   ],
-  exports: [AuthService, JwtAuthGuard, TokenBlacklistService],
+  exports: [
+    AuthService,
+    JwtAuthGuard,
+    TokenBlacklistService,
+    UserStatusService,
+  ],
 })
 export class AuthModule {}

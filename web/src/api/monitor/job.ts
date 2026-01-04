@@ -72,12 +72,29 @@ export function delJob(jobIds: string[]) {
   })
 }
 
-export function runJob(jobId: string) {
-  return request<{ msg: string }>({
+/** 任务执行结果 */
+export interface JobRunResult {
+  jobName: string
+  jobGroup: string
+  invokeTarget: string
+  jobMessage: string
+  status: string
+  exceptionInfo?: string
+  startTime: string
+  stopTime: string
+}
+
+interface JobRunResponse {
+  msg: string
+  data: JobRunResult
+}
+
+export function runJob(jobId: string): Promise<JobRunResult> {
+  return request<{ code: number; msg: string; data: JobRunResponse }>({
     url: '/monitor/job/run',
     method: 'post',
     data: { jobId },
-  })
+  }).then((res) => (res as unknown as { data: JobRunResponse }).data.data)
 }
 
 export function changeJobStatus(jobId: string, status: string) {

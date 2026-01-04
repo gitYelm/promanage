@@ -107,11 +107,23 @@ export class JobService {
   }
 
   /**
-   * 立即执行一次任务
+   * 立即执行一次任务，返回执行结果
    */
   async run(jobId: string) {
-    await this.jobExecutor.runJobOnce(jobId);
-    return { msg: '执行成功' };
+    const result = await this.jobExecutor.runJobOnce(jobId);
+    return {
+      msg: result.status === '0' ? '执行成功' : '执行失败',
+      data: {
+        jobName: result.jobName,
+        jobGroup: result.jobGroup,
+        invokeTarget: result.invokeTarget,
+        jobMessage: result.jobMessage,
+        status: result.status,
+        exceptionInfo: result.exceptionInfo,
+        startTime: result.startTime?.toISOString(),
+        stopTime: result.stopTime?.toISOString(),
+      },
+    };
   }
 
   /**

@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { SecurityConfigService } from './security-config.service';
+import { UserStatusService } from './user-status.service';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Response, Request } from 'express';
 
@@ -51,6 +52,32 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     });
     if (blacklist && token && (await blacklist.isBlacklisted(token))) {
       throw new UnauthorizedException('您的登录已失效，请重新登录');
+    }
+
+    // 解码 token 获取用户 ID，检查用户状态
+    const jwtService = this.moduleRef.get(JwtService, { strict: false });
+    if (jwtService && token) {
+      try {
+        const decoded = jwtService.decode(token);
+        if (decoded?.sub) {
+          const userStatusService = this.moduleRef.get(UserStatusService, {
+            strict: false,
+          });
+          if (userStatusService) {
+            const isInvalid = await userStatusService.isUserInvalid(
+              decoded.sub,
+            );
+            if (isInvalid) {
+              throw new UnauthorizedException('用户已被删除或停用，请重新登录');
+            }
+          }
+        }
+      } catch (error) {
+        if (error instanceof UnauthorizedException) {
+          throw error;
+        }
+        // 解码失败不影响后续验证
+      }
     }
 
     // 在验证前先解码 token，检查是否在宽限期内

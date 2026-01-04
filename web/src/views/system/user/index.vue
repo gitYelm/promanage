@@ -483,6 +483,12 @@ async function confirmImport() {
   }
 }
 
+// 清除选择
+function clearSelection() {
+  selectedRows.value = []
+  selectAll.value = false
+}
+
 // 切换单个选择
 function toggleRowSelection(userId: string) {
   const index = selectedRows.value.indexOf(userId)
@@ -631,28 +637,6 @@ onMounted(async () => {
         <p class="text-sm text-muted-foreground">管理系统用户、分配角色和部门</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" :disabled="!hasSelectedRows" @click="handleBatchDelete">
-          <Trash2 class="h-4 w-4 sm:mr-2" />
-          <span class="hidden sm:inline">批量删除</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="!hasSelectedRows"
-          @click="handleBatchStatus('0')"
-        >
-          <CheckSquare class="h-4 w-4 sm:mr-2" />
-          <span class="hidden sm:inline">批量启用</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="!hasSelectedRows"
-          @click="handleBatchStatus('1')"
-        >
-          <XSquare class="h-4 w-4 sm:mr-2" />
-          <span class="hidden sm:inline">批量停用</span>
-        </Button>
         <Button variant="outline" size="sm" @click="handleImport">
           <FileUp class="h-4 w-4 sm:mr-2" />
           <span class="hidden sm:inline">导入</span>
@@ -783,6 +767,49 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- 批量操作栏 - 勾选后显示 -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="hasSelectedRows"
+        class="flex items-center justify-between gap-4 px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg"
+      >
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-muted-foreground">已选择</span>
+          <span class="font-medium text-primary">{{ selectedRows.length }}</span>
+          <span class="text-muted-foreground">项</span>
+          <Button
+            variant="link"
+            size="sm"
+            class="h-auto p-0 text-muted-foreground"
+            @click="clearSelection"
+          >
+            取消选择
+          </Button>
+        </div>
+        <div class="flex items-center gap-2">
+          <Button variant="outline" size="sm" @click="handleBatchStatus('0')">
+            <CheckSquare class="h-4 w-4 mr-2" />
+            批量启用
+          </Button>
+          <Button variant="outline" size="sm" @click="handleBatchStatus('1')">
+            <XSquare class="h-4 w-4 mr-2" />
+            批量停用
+          </Button>
+          <Button variant="destructive" size="sm" @click="handleBatchDelete">
+            <Trash2 class="h-4 w-4 mr-2" />
+            批量删除
+          </Button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">

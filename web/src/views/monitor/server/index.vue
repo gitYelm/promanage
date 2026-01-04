@@ -4,7 +4,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { getServer, type ServerInfo } from '@/api/monitor/server'
-import { Loader2, Cpu, Database, HardDrive, RefreshCw, Monitor, Activity } from 'lucide-vue-next'
+import {
+  Loader2,
+  Cpu,
+  Database,
+  HardDrive,
+  RefreshCw,
+  Monitor,
+  Activity,
+  Copy,
+  Check,
+} from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toast'
 
@@ -13,6 +23,19 @@ const server = ref<ServerInfo | null>(null)
 const autoRefresh = ref(true)
 const refreshInterval = ref<ReturnType<typeof setInterval> | null>(null)
 const lastUpdateTime = ref<string>('')
+const copied = ref(false)
+
+// 复制路径
+async function copyPath(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = true
+    toast({ title: '已复制到剪贴板' })
+    setTimeout(() => (copied.value = false), 2000)
+  } catch {
+    toast({ title: '复制失败', variant: 'destructive' })
+  }
+}
 
 // CPU 总使用率
 const cpuTotalUsage = computed(() => {
@@ -190,11 +213,21 @@ onUnmounted(() => {
               <span class="text-muted-foreground">操作系统:</span>
               <span>{{ server.sys.osName }} {{ server.sys.osArch }}</span>
               <span class="text-muted-foreground">项目路径:</span>
-              <span
-                class="truncate max-w-[200px] inline-block align-bottom"
-                :title="server.sys.userDir"
-                >{{ server.sys.userDir }}</span
-              >
+              <span class="flex items-center gap-1">
+                <span
+                  class="truncate max-w-[180px] inline-block align-bottom"
+                  :title="server.sys.userDir"
+                  >{{ server.sys.userDir }}</span
+                >
+                <button
+                  class="p-1 hover:bg-muted rounded transition-colors"
+                  :title="copied ? '已复制' : '复制路径'"
+                  @click="copyPath(server.sys.userDir)"
+                >
+                  <Check v-if="copied" class="h-3 w-3 text-green-500" />
+                  <Copy v-else class="h-3 w-3 text-muted-foreground" />
+                </button>
+              </span>
             </div>
           </div>
 

@@ -55,6 +55,7 @@ import {
   updateJob,
   runJob,
   changeJobStatus,
+  type JobRunResult,
 } from '@/api/monitor/job'
 import type { SysJob } from '@/api/system/types'
 import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
@@ -95,6 +96,13 @@ const confirmDialog = reactive({
   title: '',
   description: '',
   action: null as (() => Promise<void>) | null,
+})
+
+// 执行结果弹窗
+const runResultDialog = reactive({
+  open: false,
+  loading: false,
+  result: null as JobRunResult | null,
 })
 
 // 更新任务状态
@@ -163,8 +171,17 @@ function handleRun(row: SysJob) {
   confirmDialog.title = '执行任务'
   confirmDialog.description = `确认要立即执行一次任务"${row.jobName}"吗？`
   confirmDialog.action = async () => {
-    await runJob(row.jobId)
-    toast({ title: '执行成功', description: '任务已下发执行' })
+    runResultDialog.loading = true
+    runResultDialog.open = true
+    runResultDialog.result = null
+    try {
+      const result = await runJob(row.jobId)
+      runResultDialog.result = result
+    } catch {
+      runResultDialog.open = false
+    } finally {
+      runResultDialog.loading = false
+    }
   }
   confirmDialog.open = true
 }
@@ -505,6 +522,78 @@ onMounted(() => {
         <DialogFooter>
           <Button variant="outline" @click="showDialog = false">取消</Button>
           <Button :disabled="submitLoading" @click="handleSubmit"> 确定 </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Run Result Dialog -->
+    <Dialog v-model:open="runResultDialog.open">
+      <DialogContent class="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>任务执行结果</DialogTitle>
+        </DialogHeader>
+
+        <div v-if="runResultDialog.loading" class="flex items-center justify-center py-8">
+          <RefreshCw class="h-6 w-6 animate-spin text-muted-foreground" />
+          <span class="ml-2 text-muted-foreground">正在执行...</span>
+        </div>
+
+        <div v-else-if="runResultDialog.result" class="space-y-4">
+          <div class="flex items-center gap-2">
+            <Badge :variant="runResultDialog.result.status === '0' ? 'default' : 'destructive'">
+              {{ runResultDialog.result.status === '0' ? '执行成功' : '执行失败' }}
+            </Badge>
+            <span
+              v-if="runResultDialog.result.startTime && runResultDialog.result.stopTime"
+              class="text-sm text-muted-foreground"
+            >
+              耗时
+              {{
+                new Date(runResultDialog.result.stopTime).getTime() -
+                new Date(runResultDialog.result.startTime).getTime()
+              }}ms
+            </span>
+          </div>
+
+          <div class="grid gap-3 text-sm">
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-muted-foreground">任务名称</span>
+              <span>{{ runResultDialog.result.jobName }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-muted-foreground">任务分组</span>
+              <span>{{ runResultDialog.result.jobGroup }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-muted-foreground">调用目标</span>
+              <span class="break-all">{{ runResultDialog.result.invokeTarget }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-muted-foreground">开始时间</span>
+              <span>{{ formatDate(runResultDialog.result.startTime) }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-muted-foreground">结束时间</span>
+              <span>{{ formatDate(runResultDialog.result.stopTime) }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-muted-foreground">执行消息</span>
+              <span>{{ runResultDialog.result.jobMessage }}</span>
+            </div>
+            <div
+              v-if="runResultDialog.result.exceptionInfo"
+              class="grid grid-cols-[100px_1fr] gap-2"
+            >
+              <span class="text-muted-foreground">异常信息</span>
+              <span class="text-destructive break-all">{{
+                runResultDialog.result.exceptionInfo
+              }}</span>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button @click="runResultDialog.open = false">关闭</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

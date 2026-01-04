@@ -14,6 +14,7 @@ import { LoggerService } from '../../common/logger/logger.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { ErrorCode } from '../../common/enums/error-code.enum';
 import { ConfigService } from '../config/config.service';
+import { UserStatusService } from '../../auth/user-status.service';
 
 @Injectable()
 export class UserService {
@@ -22,6 +23,8 @@ export class UserService {
     private logger: LoggerService,
     @Inject(forwardRef(() => ConfigService))
     private configService: ConfigService,
+    @Inject(forwardRef(() => UserStatusService))
+    private userStatusService: UserStatusService,
   ) {}
 
   findByUsername(username: string) {
@@ -366,6 +369,9 @@ export class UserService {
       data: { delFlag: '2' },
     });
 
+    // 标记用户为无效，使其 JWT 立即失效
+    await this.userStatusService.markUserInvalid(userId);
+
     this.logger.log(
       `用户删除成功: ${result.userName} (ID: ${userId})`,
       'UserService',
@@ -404,6 +410,13 @@ export class UserService {
       where: { userId: BigInt(userId) },
       data: { status, updateTime: new Date() },
     });
+
+    // 停用用户时标记为无效，启用时移除无效标记
+    if (status === '1') {
+      await this.userStatusService.markUserInvalid(userId);
+    } else {
+      await this.userStatusService.removeUserInvalid(userId);
+    }
 
     this.logger.log(
       `用户状态修改成功: ${result.userName} (ID: ${userId}, 状态: ${status})`,

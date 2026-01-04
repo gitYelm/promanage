@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import {
   Table,
   TableBody,
@@ -47,6 +47,7 @@ const queryParams = reactive({
 // 选择相关
 const selectedIds = ref<string[]>([])
 const selectAll = ref(false)
+const hasSelectedRows = computed(() => selectedIds.value.length > 0)
 
 // 监听全选状态变化
 watch(selectAll, (newVal) => {
@@ -146,6 +147,12 @@ function resetQuery() {
   queryParams.ipaddr = ''
   queryParams.userName = ''
   handleQuery()
+}
+
+// 清除选择
+function clearSelection() {
+  selectedIds.value = []
+  selectAll.value = false
 }
 
 // 选择操作
@@ -272,16 +279,43 @@ onUnmounted(() => {
           <RefreshCw class="w-4 h-4 mr-2" />
           重置
         </Button>
-        <Button
-          variant="destructive"
-          :disabled="selectedIds.length === 0"
-          @click="openLogoutDialog()"
-        >
-          <LogOut class="w-4 h-4 mr-2" />
-          批量强退 ({{ selectedIds.length }})
-        </Button>
       </div>
     </div>
+
+    <!-- 批量操作栏 - 勾选后显示 -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="hasSelectedRows"
+        class="flex items-center justify-between gap-4 px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg"
+      >
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-muted-foreground">已选择</span>
+          <span class="font-medium text-primary">{{ selectedIds.length }}</span>
+          <span class="text-muted-foreground">项</span>
+          <Button
+            variant="link"
+            size="sm"
+            class="h-auto p-0 text-muted-foreground"
+            @click="clearSelection"
+          >
+            取消选择
+          </Button>
+        </div>
+        <div class="flex items-center gap-2">
+          <Button variant="destructive" size="sm" @click="openLogoutDialog()">
+            <LogOut class="h-4 w-4 mr-2" />
+            批量强退
+          </Button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">

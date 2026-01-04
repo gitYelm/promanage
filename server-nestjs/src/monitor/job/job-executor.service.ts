@@ -267,9 +267,9 @@ export class JobExecutorService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 立即执行一次任务
+   * 立即执行一次任务，返回执行结果
    */
-  async runJobOnce(jobId: string): Promise<void> {
+  async runJobOnce(jobId: string): Promise<JobLogData> {
     const job = await this.prisma.sysJob.findUnique({
       where: { jobId: BigInt(jobId) },
     });
@@ -278,7 +278,7 @@ export class JobExecutorService implements OnModuleInit, OnModuleDestroy {
       throw new Error('任务不存在');
     }
 
-    await this.executeJob({
+    return this.executeJobWithResult({
       jobId: job.jobId.toString(),
       jobName: job.jobName ?? '',
       jobGroup: job.jobGroup ?? 'DEFAULT',
@@ -287,6 +287,71 @@ export class JobExecutorService implements OnModuleInit, OnModuleDestroy {
       status: job.status ?? '1',
       concurrent: job.concurrent ?? '1',
     });
+  }
+
+  /**
+   * 执行任务并返回结果（用于手动执行）
+   */
+  private async executeJobWithResult(task: JobTask): Promise<JobLogData> {
+    const jobKey = this.getJobKey(task.jobId);
+    const startTime = new Date();
+
+    // 并发控制：如果不允许并发且任务正在执行，则跳过
+    if (task.concurrent === '1' && this.runningJobs.has(jobKey)) {
+      return {
+        jobName: task.jobName,
+        jobGroup: task.jobGroup,
+        invokeTarget: task.invokeTarget,
+        jobMessage: '任务正在执行中，跳过本次调度',
+        status: '1',
+        startTime,
+        stopTime: new Date(),
+      };
+    }
+
+    this.runningJobs.add(jobKey);
+
+    const logData: JobLogData = {
+      jobName: task.jobName,
+      jobGroup: task.jobGroup,
+      invokeTarget: task.invokeTarget,
+      jobMessage: '',
+      status: '0',
+      startTime,
+    };
+
+    try {
+      this.logger.log(`开始执行任务: ${task.jobName}`, 'JobExecutor');
+
+      // 解析并执行目标方法
+      await this.invokeTarget(task.invokeTarget);
+
+      logData.status = '0'; // 成功
+      logData.jobMessage = '执行成功';
+      logData.stopTime = new Date();
+
+      this.logger.log(
+        `任务执行成功: ${task.jobName}, 耗时: ${logData.stopTime.getTime() - startTime.getTime()}ms`,
+        'JobExecutor',
+      );
+    } catch (error) {
+      logData.status = '1'; // 失败
+      logData.jobMessage = '执行失败';
+      logData.exceptionInfo = (error as Error).message;
+      logData.stopTime = new Date();
+
+      this.logger.error(
+        `任务执行失败: ${task.jobName}`,
+        (error as Error).stack,
+        'JobExecutor',
+      );
+    } finally {
+      this.runningJobs.delete(jobKey);
+      // 记录执行日志
+      await this.saveJobLog(logData);
+    }
+
+    return logData;
   }
 
   /**

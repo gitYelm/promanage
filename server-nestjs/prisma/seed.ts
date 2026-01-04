@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
+import Redis from 'ioredis';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -10,8 +11,46 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+/**
+ * 清除 Redis 中的用户状态缓存
+ * 避免重新初始化数据后，旧的无效标记导致无法登录
+ */
+async function clearUserStatusCache() {
+  const redisEnabled = process.env.REDIS_ENABLED?.toLowerCase() === 'true';
+  if (!redisEnabled) {
+    console.log('Redis disabled, skip clearing user status cache');
+    return;
+  }
+
+  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  const redis = new Redis(redisUrl);
+
+  try {
+    // 清除所有用户状态缓存
+    const invalidKeys = await redis.keys('auth:invalid_users:*');
+    const validKeys = await redis.keys('auth:valid_users:*');
+    const allKeys = [...invalidKeys, ...validKeys];
+
+    if (allKeys.length > 0) {
+      await redis.del(...allKeys);
+      console.log(`Cleared ${allKeys.length} user status cache keys`);
+    } else {
+      console.log('No user status cache to clear');
+    }
+  } catch (error) {
+    console.warn(
+      `Failed to clear user status cache: ${(error as Error).message}`,
+    );
+  } finally {
+    redis.disconnect();
+  }
+}
+
 async function main() {
   console.log('Start seeding ...');
+
+  // 清除用户状态缓存
+  await clearUserStatusCache();
 
   // 1. Init Dept (层级结构)
   const ensureDept = async (data: {
