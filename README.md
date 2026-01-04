@@ -70,7 +70,8 @@ docker-compose up -d --build
 |------|------|
 | 前端 | http://localhost:8080 |
 | 后端 API | http://localhost:3000 |
-| Swagger | http://localhost:8080/tool/swagger |
+| Swagger UI | http://localhost:3000/api-docs |
+| Redoc | http://localhost:3000/redoc |
 | PostgreSQL | localhost:5433 |
 
 ### 方式二：本地开发
@@ -243,11 +244,13 @@ pnpm db:studio        # Prisma GUI
 ## 📚 文档
 
 - [文档中心](docs/README.md)
-- [环境配置说明](docs/指南/环境配置说明.md)
+- [快速开始](docs/指南/快速开始.md)
 - [Prisma 使用指南](docs/指南/Prisma使用指南.md)
-- [Docker 部署指南](docs/指南/Docker部署指南.md)
+- [宝塔 Docker 部署指南](docs/指南/宝塔Docker部署指南.md)
+- [Docker 生产环境运维指南](docs/指南/Docker生产环境运维指南.md)
 - [文件存储配置指南](docs/指南/文件存储配置指南.md)
 - [SMTP 邮件配置指南](docs/指南/SMTP邮件配置指南.md)
+- [Swagger 使用指南](docs/指南/Swagger使用指南.md)
 
 ## 📄 License
 
