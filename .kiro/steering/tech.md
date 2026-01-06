@@ -7,32 +7,34 @@ pnpm Monorepo：
 
 ## 前端 (web/)
 - Vue 3.5 + Composition API (`<script setup lang="ts">`)
-- Vite 7 构建
+- Vite 7.2 构建
 - TypeScript 5.9
-- shadcn-vue 2.4 (基于 Radix Vue + Reka UI)
+- shadcn-vue 2.4 (基于 Radix Vue 1.9 + Reka UI 2.6)
 - Tailwind CSS 3.4
 - Pinia 3 状态管理
-- Vue Router 4
-- Axios HTTP 客户端
-- VeeValidate + Zod 表单验证
+- Vue Router 4.6
+- Axios 1.13 HTTP 客户端
+- VeeValidate 4.15 + Zod 3.25 表单验证
 - Lucide Vue Next 图标
-- Tiptap 富文本编辑器
-- VueUse 工具库
+- Tiptap 3.13 富文本编辑器
+- VueUse 14 工具库
+- DOMPurify XSS 防护
 
 ## 后端 (server-nestjs/)
 - NestJS 11
 - TypeScript 5.7
-- Prisma 7 ORM (PostgreSQL adapter)
+- Prisma 7.1 ORM (PostgreSQL adapter)
 - PostgreSQL 16
-- Redis (ioredis) 缓存
+- Redis (ioredis 5.8) 缓存
 - JWT + Passport 认证
 - 两步验证 (otplib + qrcode)
 - class-validator + class-transformer 验证
-- Swagger API 文档
-- Winston + daily-rotate-file 日志
-- ExcelJS 导出
+- Swagger 11 API 文档
+- Winston 3.18 + daily-rotate-file 日志
+- ExcelJS 4.4 导出
 - AWS S3 文件存储 (可选)
-- Nodemailer 邮件发送
+- Nodemailer 7 邮件发送
+- @nestjs/schedule 定时任务
 
 ## 常用命令
 

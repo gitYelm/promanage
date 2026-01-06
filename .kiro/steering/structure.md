@@ -7,10 +7,12 @@ rbac-admin-pro/
 │       ├── api/                  # API 模块
 │       │   ├── system/           # 系统管理 API
 │       │   └── monitor/          # 监控模块 API
+│       ├── assets/               # 静态资源 (图片、字体等)
 │       ├── components/
 │       │   ├── ui/               # shadcn-vue 基础组件
 │       │   ├── common/           # 通用组件 (ImageUpload, TablePagination...)
 │       │   └── business/         # 业务组件 (UserForm, DeptTreeSelect...)
+│       ├── composables/          # Vue 组合式函数 (useXxx)
 │       ├── views/                # 页面视图
 │       │   ├── system/           # 系统管理页面
 │       │   ├── monitor/          # 监控页面
@@ -18,6 +20,7 @@ rbac-admin-pro/
 │       ├── stores/modules/       # Pinia stores
 │       ├── router/               # 路由配置
 │       ├── utils/                # 工具函数 (request, auth, format...)
+│       ├── lib/                  # 第三方库封装 (shadcn-vue utils)
 │       ├── types/                # TypeScript 类型
 │       ├── directive/            # Vue 指令 (权限指令)
 │       └── layout/               # 布局组件

@@ -9,15 +9,10 @@
 </p>
 
 <p align="center">
-  <a href="https://rbac.zeabur.app/login" target="_blank">🌐 在线演示</a> |
-  <a href="https://api-rbac.zeabur.app/api-docs" target="_blank">📖 API 文档</a>
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js" alt="Vue">
   <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
   <img src="https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma" alt="Prisma">
-  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/TypeScript-5.7+-3178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
@@ -155,32 +150,39 @@ pnpm db:studio        # Prisma GUI
 <details>
 <summary><b>monorepo.sh 功能菜单</b></summary>
 
+运行 `./monorepo.sh` 会显示交互式控制台，包含前后端运行状态、PID、端口、Uptime 等信息。
+
 **本地开发**
-| 序号 | 功能 | 命令 |
+| 序号 | 功能 | 说明 |
 |------|------|------|
-| 1 | 一键启动前后端 | `pnpm dev` |
+| 1 | 一键启动前后端 | 启动后自动跟随日志输出 |
 | 2 | 一键停止前后端 | - |
-| 3 | 一键重启前后端 | - |
-| 4 | 同步数据库迁移 | `pnpm prisma migrate dev` |
-| 5 | 打开 Prisma Studio | `pnpm prisma studio` |
+| 3 | 一键重启前后端 | 重启后自动跟随日志输出 |
+| 4 | 同步数据库迁移 | `prisma migrate dev` |
+| 5 | 打开 Prisma Studio | 数据库可视化管理 |
 | 6 | 前端类型检查 | `pnpm type-check` |
 | 7 | 后端代码校验 | `pnpm validate` |
-| 8 | API 冒烟测试 | - |
-| 9 | 重置数据库 (危险) | `pnpm prisma migrate reset` |
+| 8 | 后端快速 API 冒烟测试 | 执行登录、用户、角色等接口测试 |
+| 9 | 重置数据库到初始状态 (危险) | `prisma migrate reset` + 重新 seed |
 
 **Docker 部署**
 | 序号 | 功能 | 命令 |
 |------|------|------|
-| 10 | 启动基础设施 | `docker-compose up -d postgres redis` |
+| 10 | 启动基础设施 (PG+Redis) | `docker-compose up -d postgres redis` |
 | 11 | 启动全部服务 | `docker-compose up -d` |
 | 12 | 构建并启动全部 | `docker-compose up -d --build` |
 | 13 | 仅构建后端镜像 | `docker-compose build server` |
 | 14 | 仅构建前端镜像 | `docker-compose build web` |
 | 15 | 停止全部服务 | `docker-compose down` |
 | 16 | 重启全部服务 | `docker-compose restart` |
-| 17 | 重启指定服务 | `docker-compose restart [service]` |
+| 17 | 重启指定服务 | 交互式选择 server/web/postgres/redis |
 | 18 | 查看服务状态 | `docker-compose ps` |
-| 19 | 查看服务日志 | `docker-compose logs -f` |
+| 19 | 查看服务日志 | 交互式选择服务日志 |
+
+**特性说明**
+- 支持环境变量覆盖端口：`WEB_PORT=3001 SERVER_PORT=4000 ./monorepo.sh`
+- 自动读取 `.env` 文件中的端口配置
+- Docker 构建时自动生成 Git 提交记录 JSON（用于更新日志页面）
 
 </details>
 
@@ -243,14 +245,13 @@ pnpm db:studio        # Prisma GUI
 
 ## 📚 文档
 
-- [文档中心](docs/README.md)
-- [快速开始](docs/指南/快速开始.md)
-- [Prisma 使用指南](docs/指南/Prisma使用指南.md)
-- [宝塔 Docker 部署指南](docs/指南/宝塔Docker部署指南.md)
-- [Docker 生产环境运维指南](docs/指南/Docker生产环境运维指南.md)
-- [文件存储配置指南](docs/指南/文件存储配置指南.md)
-- [SMTP 邮件配置指南](docs/指南/SMTP邮件配置指南.md)
-- [Swagger 使用指南](docs/指南/Swagger使用指南.md)
+| 分类 | 文档 |
+|------|------|
+| **入门** | [快速开始](docs/指南/快速开始.md) · [文档中心](docs/README.md) |
+| **部署** | [宝塔Docker部署](docs/指南/宝塔Docker部署指南.md) · [Docker运维](docs/指南/Docker生产环境运维指南.md) |
+| **开发** | [Prisma指南](docs/指南/Prisma使用指南.md) · [Swagger指南](docs/指南/Swagger使用指南.md) |
+| **配置** | [文件存储](docs/指南/文件存储配置指南.md) · [SMTP邮件](docs/指南/SMTP邮件配置指南.md) |
+| **脚手架** | [新项目初始化指南](docs/指南/新项目初始化指南.md) · [模块复用指南](docs/指南/模块复用指南.md) |
 
 ## 📄 License
 
