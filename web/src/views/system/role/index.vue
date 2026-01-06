@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, h } from 'vue'
+import { ref, reactive, onMounted, computed, watch, h } from 'vue'
 import {
   Table,
   TableBody,
@@ -80,8 +80,23 @@ const queryParams = reactive({
   status: ALL_OPTION_VALUE as string,
 })
 
+// 选择相关
+const selectedIds = ref<string[]>([])
+const selectAll = ref(false)
+const hasSelectedRows = computed(() => selectedIds.value.length > 0)
+
+// 监听全选状态变化
+watch(selectAll, (newVal) => {
+  if (newVal) {
+    selectedIds.value = roleList.value.map((item) => item.roleId)
+  } else {
+    selectedIds.value = []
+  }
+})
+
 const showDialog = ref(false)
 const showDeleteDialog = ref(false)
+const showBatchDeleteDialog = ref(false)
 const showPreviewDialog = ref(false)
 const previewExpandAll = ref(false)
 const roleToDelete = ref<SysRole | null>(null)
@@ -123,6 +138,10 @@ async function getList() {
     })
     roleList.value = res.rows
     total.value = res.total
+    // 清除已不存在的选中项
+    selectedIds.value = selectedIds.value.filter((id) =>
+      res.rows.some((r: SysRole) => r.roleId === id),
+    )
   } finally {
     loading.value = false
   }
@@ -194,6 +213,70 @@ function resetQuery() {
   queryParams.roleKey = ''
   queryParams.status = ALL_OPTION_VALUE
   handleQuery()
+}
+
+// 选择操作
+function toggleSelect(roleId: string) {
+  const idx = selectedIds.value.indexOf(roleId)
+  if (idx > -1) {
+    selectedIds.value.splice(idx, 1)
+  } else {
+    selectedIds.value.push(roleId)
+  }
+  selectAll.value =
+    selectedIds.value.length > 0 && selectedIds.value.length === roleList.value.length
+}
+
+// 批量删除
+function handleBatchDelete() {
+  if (selectedIds.value.length === 0) {
+    toast({ title: '提示', description: '请选择要删除的角色', variant: 'destructive' })
+    return
+  }
+  showBatchDeleteDialog.value = true
+}
+
+async function confirmBatchDelete() {
+  try {
+    for (const roleId of selectedIds.value) {
+      await delRole([roleId])
+    }
+    toast({ title: '删除成功', description: `已删除 ${selectedIds.value.length} 个角色` })
+    selectedIds.value = []
+    selectAll.value = false
+    getList()
+  } finally {
+    showBatchDeleteDialog.value = false
+  }
+}
+
+// 批量启用/停用
+const showBatchStatusDialog = ref(false)
+const batchStatusType = ref<'0' | '1'>('0')
+
+function handleBatchStatus(status: '0' | '1') {
+  if (selectedIds.value.length === 0) {
+    toast({ title: '提示', description: '请选择要操作的角色', variant: 'destructive' })
+    return
+  }
+  batchStatusType.value = status
+  showBatchStatusDialog.value = true
+}
+
+async function confirmBatchStatus() {
+  const status = batchStatusType.value
+  const text = status === '0' ? '启用' : '停用'
+  try {
+    for (const roleId of selectedIds.value) {
+      await changeRoleStatus(roleId, status)
+    }
+    toast({ title: '操作成功', description: `已${text} ${selectedIds.value.length} 个角色` })
+    selectedIds.value = []
+    selectAll.value = false
+    getList()
+  } finally {
+    showBatchStatusDialog.value = false
+  }
 }
 
 // Add/Edit Operations
@@ -355,7 +438,7 @@ const PreviewMenuTreeItem: any = {
                       toggleExpand()
                     },
                   },
-                  [h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })]
+                  [h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })],
                 )
               : h('span', { class: 'w-4' }),
             // 禁用的 Checkbox
@@ -364,7 +447,7 @@ const PreviewMenuTreeItem: any = {
               disabled: true,
             }),
             h('span', { class: 'text-sm' }, props.menu.menuName),
-          ]
+          ],
         ),
         // 子节点(仅在展开时显示)
         hasChildren.value && shouldExpand.value
@@ -378,8 +461,8 @@ const PreviewMenuTreeItem: any = {
                   level: currentLevel + 1,
                   selectedIds: props.selectedIds,
                   expandAll: props.expandAll,
-                })
-              )
+                }),
+              ),
             )
           : null,
       ])
@@ -458,7 +541,7 @@ const MenuTreeItem: any = {
                       toggleExpand()
                     },
                   },
-                  [h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })]
+                  [h(isExpanded.value ? ChevronDown : ChevronRight, { class: 'w-3 h-3' })],
                 )
               : h('span', { class: 'w-4' }), // 占位符保持对齐
             h(Checkbox, {
@@ -466,7 +549,7 @@ const MenuTreeItem: any = {
               'onUpdate:modelValue': toggle,
             }),
             h('span', { class: 'text-sm' }, props.menu.menuName),
-          ]
+          ],
         ),
         // 子节点(仅在展开时显示)
         hasChildren.value && shouldExpand.value
@@ -482,8 +565,8 @@ const MenuTreeItem: any = {
                   level: currentLevel + 1,
                   expandAll: props.expandAll,
                   'onUpdate:modelValue': (val: any) => emit('update:modelValue', val),
-                })
-              )
+                }),
+              ),
             )
           : null,
       ])
@@ -562,10 +645,32 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 批量操作栏 -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="hasSelectedRows"
+        class="flex items-center gap-4 px-4 py-3 bg-muted/50 border rounded-lg"
+      >
+        <span class="text-sm">
+          已选择 <span class="font-medium">{{ selectedIds.length }}</span> 项
+        </span>
+        <Button variant="outline" size="sm" @click="handleBatchStatus('0')"> 批量启用 </Button>
+        <Button variant="outline" size="sm" @click="handleBatchStatus('1')"> 批量停用 </Button>
+        <Button variant="destructive" size="sm" @click="handleBatchDelete"> 批量删除 </Button>
+      </div>
+    </Transition>
+
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
-      <TableSkeleton v-if="loading" :columns="8" :rows="10" />
+      <TableSkeleton v-if="loading" :columns="8" :rows="10" show-checkbox />
 
       <!-- 空状态 -->
       <EmptyState
@@ -580,6 +685,9 @@ onMounted(() => {
       <Table v-else>
         <TableHeader>
           <TableRow>
+            <TableHead class="w-[50px]">
+              <Checkbox v-model="selectAll" :disabled="roleList.length === 0" />
+            </TableHead>
             <TableHead>角色编号</TableHead>
             <TableHead>角色名称</TableHead>
             <TableHead>权限字符</TableHead>
@@ -593,6 +701,12 @@ onMounted(() => {
         </TableHeader>
         <TableBody>
           <TableRow v-for="item in roleList" :key="item.roleId">
+            <TableCell>
+              <Checkbox
+                :model-value="selectedIds.includes(item.roleId)"
+                @update:model-value="() => toggleSelect(item.roleId)"
+              />
+            </TableCell>
             <TableCell>{{ item.roleId }}</TableCell>
             <TableCell>{{ item.roleName }}</TableCell>
             <TableCell
@@ -766,6 +880,25 @@ onMounted(() => {
       confirm-text="删除"
       destructive
       @confirm="confirmDelete"
+    />
+
+    <!-- Batch Delete Confirmation Dialog -->
+    <ConfirmDialog
+      v-model:open="showBatchDeleteDialog"
+      title="确认批量删除"
+      :description="`您确定要删除选中的 ${selectedIds.length} 个角色吗？此操作无法撤销。`"
+      confirm-text="删除"
+      destructive
+      @confirm="confirmBatchDelete"
+    />
+
+    <!-- Batch Status Dialog -->
+    <ConfirmDialog
+      v-model:open="showBatchStatusDialog"
+      :title="`确认批量${batchStatusType === '0' ? '启用' : '停用'}`"
+      :description="`您确定要${batchStatusType === '0' ? '启用' : '停用'}选中的 ${selectedIds.length} 个角色吗？`"
+      confirm-text="确定"
+      @confirm="confirmBatchStatus"
     />
 
     <!-- Preview Dialog -->

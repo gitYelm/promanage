@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { LogininforService } from './logininfor.service';
-import { LogininforController } from './logininfor.controller';
+import { Module } from '@nestjs/common'
+import { LogininforService } from './logininfor.service'
+import { LogininforController } from './logininfor.controller'
 
 @Module({
   controllers: [LogininforController],

@@ -196,7 +196,7 @@ const flattenedOptions = computed(() => {
   const result: Array<{ id: string; label: string }> = []
   const traverse = (
     nodes: Array<{ menuId: string; menuName: string; children?: any[] }>,
-    prefix = ''
+    prefix = '',
   ) => {
     for (const node of nodes || []) {
       result.push({ id: node.menuId, label: prefix + node.menuName })

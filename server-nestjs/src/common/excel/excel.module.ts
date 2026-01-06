@@ -1,5 +1,5 @@
-import { Module, Global } from '@nestjs/common';
-import { ExcelService } from './excel.service';
+import { Module, Global } from '@nestjs/common'
+import { ExcelService } from './excel.service'
 
 @Global()
 @Module({

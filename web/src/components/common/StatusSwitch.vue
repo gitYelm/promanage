@@ -39,7 +39,7 @@ const props = withDefaults(
     confirm: false,
     confirmTitle: '确认{action}',
     confirmDescription: '确定要{action}吗？',
-  }
+  },
 )
 
 const emit = defineEmits<{

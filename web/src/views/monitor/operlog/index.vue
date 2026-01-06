@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import {
   Table,
   TableBody,
@@ -35,15 +35,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { Trash2, RefreshCw, Search, Eye } from 'lucide-vue-next'
-import { listOperLog, cleanOperLog } from '@/api/monitor/operlog'
+import { listOperLog, delOperLog, cleanOperLog } from '@/api/monitor/operlog'
 import type { SysOperLog } from '@/api/system/types'
 import { formatDate } from '@/utils/format'
 import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
 const { toast } = useToast()
 
@@ -60,9 +62,24 @@ const queryParams = reactive({
   status: ALL_OPTION_VALUE as string,
 })
 
+// 选择相关
+const selectedIds = ref<string[]>([])
+const selectAll = ref(false)
+const hasSelectedRows = computed(() => selectedIds.value.length > 0)
+
+// 监听全选状态变化
+watch(selectAll, (newVal) => {
+  if (newVal) {
+    selectedIds.value = logList.value.map((item) => item.operId)
+  } else {
+    selectedIds.value = []
+  }
+})
+
 const showDetail = ref(false)
 const currentLog = ref<SysOperLog | null>(null)
 const showCleanDialog = ref(false)
+const showBatchDeleteDialog = ref(false)
 
 // Fetch Data
 async function getList() {
@@ -74,6 +91,10 @@ async function getList() {
     })
     logList.value = res.rows
     total.value = res.total
+    // 清除已不存在的选中项
+    selectedIds.value = selectedIds.value.filter((id) =>
+      res.rows.some((r: SysOperLog) => r.operId === id),
+    )
   } finally {
     loading.value = false
   }
@@ -91,6 +112,39 @@ function resetQuery() {
   queryParams.businessType = undefined
   queryParams.status = ALL_OPTION_VALUE
   handleQuery()
+}
+
+// 选择操作
+function toggleSelect(operId: string) {
+  const idx = selectedIds.value.indexOf(operId)
+  if (idx > -1) {
+    selectedIds.value.splice(idx, 1)
+  } else {
+    selectedIds.value.push(operId)
+  }
+  selectAll.value =
+    selectedIds.value.length > 0 && selectedIds.value.length === logList.value.length
+}
+
+// 批量删除
+function handleBatchDelete() {
+  if (selectedIds.value.length === 0) {
+    toast({ title: '提示', description: '请选择要删除的日志', variant: 'destructive' })
+    return
+  }
+  showBatchDeleteDialog.value = true
+}
+
+async function confirmBatchDelete() {
+  try {
+    await delOperLog(selectedIds.value)
+    toast({ title: '删除成功', description: `已删除 ${selectedIds.value.length} 条日志` })
+    selectedIds.value = []
+    selectAll.value = false
+    getList()
+  } finally {
+    showBatchDeleteDialog.value = false
+  }
 }
 
 async function handleClean() {
@@ -214,10 +268,30 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 批量操作栏 -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="hasSelectedRows"
+        class="flex items-center gap-4 px-4 py-3 bg-muted/50 border rounded-lg"
+      >
+        <span class="text-sm">
+          已选择 <span class="font-medium">{{ selectedIds.length }}</span> 项
+        </span>
+        <Button variant="destructive" size="sm" @click="handleBatchDelete"> 批量删除 </Button>
+      </div>
+    </Transition>
+
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
-      <TableSkeleton v-if="loading" :columns="8" :rows="10" :show-actions="false" />
+      <TableSkeleton v-if="loading" :columns="8" :rows="10" :show-actions="false" show-checkbox />
 
       <!-- 空状态 -->
       <EmptyState
@@ -230,6 +304,9 @@ onMounted(() => {
       <Table v-else>
         <TableHeader>
           <TableRow>
+            <TableHead class="w-[50px]">
+              <Checkbox v-model="selectAll" :disabled="logList.length === 0" />
+            </TableHead>
             <TableHead>日志编号</TableHead>
             <TableHead>系统模块</TableHead>
             <TableHead>操作类型</TableHead>
@@ -243,6 +320,12 @@ onMounted(() => {
         </TableHeader>
         <TableBody>
           <TableRow v-for="item in logList" :key="item.operId">
+            <TableCell>
+              <Checkbox
+                :model-value="selectedIds.includes(item.operId)"
+                @update:model-value="() => toggleSelect(item.operId)"
+              />
+            </TableCell>
             <TableCell>{{ item.operId }}</TableCell>
             <TableCell>{{ item.title }}</TableCell>
             <TableCell>
@@ -316,5 +399,15 @@ onMounted(() => {
         </div>
       </DialogContent>
     </Dialog>
+
+    <!-- Batch Delete Confirmation Dialog -->
+    <ConfirmDialog
+      v-model:open="showBatchDeleteDialog"
+      title="确认批量删除"
+      :description="`您确定要删除选中的 ${selectedIds.length} 条操作日志吗？此操作无法撤销。`"
+      confirm-text="删除"
+      destructive
+      @confirm="confirmBatchDelete"
+    />
   </div>
 </template>

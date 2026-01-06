@@ -83,7 +83,7 @@ watch(
     } else {
       errors.email = ''
     }
-  }
+  },
 )
 
 watch(
@@ -94,7 +94,7 @@ watch(
     } else {
       errors.phonenumber = ''
     }
-  }
+  },
 )
 
 watch(
@@ -105,7 +105,7 @@ watch(
     } else {
       errors.password = ''
     }
-  }
+  },
 )
 
 // 头像上传

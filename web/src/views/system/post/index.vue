@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import {
   Table,
   TableBody,
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { Plus, Edit, Trash2, RefreshCw, Search, Loader2 } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
@@ -65,8 +66,23 @@ const queryParams = reactive({
   status: ALL_OPTION_VALUE as string,
 })
 
+// 选择相关
+const selectedIds = ref<string[]>([])
+const selectAll = ref(false)
+const hasSelectedRows = computed(() => selectedIds.value.length > 0)
+
+// 监听全选状态变化
+watch(selectAll, (newVal) => {
+  if (newVal) {
+    selectedIds.value = postList.value.map((item) => item.postId)
+  } else {
+    selectedIds.value = []
+  }
+})
+
 const showDialog = ref(false)
 const showDeleteDialog = ref(false)
+const showBatchDeleteDialog = ref(false)
 const postToDelete = ref<SysPost | null>(null)
 const isEdit = ref(false)
 const submitLoading = ref(false)
@@ -90,6 +106,10 @@ async function getList() {
     })
     postList.value = res.rows
     total.value = res.total
+    // 清除已不存在的选中项
+    selectedIds.value = selectedIds.value.filter((id) =>
+      res.rows.some((r: SysPost) => r.postId === id),
+    )
   } finally {
     loading.value = false
   }
@@ -106,6 +126,68 @@ function resetQuery() {
   queryParams.postName = ''
   queryParams.status = ALL_OPTION_VALUE
   handleQuery()
+}
+
+// 选择操作
+function toggleSelect(postId: string) {
+  const idx = selectedIds.value.indexOf(postId)
+  if (idx > -1) {
+    selectedIds.value.splice(idx, 1)
+  } else {
+    selectedIds.value.push(postId)
+  }
+  selectAll.value =
+    selectedIds.value.length > 0 && selectedIds.value.length === postList.value.length
+}
+
+// 批量删除
+function handleBatchDelete() {
+  if (selectedIds.value.length === 0) {
+    toast({ title: '提示', description: '请选择要删除的岗位', variant: 'destructive' })
+    return
+  }
+  showBatchDeleteDialog.value = true
+}
+
+async function confirmBatchDelete() {
+  try {
+    await delPost(selectedIds.value)
+    toast({ title: '删除成功', description: `已删除 ${selectedIds.value.length} 个岗位` })
+    selectedIds.value = []
+    selectAll.value = false
+    getList()
+  } finally {
+    showBatchDeleteDialog.value = false
+  }
+}
+
+// 批量启用/停用
+const showBatchStatusDialog = ref(false)
+const batchStatusType = ref<'0' | '1'>('0')
+
+function handleBatchStatus(status: '0' | '1') {
+  if (selectedIds.value.length === 0) {
+    toast({ title: '提示', description: '请选择要操作的岗位', variant: 'destructive' })
+    return
+  }
+  batchStatusType.value = status
+  showBatchStatusDialog.value = true
+}
+
+async function confirmBatchStatus() {
+  const status = batchStatusType.value
+  const text = status === '0' ? '启用' : '停用'
+  try {
+    for (const postId of selectedIds.value) {
+      await changePostStatus(postId, status)
+    }
+    toast({ title: '操作成功', description: `已${text} ${selectedIds.value.length} 个岗位` })
+    selectedIds.value = []
+    selectAll.value = false
+    getList()
+  } finally {
+    showBatchStatusDialog.value = false
+  }
 }
 
 // Add/Edit Operations
@@ -244,10 +326,32 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 批量操作栏 -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="hasSelectedRows"
+        class="flex items-center gap-4 px-4 py-3 bg-muted/50 border rounded-lg"
+      >
+        <span class="text-sm">
+          已选择 <span class="font-medium">{{ selectedIds.length }}</span> 项
+        </span>
+        <Button variant="outline" size="sm" @click="handleBatchStatus('0')"> 批量启用 </Button>
+        <Button variant="outline" size="sm" @click="handleBatchStatus('1')"> 批量停用 </Button>
+        <Button variant="destructive" size="sm" @click="handleBatchDelete"> 批量删除 </Button>
+      </div>
+    </Transition>
+
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
-      <TableSkeleton v-if="loading" :columns="6" :rows="10" />
+      <TableSkeleton v-if="loading" :columns="6" :rows="10" show-checkbox />
 
       <!-- 空状态 -->
       <EmptyState
@@ -262,6 +366,9 @@ onMounted(() => {
       <Table v-else>
         <TableHeader>
           <TableRow>
+            <TableHead class="w-[50px]">
+              <Checkbox v-model="selectAll" :disabled="postList.length === 0" />
+            </TableHead>
             <TableHead>岗位编号</TableHead>
             <TableHead>岗位编码</TableHead>
             <TableHead>岗位名称</TableHead>
@@ -273,6 +380,12 @@ onMounted(() => {
         </TableHeader>
         <TableBody>
           <TableRow v-for="item in postList" :key="item.postId">
+            <TableCell>
+              <Checkbox
+                :model-value="selectedIds.includes(item.postId)"
+                @update:model-value="() => toggleSelect(item.postId)"
+              />
+            </TableCell>
             <TableCell>{{ item.postId }}</TableCell>
             <TableCell
               ><Badge variant="outline">{{ item.postCode }}</Badge></TableCell
@@ -378,6 +491,25 @@ onMounted(() => {
       confirm-text="删除"
       destructive
       @confirm="confirmDelete"
+    />
+
+    <!-- Batch Delete Confirmation Dialog -->
+    <ConfirmDialog
+      v-model:open="showBatchDeleteDialog"
+      title="确认批量删除"
+      :description="`您确定要删除选中的 ${selectedIds.length} 个岗位吗？此操作无法撤销。`"
+      confirm-text="删除"
+      destructive
+      @confirm="confirmBatchDelete"
+    />
+
+    <!-- Batch Status Dialog -->
+    <ConfirmDialog
+      v-model:open="showBatchStatusDialog"
+      :title="`确认批量${batchStatusType === '0' ? '启用' : '停用'}`"
+      :description="`您确定要${batchStatusType === '0' ? '启用' : '停用'}选中的 ${selectedIds.length} 个岗位吗？`"
+      confirm-text="确定"
+      @confirm="confirmBatchStatus"
     />
   </div>
 </template>

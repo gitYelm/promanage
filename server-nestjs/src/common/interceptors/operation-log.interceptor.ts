@@ -1,20 +1,12 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
-import type { Request } from 'express';
-import { PrismaService } from '../../prisma/prisma.service';
-import { LoggerService } from '../logger/logger.service';
-import {
-  LOG_METADATA_KEY,
-  type LogMetadata,
-} from '../decorators/log.decorator';
-import { IpUtil } from '../utils/ip.util';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
+import { Observable, throwError } from 'rxjs'
+import { tap, catchError } from 'rxjs/operators'
+import type { Request } from 'express'
+import { PrismaService } from '../../prisma/prisma.service'
+import { LoggerService } from '../logger/logger.service'
+import { LOG_METADATA_KEY, type LogMetadata } from '../decorators/log.decorator'
+import { IpUtil } from '../utils/ip.util'
 
 @Injectable()
 export class OperationLogInterceptor implements NestInterceptor {
@@ -23,45 +15,39 @@ export class OperationLogInterceptor implements NestInterceptor {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {
-    this.logger.log(
-      'OperationLogInterceptor initialized',
-      'OperationLogInterceptor',
-    );
+    this.logger.log('OperationLogInterceptor initialized', 'OperationLogInterceptor')
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     // 获取日志元数据
-    const logMetadata = this.reflector.get<LogMetadata>(
-      LOG_METADATA_KEY,
-      context.getHandler(),
-    );
+    const logMetadata = this.reflector.get<LogMetadata>(LOG_METADATA_KEY, context.getHandler())
 
     // 如果没有 @Log 装饰器,不记录日志
     if (!logMetadata) {
-      return next.handle();
+      return next.handle()
     }
 
     this.logger.log(
       `📝 Recording operation log: ${logMetadata.title} (type: ${logMetadata.businessType})`,
       'OperationLogInterceptor',
-    );
+    )
 
-    const request = context.switchToHttp().getRequest<Request>();
-    const startTime = Date.now();
+    const request = context.switchToHttp().getRequest<Request>()
+    const startTime = Date.now()
 
     // 获取请求信息
-    const user = request.user as { username?: string } | undefined;
-    const operName = user?.username ?? 'anonymous';
-    const operUrl = request.url;
-    const operIp = IpUtil.getClientIp(request);
-    const operLocation = IpUtil.getLocation(operIp);
-    const requestMethod = request.method;
-    const operParam = this.getOperParam(request);
+    const user = request.user as { username?: string } | undefined
+    const operName = user?.username ?? 'anonymous'
+    const operUrl = request.url
+    const operIp = IpUtil.getClientIp(request)
+    const operLocation = IpUtil.getLocation(operIp)
+    const requestMethod = request.method
+    const operParam = this.getOperParam(request)
 
     return next.handle().pipe(
       tap((response: unknown) => {
         // 操作成功
-        const costTime = Date.now() - startTime;
+        const costTime = Date.now() - startTime
         const logData = {
           title: logMetadata.title,
           businessType: logMetadata.businessType,
@@ -76,13 +62,13 @@ export class OperationLogInterceptor implements NestInterceptor {
           status: 0,
           errorMsg: '',
           costTime,
-        };
-        void this.saveOperLog(logData);
+        }
+        void this.saveOperLog(logData)
       }),
       catchError((error: unknown) => {
         // 操作失败
-        const costTime = Date.now() - startTime;
-        const err = error as { message?: string };
+        const costTime = Date.now() - startTime
+        const err = error as { message?: string }
         void this.saveOperLog({
           title: logMetadata.title,
           businessType: logMetadata.businessType,
@@ -97,29 +83,29 @@ export class OperationLogInterceptor implements NestInterceptor {
           status: 1,
           errorMsg: err.message?.substring(0, 2000) ?? '',
           costTime,
-        });
-        return throwError(() => error);
+        })
+        return throwError(() => error)
       }),
-    );
+    )
   }
 
   /**
    * 保存操作日志
    */
   private async saveOperLog(data: {
-    title: string;
-    businessType: number;
-    method: string;
-    requestMethod: string;
-    operName: string;
-    operUrl: string;
-    operIp: string;
-    operLocation: string;
-    operParam: string;
-    jsonResult: string;
-    status: number;
-    errorMsg: string;
-    costTime: number;
+    title: string
+    businessType: number
+    method: string
+    requestMethod: string
+    operName: string
+    operUrl: string
+    operIp: string
+    operLocation: string
+    operParam: string
+    jsonResult: string
+    status: number
+    errorMsg: string
+    costTime: number
   }) {
     try {
       await this.prisma.sysOperLog.create({
@@ -140,15 +126,15 @@ export class OperationLogInterceptor implements NestInterceptor {
           errorMsg: data.errorMsg,
           operTime: new Date(),
         },
-      });
+      })
     } catch (error: unknown) {
       // 记录日志失败不应该影响业务流程
-      const err = error as { message?: string; stack?: string };
+      const err = error as { message?: string; stack?: string }
       this.logger.error(
         `Failed to save operation log: ${err.message ?? 'Unknown error'}`,
         err.stack,
         'OperationLogInterceptor',
-      );
+      )
     }
   }
 
@@ -160,7 +146,7 @@ export class OperationLogInterceptor implements NestInterceptor {
       query: request.query,
       body: request.body,
       params: request.params,
-    };
-    return JSON.stringify(params).substring(0, 2000);
+    }
+    return JSON.stringify(params).substring(0, 2000)
   }
 }

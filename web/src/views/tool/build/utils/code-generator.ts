@@ -197,7 +197,7 @@ ${fields
                   <FormLabel class="font-normal">
                     ${o.label}
                   </FormLabel>
-                </FormItem>`
+                </FormItem>`,
                   )
                   .join('')}
               </RadioGroup>`
@@ -344,7 +344,7 @@ ${fields
       <AccordionItem value="${o.value}">
         <AccordionTrigger>${o.label}</AccordionTrigger>
         <AccordionContent>内容占位</AccordionContent>
-      </AccordionItem>`
+      </AccordionItem>`,
         )
         .join('\n      ')}
     </Accordion>`
@@ -415,7 +415,7 @@ ${fields
           <MenubarItem>子项 1</MenubarItem>
           <MenubarItem>子项 2</MenubarItem>
         </MenubarContent>
-      </MenubarMenu>`
+      </MenubarMenu>`,
         )
         .join('\n      ')}
     </Menubar>`
@@ -430,7 +430,7 @@ ${fields
           <NavigationMenuContent>
             <div class="p-4">内容占位</div>
           </NavigationMenuContent>
-        </NavigationMenuItem>`
+        </NavigationMenuItem>`,
           )
           .join('\n        ')}
       </NavigationMenuList>
@@ -451,7 +451,7 @@ ${fields
           ?.map((o, idx) =>
             idx < (f.options?.length || 0) - 1
               ? `<BreadcrumbItem><BreadcrumbLink>${o.label}</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator />`
-              : `<BreadcrumbItem><BreadcrumbPage>${o.label}</BreadcrumbPage></BreadcrumbItem>`
+              : `<BreadcrumbItem><BreadcrumbPage>${o.label}</BreadcrumbPage></BreadcrumbItem>`,
           )
           .join('')}
       </BreadcrumbList>

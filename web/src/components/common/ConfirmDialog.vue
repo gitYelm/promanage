@@ -75,7 +75,7 @@ watch(
     if (!val) {
       inputValue.value = ''
     }
-  }
+  },
 )
 
 function handleConfirm() {

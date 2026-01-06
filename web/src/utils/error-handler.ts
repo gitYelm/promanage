@@ -29,7 +29,7 @@ export function handleError(error: unknown, context?: string) {
  */
 export function withErrorHandler<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  context?: string
+  context?: string,
 ): T {
   return (async (...args: Parameters<T>) => {
     try {
@@ -50,7 +50,7 @@ export async function safeAsync<T>(
     context?: string
     onError?: (error: unknown) => void
     defaultValue?: T
-  }
+  },
 ): Promise<T | undefined> {
   try {
     return await fn()

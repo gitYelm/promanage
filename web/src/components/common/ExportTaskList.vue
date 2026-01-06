@@ -86,7 +86,7 @@ function startPolling() {
   if (pollTimer) return
   pollTimer = setInterval(async () => {
     const pendingTasks = tasks.value.filter(
-      (t) => t.status === 'pending' || t.status === 'processing'
+      (t) => t.status === 'pending' || t.status === 'processing',
     )
     if (pendingTasks.length === 0) {
       stopPolling()
@@ -181,7 +181,7 @@ watch(
     } else {
       stopPolling()
     }
-  }
+  },
 )
 
 // 监听新任务
@@ -192,7 +192,7 @@ watch(
       loadTasks()
       startPolling()
     }
-  }
+  },
 )
 </script>
 

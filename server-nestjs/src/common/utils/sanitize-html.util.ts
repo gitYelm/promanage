@@ -1,4 +1,4 @@
-import sanitizeHtml from 'sanitize-html';
+import sanitizeHtml from 'sanitize-html'
 
 /**
  * HTML 内容清洗配置
@@ -80,22 +80,19 @@ const sanitizeOptions: sanitizeHtml.IOptions = {
           target: '_blank',
           rel: 'noopener noreferrer',
         },
-      };
+      }
     },
   },
   // 不允许空标签
   exclusiveFilter: (frame) => {
     // 移除空的 script、style、iframe 等危险标签（即使它们不在允许列表中）
     return (
-      ['script', 'style', 'iframe', 'object', 'embed', 'form'].includes(
-        frame.tag,
-      ) ||
+      ['script', 'style', 'iframe', 'object', 'embed', 'form'].includes(frame.tag) ||
       // 移除包含 javascript: 的链接
-      (frame.tag === 'a' &&
-        frame.attribs.href?.toLowerCase().startsWith('javascript:'))
-    );
+      (frame.tag === 'a' && frame.attribs.href?.toLowerCase().startsWith('javascript:'))
+    )
   },
-};
+}
 
 /**
  * 清洗 HTML 内容，移除潜在的 XSS 攻击代码
@@ -103,6 +100,6 @@ const sanitizeOptions: sanitizeHtml.IOptions = {
  * @returns 清洗后的安全 HTML
  */
 export function sanitizeHtmlContent(html: string): string {
-  if (!html) return '';
-  return sanitizeHtml(html, sanitizeOptions);
+  if (!html) return ''
+  return sanitizeHtml(html, sanitizeOptions)
 }

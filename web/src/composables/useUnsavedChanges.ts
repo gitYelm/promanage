@@ -126,7 +126,7 @@ export function useUnsavedChanges(options: UseUnsavedChangesOptions = {}): UseUn
         }
         markDirty()
       },
-      { deep: true }
+      { deep: true },
     )
   }
 

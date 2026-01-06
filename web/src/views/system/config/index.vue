@@ -91,7 +91,7 @@ watch(
     }
     skipNextChange = false
   },
-  { deep: true }
+  { deep: true },
 )
 
 // Fetch Data

@@ -1,32 +1,26 @@
-import {
-  IsOptional,
-  IsString,
-  IsNumber,
-  IsArray,
-  IsBoolean,
-} from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsNumber, IsArray, IsBoolean } from 'class-validator'
+import { ApiPropertyOptional } from '@nestjs/swagger'
 
 export class UpdateRoleDto {
   @ApiPropertyOptional({ description: '角色名称', example: '管理员' })
   @IsOptional()
   @IsString()
-  roleName?: string;
+  roleName?: string
 
   @ApiPropertyOptional({ description: '权限字符', example: 'admin' })
   @IsOptional()
   @IsString()
-  roleKey?: string;
+  roleKey?: string
 
   @ApiPropertyOptional({ description: '显示顺序', example: 1 })
   @IsOptional()
   @IsNumber()
-  roleSort?: number;
+  roleSort?: number
 
   @ApiPropertyOptional({ description: '数据范围', example: '1' })
   @IsOptional()
   @IsString()
-  dataScope?: string;
+  dataScope?: string
 
   @ApiPropertyOptional({
     description: '菜单树选择项是否关联显示',
@@ -34,7 +28,7 @@ export class UpdateRoleDto {
   })
   @IsOptional()
   @IsBoolean()
-  menuCheckStrictly?: boolean;
+  menuCheckStrictly?: boolean
 
   @ApiPropertyOptional({
     description: '部门树选择项是否关联显示',
@@ -42,17 +36,17 @@ export class UpdateRoleDto {
   })
   @IsOptional()
   @IsBoolean()
-  deptCheckStrictly?: boolean;
+  deptCheckStrictly?: boolean
 
   @ApiPropertyOptional({ description: '角色状态', example: '0' })
   @IsOptional()
   @IsString()
-  status?: string;
+  status?: string
 
   @ApiPropertyOptional({ description: '备注', example: '管理员角色' })
   @IsOptional()
   @IsString()
-  remark?: string;
+  remark?: string
 
   @ApiPropertyOptional({
     description: '菜单ID列表',
@@ -61,5 +55,5 @@ export class UpdateRoleDto {
   })
   @IsOptional()
   @IsArray()
-  menuIds?: string[];
+  menuIds?: string[]
 }

@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis/redis.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from '@nestjs/common'
+import { RedisService } from '../redis/redis.service'
+import { PrismaService } from '../prisma/prisma.service'
 
 /**
  * 用户状态服务
@@ -9,11 +9,11 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @Injectable()
 export class UserStatusService {
-  private readonly logger = new Logger(UserStatusService.name);
-  private readonly INVALID_USERS_KEY = 'auth:invalid_users';
-  private readonly VALID_USERS_KEY = 'auth:valid_users';
+  private readonly logger = new Logger(UserStatusService.name)
+  private readonly INVALID_USERS_KEY = 'auth:invalid_users'
+  private readonly VALID_USERS_KEY = 'auth:valid_users'
   // 缓存时间（秒），默认 5 分钟
-  private readonly CACHE_TTL = 5 * 60;
+  private readonly CACHE_TTL = 5 * 60
 
   constructor(
     private readonly redisService: RedisService,
@@ -25,15 +25,15 @@ export class UserStatusService {
    */
   async markUserInvalid(userId: string): Promise<void> {
     try {
-      const client = this.redisService.getClient();
-      const invalidKey = `${this.INVALID_USERS_KEY}:${userId}`;
-      const validKey = `${this.VALID_USERS_KEY}:${userId}`;
+      const client = this.redisService.getClient()
+      const invalidKey = `${this.INVALID_USERS_KEY}:${userId}`
+      const validKey = `${this.VALID_USERS_KEY}:${userId}`
       // 设置无效标记，清除有效标记
-      await client.setex(invalidKey, this.CACHE_TTL, '1');
-      await client.del(validKey);
-      this.logger.debug(`用户 ${userId} 已标记为无效`);
+      await client.setex(invalidKey, this.CACHE_TTL, '1')
+      await client.del(validKey)
+      this.logger.debug(`用户 ${userId} 已标记为无效`)
     } catch (error) {
-      this.logger.error(`标记用户无效失败: ${(error as Error).message}`);
+      this.logger.error(`标记用户无效失败: ${(error as Error).message}`)
     }
   }
 
@@ -42,15 +42,15 @@ export class UserStatusService {
    */
   async removeUserInvalid(userId: string): Promise<void> {
     try {
-      const client = this.redisService.getClient();
-      const invalidKey = `${this.INVALID_USERS_KEY}:${userId}`;
-      const validKey = `${this.VALID_USERS_KEY}:${userId}`;
+      const client = this.redisService.getClient()
+      const invalidKey = `${this.INVALID_USERS_KEY}:${userId}`
+      const validKey = `${this.VALID_USERS_KEY}:${userId}`
       // 清除无效标记，设置有效标记
-      await client.del(invalidKey);
-      await client.setex(validKey, this.CACHE_TTL, '1');
-      this.logger.debug(`用户 ${userId} 的无效标记已移除`);
+      await client.del(invalidKey)
+      await client.setex(validKey, this.CACHE_TTL, '1')
+      this.logger.debug(`用户 ${userId} 的无效标记已移除`)
     } catch (error) {
-      this.logger.error(`移除用户无效标记失败: ${(error as Error).message}`);
+      this.logger.error(`移除用户无效标记失败: ${(error as Error).message}`)
     }
   }
 
@@ -61,42 +61,42 @@ export class UserStatusService {
    */
   async isUserInvalid(userId: string): Promise<boolean> {
     try {
-      const client = this.redisService.getClient();
-      const invalidKey = `${this.INVALID_USERS_KEY}:${userId}`;
-      const validKey = `${this.VALID_USERS_KEY}:${userId}`;
+      const client = this.redisService.getClient()
+      const invalidKey = `${this.INVALID_USERS_KEY}:${userId}`
+      const validKey = `${this.VALID_USERS_KEY}:${userId}`
 
       // 1. 检查是否有无效标记
-      const isInvalid = await client.exists(invalidKey);
+      const isInvalid = await client.exists(invalidKey)
       if (isInvalid === 1) {
-        return true;
+        return true
       }
 
       // 2. 检查是否有有效标记（缓存命中）
-      const isValid = await client.exists(validKey);
+      const isValid = await client.exists(validKey)
       if (isValid === 1) {
-        return false;
+        return false
       }
 
       // 3. 缓存未命中，查数据库
       const user = await this.prismaService.sysUser.findUnique({
         where: { userId: BigInt(userId) },
         select: { status: true, delFlag: true },
-      });
+      })
 
       // 用户不存在或已删除或已停用
       if (!user || user.delFlag === '2' || user.status === '1') {
-        await client.setex(invalidKey, this.CACHE_TTL, '1');
-        this.logger.debug(`用户 ${userId} 数据库校验：无效`);
-        return true;
+        await client.setex(invalidKey, this.CACHE_TTL, '1')
+        this.logger.debug(`用户 ${userId} 数据库校验：无效`)
+        return true
       }
 
       // 用户有效，缓存结果
-      await client.setex(validKey, this.CACHE_TTL, '1');
-      return false;
+      await client.setex(validKey, this.CACHE_TTL, '1')
+      return false
     } catch (error) {
-      this.logger.error(`检查用户状态失败: ${(error as Error).message}`);
+      this.logger.error(`检查用户状态失败: ${(error as Error).message}`)
       // 出错时不阻止请求
-      return false;
+      return false
     }
   }
 
@@ -105,7 +105,7 @@ export class UserStatusService {
    */
   async markUsersInvalid(userIds: string[]): Promise<void> {
     for (const userId of userIds) {
-      await this.markUserInvalid(userId);
+      await this.markUserInvalid(userId)
     }
   }
 }

@@ -30,7 +30,7 @@ const searchText = ref('')
 const flattenDepts = (
   depts: SysDept[],
   level = 0,
-  prefix = ''
+  prefix = '',
 ): Array<{ dept: SysDept; level: number; label: string }> => {
   const result: Array<{ dept: SysDept; level: number; label: string }> = []
   for (const dept of depts) {

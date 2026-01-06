@@ -30,7 +30,7 @@ const appStore = useAppStore()
 const siteName = computed(() => appStore.siteConfig.name || 'RBAC Admin Pro')
 const siteDescription = computed(() => appStore.siteConfig.description || '企业级权限管理系统')
 const siteCopyright = computed(
-  () => appStore.siteConfig.copyright || '© 2025 RBAC Admin Pro. All rights reserved.'
+  () => appStore.siteConfig.copyright || '© 2025 RBAC Admin Pro. All rights reserved.',
 )
 const siteIcp = computed(() => appStore.siteConfig.icp || '')
 const siteLogo = computed(() => {
@@ -43,8 +43,8 @@ const siteLogo = computed(() => {
   return logo
 })
 
-const username = ref('admin')
-const password = ref('admin123')
+const username = ref('')
+const password = ref('')
 const showPassword = ref(false)
 const code = ref('')
 const uuid = ref('')
@@ -76,8 +76,16 @@ const loadCaptcha = async () => {
       uuid.value = res.uuid
       captchaImg.value = res.img
     }
+    // 验证码关闭时，填充默认账号密码方便测试
+    if (!res.captchaEnabled) {
+      username.value = 'admin'
+      password.value = 'admin123'
+    }
   } catch {
     captchaEnabled.value = false
+    // 获取失败时也填充默认值
+    username.value = 'admin'
+    password.value = 'admin123'
   } finally {
     captchaLoading.value = false
   }
@@ -359,7 +367,9 @@ const backToLogin = () => {
             </Button>
           </div>
 
-          <p class="text-center text-sm text-muted-foreground">默认账号：admin / admin123</p>
+          <p v-if="!captchaEnabled" class="text-center text-sm text-muted-foreground">
+            默认账号：admin / admin123
+          </p>
         </template>
       </div>
     </div>

@@ -1,10 +1,10 @@
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata } from '@nestjs/common'
 
-export const LOG_METADATA_KEY = 'log_metadata';
+export const LOG_METADATA_KEY = 'log_metadata'
 
 export interface LogMetadata {
-  title: string; // 模块标题
-  businessType: number; // 业务类型（0其它 1新增 2修改 3删除）
+  title: string // 模块标题
+  businessType: number // 业务类型（0其它 1新增 2修改 3删除）
 }
 
 /**
@@ -13,7 +13,7 @@ export interface LogMetadata {
  * @param businessType 业务类型（0其它 1新增 2修改 3删除）
  */
 export const Log = (title: string, businessType: number = 0) =>
-  SetMetadata(LOG_METADATA_KEY, { title, businessType } as LogMetadata);
+  SetMetadata(LOG_METADATA_KEY, { title, businessType } as LogMetadata)
 
 /**
  * 业务类型枚举

@@ -31,7 +31,7 @@ const delegatedProps = computed(() => {
           isActive
             ? 'bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground'
             : 'bg-transparent text-foreground hover:bg-muted',
-          props.class
+          props.class,
         )
       "
       :variant="isActive ? 'outline' : 'ghost'"

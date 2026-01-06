@@ -145,6 +145,14 @@ export default [
       'prettier/prettier': [
         'error',
         {
+          semi: false,
+          singleQuote: true,
+          printWidth: 100,
+          tabWidth: 2,
+          useTabs: false,
+          trailingComma: 'all',
+          bracketSpacing: true,
+          arrowParens: 'always',
           endOfLine: 'auto',
         },
       ],

@@ -1,127 +1,209 @@
 <script setup lang="ts">
-import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card'
+import { ref, onMounted, computed } from 'vue'
+import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Sparkles, Bug, Palette, RefreshCw, Rocket, FileText } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Sparkles,
+  Bug,
+  Palette,
+  RefreshCw,
+  Rocket,
+  FileText,
+  Wrench,
+  GitCommit,
+  ExternalLink,
+  ChevronDown,
+  Cloud,
+  HardDrive,
+} from 'lucide-vue-next'
+import { getChangelog, type CommitInfo } from '@/api/system/changelog'
+import { formatDate } from '@/utils/format'
 
-interface ChangeItem {
-  type: 'feat' | 'fix' | 'style' | 'refactor' | 'perf' | 'docs'
-  content: string
+const loading = ref(false)
+const loadingMore = ref(false)
+const commits = ref<CommitInfo[]>([])
+const total = ref(0)
+const source = ref<'github' | 'static'>('github')
+const repoUrl = ref<string>('')
+const page = ref(1)
+const perPage = 30
+
+type TypeConfigValue = {
+  label: string
+  icon: typeof Sparkles
+  variant: 'default' | 'destructive' | 'secondary' | 'outline'
 }
 
-interface ChangelogEntry {
-  version: string
-  date: string
-  description?: string
-  changes: ChangeItem[]
+const defaultConfig: TypeConfigValue = { label: '其他', icon: GitCommit, variant: 'outline' }
+
+const typeConfig: Record<string, TypeConfigValue> = {
+  feat: { label: '新功能', icon: Sparkles, variant: 'default' },
+  fix: { label: '修复', icon: Bug, variant: 'destructive' },
+  style: { label: '样式', icon: Palette, variant: 'secondary' },
+  refactor: { label: '重构', icon: RefreshCw, variant: 'outline' },
+  perf: { label: '优化', icon: Rocket, variant: 'secondary' },
+  docs: { label: '文档', icon: FileText, variant: 'outline' },
+  chore: { label: '构建', icon: Wrench, variant: 'outline' },
+  other: defaultConfig,
 }
 
-const typeConfig = {
-  feat: { label: '新功能', icon: Sparkles, variant: 'default' as const },
-  fix: { label: '修复', icon: Bug, variant: 'destructive' as const },
-  style: { label: '样式', icon: Palette, variant: 'secondary' as const },
-  refactor: { label: '重构', icon: RefreshCw, variant: 'outline' as const },
-  perf: { label: '优化', icon: Rocket, variant: 'secondary' as const },
-  docs: { label: '文档', icon: FileText, variant: 'outline' as const },
+// 按日期分组
+const groupedCommits = computed(() => {
+  const groups: Record<string, CommitInfo[]> = {}
+  commits.value.forEach((commit) => {
+    const dateKey = formatDate(commit.date, 'YYYY-MM-DD')
+    if (!groups[dateKey]) {
+      groups[dateKey] = []
+    }
+    groups[dateKey].push(commit)
+  })
+  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
+})
+
+const hasMore = computed(() => commits.value.length < total.value)
+
+async function fetchCommits(isLoadMore = false) {
+  if (isLoadMore) {
+    loadingMore.value = true
+  } else {
+    loading.value = true
+  }
+
+  try {
+    const res = await getChangelog(page.value, perPage)
+    if (isLoadMore) {
+      commits.value.push(...res.rows)
+    } else {
+      commits.value = res.rows
+    }
+    total.value = res.total
+    source.value = res.source
+    if (res.repoUrl) {
+      repoUrl.value = res.repoUrl
+    }
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
 }
 
-const changelog: ChangelogEntry[] = [
-  {
-    version: 'v1.0.2',
-    date: '2026-01-05',
-    description: '体验优化和功能增强',
-    changes: [
-      { type: 'feat', content: '新增用户状态实时校验，删除/停用用户后 JWT 立即失效' },
-      { type: 'feat', content: '批量操作改为勾选后显示，界面更简洁' },
-      { type: 'feat', content: '定时任务支持立即执行和执行日志查看' },
-      { type: 'feat', content: '新增异步导出任务系统，支持大数据量流式导出' },
-      { type: 'feat', content: '导出支持多格式（Excel/CSV/JSON）、列选择、数据范围' },
-      { type: 'feat', content: '新增导出任务列表侧边栏，支持查看进度和自动下载' },
-      { type: 'feat', content: '新增清理过期导出任务定时任务，文件保留时间可配置' },
-      { type: 'feat', content: '定时任务列表显示 Cron 表达式的中文说明' },
-      { type: 'feat', content: '接口文档支持 Swagger / Redoc 双模式切换' },
-      { type: 'feat', content: '新增统一状态切换组件，支持显示对象名称的提示' },
-      { type: 'feat', content: '后端新增各模块状态切换接口' },
-      { type: 'fix', content: '修复数据库重新初始化后因 Redis 缓存导致无法登录的问题' },
-      { type: 'fix', content: '修复菜单、部门、定时任务状态切换无效的问题' },
-      { type: 'fix', content: '修复系统设置、参数配置、通知公告未修改时误触发离开确认' },
-      { type: 'fix', content: '修复开发环境上传图片无法显示的问题' },
-      { type: 'fix', content: '修复 Docker 部署 uploads / exports 目录挂载路径不一致的问题' },
-      { type: 'perf', content: '服务监控页面优化，改用卡片布局展示系统信息' },
-      { type: 'perf', content: '分页列表默认每页 20 条数据' },
-      { type: 'perf', content: '优化登录日志表格列宽和行高' },
-      { type: 'perf', content: '优化字典管理页面交互体验' },
-      { type: 'perf', content: '升级 ESLint v9 flat config，优化前后端代码规范检查' },
-      { type: 'refactor', content: '统一所有页面的状态筛选下拉框' },
-      { type: 'refactor', content: '接口文档路由改为 /tool/apidoc' },
-      { type: 'refactor', content: '清理未使用的导入和变量，修复代码规范问题' },
-    ],
-  },
-  {
-    version: 'v1.0.1',
-    date: '2025-12-26',
-    description: 'Docker 部署优化和 Bug 修复',
-    changes: [
-      { type: 'fix', content: '修复页面刷新时动态路由失效导致 404 的问题' },
-      { type: 'fix', content: '修复 Swagger 接口文档在 Docker 环境下无法加载' },
-      { type: 'perf', content: '数据库改由 Prisma 统一管理，移除 SQL 文件初始化' },
-      { type: 'perf', content: 'db.sh 脚本优化：端口配置、备份恢复交互式选择' },
-      { type: 'perf', content: 'nginx 添加 /api-docs 和 /redoc 代理支持接口文档' },
-    ],
-  },
-  {
-    version: 'v1.0.0',
-    date: '2024-12-18',
-    description: '首个正式版本发布',
-    changes: [
-      { type: 'feat', content: '添加更新日志菜单和页面' },
-      { type: 'feat', content: '添加 Prisma 数据库管理脚本 (db.sh)，支持本地开发和 Docker 环境' },
-      { type: 'feat', content: '添加 Monorepo 交互式管理脚本 (monorepo.sh)' },
-      { type: 'docs', content: '更新 README 和项目文档，添加交互式脚本使用说明' },
-      { type: 'feat', content: '添加通用组件和优化表格页面' },
-      { type: 'feat', content: '系统设置添加 SMTP 配置帮助提示和云存储配置说明' },
-      { type: 'feat', content: '补充系统监控模块的按钮权限和系统设置按钮' },
-      { type: 'feat', content: '添加 token 宽限期刷新机制' },
-      { type: 'fix', content: '更新登录失效的错误提示信息' },
-      { type: 'fix', content: '登录前清除旧 token 避免状态残留' },
-      { type: 'style', content: '添加 destructive-foreground 颜色变量' },
-      { type: 'style', content: '调整菜单项样式，增加图标大小和字体加粗' },
-      { type: 'refactor', content: '改进动态路由管理逻辑' },
-      { type: 'refactor', content: '优化 Docker 部署配置和文档' },
-    ],
-  },
-]
+function loadMore() {
+  page.value++
+  fetchCommits(true)
+}
+
+function getConfig(type: string): TypeConfigValue {
+  return typeConfig[type] || defaultConfig
+}
+
+function openCommit(sha: string) {
+  if (repoUrl.value) {
+    window.open(`${repoUrl.value}/commit/${sha}`, '_blank')
+  }
+}
+
+onMounted(() => {
+  fetchCommits()
+})
 </script>
 
 <template>
   <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
-    <div>
-      <h2 class="text-xl sm:text-2xl font-bold tracking-tight">更新日志</h2>
-      <p class="text-muted-foreground">查看系统的版本更新记录</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">更新日志</h2>
+        <p class="text-muted-foreground">查看项目的 Git 提交记录</p>
+      </div>
+      <Badge variant="outline" class="gap-1.5">
+        <component :is="source === 'github' ? Cloud : HardDrive" class="h-3.5 w-3.5" />
+        {{ source === 'github' ? 'GitHub API' : '静态数据' }}
+      </Badge>
     </div>
 
-    <div class="space-y-6">
-      <Card v-for="entry in changelog" :key="entry.version">
+    <!-- 加载骨架屏 -->
+    <div v-if="loading" class="space-y-4">
+      <Card v-for="i in 3" :key="i">
         <CardHeader>
-          <div class="flex items-center gap-3">
-            <Badge variant="default" class="text-sm px-3 py-1">{{ entry.version }}</Badge>
-            <span class="text-muted-foreground text-sm">{{ entry.date }}</span>
+          <Skeleton class="h-5 w-32" />
+        </CardHeader>
+        <CardContent class="space-y-3">
+          <div v-for="j in 3" :key="j" class="flex items-start gap-3">
+            <Skeleton class="h-6 w-16 rounded-full" />
+            <Skeleton class="h-4 flex-1" />
           </div>
-          <CardDescription v-if="entry.description" class="mt-2">
-            {{ entry.description }}
-          </CardDescription>
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- 提交记录列表 -->
+    <div v-else class="space-y-4">
+      <Card v-for="[date, dayCommits] in groupedCommits" :key="date">
+        <CardHeader class="pb-3">
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <GitCommit class="h-4 w-4 text-muted-foreground" />
+            {{ date }}
+            <Badge variant="secondary" class="ml-auto">{{ dayCommits.length }} 次提交</Badge>
+          </div>
         </CardHeader>
         <CardContent>
           <ul class="space-y-3">
-            <li v-for="(change, idx) in entry.changes" :key="idx" class="flex items-start gap-3">
-              <Badge :variant="typeConfig[change.type].variant" class="shrink-0 mt-0.5">
-                <component :is="typeConfig[change.type].icon" class="h-3 w-3 mr-1" />
-                {{ typeConfig[change.type].label }}
+            <li v-for="commit in dayCommits" :key="commit.sha" class="flex items-start gap-3 group">
+              <Badge :variant="getConfig(commit.type).variant" class="shrink-0 mt-0.5">
+                <component :is="getConfig(commit.type).icon" class="h-3 w-3 mr-1" />
+                {{ getConfig(commit.type).label }}
               </Badge>
-              <span class="text-sm">{{ change.content }}</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <div class="flex-1 min-w-0 cursor-default">
+                      <p class="text-sm truncate">{{ commit.message }}</p>
+                      <div class="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <Avatar class="h-4 w-4">
+                          <AvatarImage v-if="commit.authorAvatar" :src="commit.authorAvatar" />
+                          <AvatarFallback class="text-[8px]">{{ commit.author[0] }}</AvatarFallback>
+                        </Avatar>
+                        <span>{{ commit.author }}</span>
+                        <code
+                          class="px-1.5 py-0.5 bg-muted rounded text-[10px] cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                          @click.stop="openCommit(commit.sha)"
+                        >
+                          {{ commit.shortSha }}
+                        </code>
+                        <ExternalLink
+                          class="h-3 w-3 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                          @click.stop="openCommit(commit.sha)"
+                        />
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" class="max-w-md whitespace-pre-wrap">
+                    {{ commit.fullMessage || commit.message }}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </li>
           </ul>
         </CardContent>
       </Card>
+
+      <!-- 空状态 -->
+      <div v-if="commits.length === 0" class="text-center py-12 text-muted-foreground">
+        <GitCommit class="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>暂无提交记录</p>
+      </div>
+
+      <!-- 加载更多 -->
+      <div v-if="hasMore" class="flex justify-center pt-4">
+        <Button variant="outline" :disabled="loadingMore" @click="loadMore">
+          <ChevronDown v-if="!loadingMore" class="h-4 w-4 mr-2" />
+          <RefreshCw v-else class="h-4 w-4 mr-2 animate-spin" />
+          {{ loadingMore ? '加载中...' : '加载更多' }}
+        </Button>
+      </div>
     </div>
   </div>
 </template>

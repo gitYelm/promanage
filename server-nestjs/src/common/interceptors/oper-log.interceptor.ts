@@ -1,13 +1,8 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
-import { PrismaService } from '../../prisma/prisma.service';
-import { Request } from 'express';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common'
+import { Observable } from 'rxjs'
+import { catchError, tap } from 'rxjs/operators'
+import { PrismaService } from '../../prisma/prisma.service'
+import { Request } from 'express'
 
 /**
  * 操作日志拦截器
@@ -18,22 +13,22 @@ export class OperLogInterceptor implements NestInterceptor {
   constructor(private readonly prisma: PrismaService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const ctx = context.switchToHttp();
-    const req = ctx.getRequest<Request>();
+    const ctx = context.switchToHttp()
+    const req = ctx.getRequest<Request>()
 
-    const handler = context.getHandler();
-    const controller = context.getClass();
+    const handler = context.getHandler()
+    const controller = context.getClass()
 
-    const methodName = handler?.name ?? '';
-    const controllerName = controller?.name ?? '';
-    const requestMethod = req.method;
-    const operUrl = req.originalUrl || req.url;
-    const operIp = req.ip || '';
-    const operParam = '';
+    const methodName = handler?.name ?? ''
+    const controllerName = controller?.name ?? ''
+    const requestMethod = req.method
+    const operUrl = req.originalUrl || req.url
+    const operIp = req.ip || ''
+    const operParam = ''
 
-    const operatorType = 1; // 1 后台用户
-    const reqUser = req as unknown as { user?: { username?: string } };
-    const operName = reqUser.user?.username ?? '';
+    const operatorType = 1 // 1 后台用户
+    const reqUser = req as unknown as { user?: { username?: string } }
+    const operName = reqUser.user?.username ?? ''
 
     return next.handle().pipe(
       tap(() => {
@@ -56,7 +51,7 @@ export class OperLogInterceptor implements NestInterceptor {
               errorMsg: '',
             },
           })
-          .catch(() => void 0);
+          .catch(() => void 0)
       }),
       catchError((err) => {
         // 异常场景也写入操作日志
@@ -64,11 +59,11 @@ export class OperLogInterceptor implements NestInterceptor {
           try {
             return typeof (err as { message?: string }).message === 'string'
               ? ((err as { message?: string }).message as string)
-              : 'unknown error';
+              : 'unknown error'
           } catch {
-            return 'unknown error';
+            return 'unknown error'
           }
-        })();
+        })()
 
         this.prisma.sysOperLog
           .create({
@@ -89,10 +84,10 @@ export class OperLogInterceptor implements NestInterceptor {
               errorMsg,
             },
           })
-          .catch(() => void 0);
+          .catch(() => void 0)
 
-        throw err;
+        throw err
       }),
-    );
+    )
   }
 }

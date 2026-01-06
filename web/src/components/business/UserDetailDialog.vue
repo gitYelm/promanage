@@ -131,7 +131,7 @@ watch(
       operLogs.value = []
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
 

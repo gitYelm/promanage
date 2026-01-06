@@ -41,7 +41,7 @@ const showCode = ref(false)
 const generatedCode = ref('')
 
 const selectedField = computed(
-  () => fields.value.find((f) => f.id === selectedFieldId.value) || null
+  () => fields.value.find((f) => f.id === selectedFieldId.value) || null,
 )
 
 // --- Field Management ---

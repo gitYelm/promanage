@@ -1,14 +1,14 @@
-import * as winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
+import * as winston from 'winston'
+import DailyRotateFile from 'winston-daily-rotate-file'
+import { utilities as nestWinstonModuleUtilities } from 'nest-winston'
 
 /**
  * 日志级别配置
  * error: 0, warn: 1, info: 2, http: 3, verbose: 4, debug: 5, silly: 6
  */
-const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
-const LOG_DIR = process.env.LOG_DIR || 'logs';
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
+const LOG_DIR = process.env.LOG_DIR || 'logs'
+const NODE_ENV = process.env.NODE_ENV || 'development'
 
 /**
  * 自定义日志格式
@@ -18,7 +18,7 @@ const customFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
   winston.format.splat(),
   winston.format.json(),
-);
+)
 
 /**
  * 控制台输出格式(开发环境使用彩色输出)
@@ -30,15 +30,12 @@ const consoleFormat = winston.format.combine(
     colors: true,
     prettyPrint: true,
   }),
-);
+)
 
 /**
  * 创建日志轮转传输器
  */
-const createRotateTransport = (
-  level: string,
-  filename: string,
-): DailyRotateFile => {
+const createRotateTransport = (level: string, filename: string): DailyRotateFile => {
   return new DailyRotateFile({
     level,
     dirname: LOG_DIR,
@@ -48,8 +45,8 @@ const createRotateTransport = (
     maxSize: '20m', // 单个文件最大 20MB
     maxFiles: '14d', // 保留 14 天
     format: customFormat,
-  });
-};
+  })
+}
 
 /**
  * Winston 日志配置
@@ -92,4 +89,4 @@ export const winstonConfig: winston.LoggerOptions = {
       format: customFormat,
     }),
   ],
-};
+}

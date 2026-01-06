@@ -1,21 +1,21 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator'
 
 export class QueryDictTypeDto {
   @IsOptional()
   @IsString()
-  dictName?: string;
+  dictName?: string
 
   @IsOptional()
   @IsString()
-  dictType?: string;
+  dictType?: string
 
   @IsOptional()
   @IsString()
-  status?: string;
+  status?: string
 
   @IsOptional()
-  pageNum?: number;
+  pageNum?: number
 
   @IsOptional()
-  pageSize?: number;
+  pageSize?: number
 }

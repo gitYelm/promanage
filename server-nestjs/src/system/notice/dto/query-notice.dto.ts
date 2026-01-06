@@ -1,17 +1,17 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator'
 
 export class QueryNoticeDto {
   @IsOptional()
   @IsString()
-  noticeTitle?: string;
+  noticeTitle?: string
 
   @IsOptional()
   @IsString()
-  noticeType?: string;
+  noticeType?: string
 
   @IsOptional()
-  pageNum?: number;
+  pageNum?: number
 
   @IsOptional()
-  pageSize?: number;
+  pageSize?: number
 }

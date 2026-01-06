@@ -1,29 +1,29 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable } from '@nestjs/common'
+import { PrismaService } from '../../prisma/prisma.service'
 
 export interface TableStats {
-  tableName: string;
-  rowCount: number;
-  totalSize: string;
-  dataSize: string;
-  indexSize: string;
+  tableName: string
+  rowCount: number
+  totalSize: string
+  dataSize: string
+  indexSize: string
 }
 
 export interface SlowQuery {
-  query: string;
-  calls: number;
-  totalTime: string;
-  avgTime: string;
-  maxTime: string;
+  query: string
+  calls: number
+  totalTime: string
+  avgTime: string
+  maxTime: string
 }
 
 export interface ConnectionInfo {
-  pid: number;
-  state: string;
-  query: string;
-  clientAddr: string;
-  backendStart: string | null;
-  queryStart: string | null;
+  pid: number
+  state: string
+  query: string
+  clientAddr: string
+  backendStart: string | null
+  queryStart: string | null
 }
 
 @Injectable()
@@ -31,19 +31,18 @@ export class DatabaseService {
   constructor(private prisma: PrismaService) {}
 
   async getInfo() {
-    const [version, dbSize, connectionStats, tableStats, activeConnections] =
-      await Promise.all([
-        this.getVersion(),
-        this.getDatabaseSize(),
-        this.getConnectionStats(),
-        this.getTableStats(),
-        this.getActiveConnections(),
-      ]);
+    const [version, dbSize, connectionStats, tableStats, activeConnections] = await Promise.all([
+      this.getVersion(),
+      this.getDatabaseSize(),
+      this.getConnectionStats(),
+      this.getTableStats(),
+      this.getActiveConnections(),
+    ])
 
     // 尝试获取慢查询（需要 pg_stat_statements 扩展）
-    let slowQueries: SlowQuery[] = [];
+    let slowQueries: SlowQuery[] = []
     try {
-      slowQueries = await this.getSlowQueries();
+      slowQueries = await this.getSlowQueries()
     } catch {
       // pg_stat_statements 扩展未启用
     }
@@ -58,31 +57,31 @@ export class DatabaseService {
       tables: tableStats,
       activeConnections,
       slowQueries,
-    };
+    }
   }
 
   private async getVersion(): Promise<string> {
     const result = await this.prisma.$queryRaw<[{ version: string }]>`
       SELECT version()
-    `;
+    `
     // 提取简短版本信息
-    const full = result[0].version;
-    const match = full.match(/PostgreSQL ([\d.]+)/);
-    return match ? `PostgreSQL ${match[1]}` : full;
+    const full = result[0].version
+    const match = full.match(/PostgreSQL ([\d.]+)/)
+    return match ? `PostgreSQL ${match[1]}` : full
   }
 
   private async getDatabaseName(): Promise<string> {
     const result = await this.prisma.$queryRaw<[{ current_database: string }]>`
       SELECT current_database()
-    `;
-    return result[0].current_database;
+    `
+    return result[0].current_database
   }
 
   private async getDatabaseSize(): Promise<string> {
     const result = await this.prisma.$queryRaw<[{ size: string }]>`
       SELECT pg_size_pretty(pg_database_size(current_database())) as size
-    `;
-    return result[0].size;
+    `
+    return result[0].size
   }
 
   private async getConnectionStats() {
@@ -96,11 +95,11 @@ export class DatabaseService {
         COUNT(*) as total
       FROM pg_stat_activity
       WHERE datname = current_database()
-    `;
+    `
 
-    const stats = result[0];
-    const maxConn = parseInt(stats.max_connections, 10);
-    const total = Number(stats.total);
+    const stats = result[0]
+    const maxConn = parseInt(stats.max_connections, 10)
+    const total = Number(stats.total)
 
     return {
       max: maxConn,
@@ -108,17 +107,17 @@ export class DatabaseService {
       idle: Number(stats.idle),
       total,
       usage: maxConn ? +((total / maxConn) * 100).toFixed(2) : 0,
-    };
+    }
   }
 
   private async getTableStats(): Promise<TableStats[]> {
     const result = await this.prisma.$queryRaw<
       Array<{
-        table_name: string;
-        row_count: bigint;
-        total_size: string;
-        data_size: string;
-        index_size: string;
+        table_name: string
+        row_count: bigint
+        total_size: string
+        data_size: string
+        index_size: string
       }>
     >`
       SELECT 
@@ -130,7 +129,7 @@ export class DatabaseService {
       FROM pg_stat_user_tables
       ORDER BY pg_total_relation_size(relid) DESC
       LIMIT 20
-    `;
+    `
 
     return result.map((row) => ({
       tableName: row.table_name,
@@ -138,18 +137,18 @@ export class DatabaseService {
       totalSize: row.total_size,
       dataSize: row.data_size,
       indexSize: row.index_size,
-    }));
+    }))
   }
 
   private async getActiveConnections(): Promise<ConnectionInfo[]> {
     const result = await this.prisma.$queryRaw<
       Array<{
-        pid: number;
-        state: string | null;
-        query: string | null;
-        client_addr: string | null;
-        backend_start: Date | null;
-        query_start: Date | null;
+        pid: number
+        state: string | null
+        query: string | null
+        client_addr: string | null
+        backend_start: Date | null
+        query_start: Date | null
       }>
     >`
       SELECT 
@@ -166,7 +165,7 @@ export class DatabaseService {
         CASE WHEN state = 'active' THEN 0 ELSE 1 END,
         query_start DESC NULLS LAST
       LIMIT 20
-    `;
+    `
 
     return result.map((row) => ({
       pid: row.pid,
@@ -175,17 +174,17 @@ export class DatabaseService {
       clientAddr: row.client_addr || 'local',
       backendStart: row.backend_start?.toISOString() || null,
       queryStart: row.query_start?.toISOString() || null,
-    }));
+    }))
   }
 
   private async getSlowQueries(): Promise<SlowQuery[]> {
     const result = await this.prisma.$queryRaw<
       Array<{
-        query: string;
-        calls: bigint;
-        total_time: number;
-        mean_time: number;
-        max_time: number;
+        query: string
+        calls: bigint
+        total_time: number
+        mean_time: number
+        max_time: number
       }>
     >`
       SELECT 
@@ -198,7 +197,7 @@ export class DatabaseService {
       WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
       ORDER BY mean_exec_time DESC
       LIMIT 10
-    `;
+    `
 
     return result.map((row) => ({
       query: row.query,
@@ -206,6 +205,6 @@ export class DatabaseService {
       totalTime: `${row.total_time.toFixed(2)} ms`,
       avgTime: `${row.mean_time.toFixed(2)} ms`,
       maxTime: `${row.max_time.toFixed(2)} ms`,
-    }));
+    }))
   }
 }

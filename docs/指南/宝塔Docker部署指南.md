@@ -94,6 +94,25 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## 四、启动服务
 
+### 方式一：使用管理脚本（推荐）
+
+项目提供了 `monorepo.sh` 脚本，会自动生成更新日志数据：
+
+```bash
+cd /www/wwwroot/rbac-admin-pro
+
+# 赋予执行权限
+chmod +x monorepo.sh
+
+# 交互式菜单
+./monorepo.sh
+
+# 或直接执行：构建并启动全部服务（选项 12）
+./monorepo.sh --action 12
+```
+
+### 方式二：直接使用 docker compose
+
 ```bash
 cd /www/wwwroot/rbac-admin-pro
 
@@ -106,6 +125,8 @@ docker compose ps
 # 查看日志
 docker compose logs -f
 ```
+
+> 注意：直接使用 docker compose 不会生成更新日志数据，「更新日志」页面需要配置 GitHub API 或显示为空。
 
 首次启动需要构建镜像，可能需要 5-10 分钟，请耐心等待。
 
@@ -209,12 +230,11 @@ cd /www/wwwroot/rbac-admin-pro
 # 拉取最新代码
 git pull origin main
 
-# 重新构建并启动
-docker compose up -d --build
+# 使用脚本重新构建（推荐，会自动更新提交记录）
+./monorepo.sh --action 12
 
-# 或者只重建特定服务
-docker compose up -d --build server
-docker compose up -d --build web
+# 或直接使用 docker compose
+docker compose up -d --build
 ```
 
 ### 进入容器调试

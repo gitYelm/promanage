@@ -25,6 +25,20 @@ const menuList = computed(() => menuStore.menuList)
 
 const isActive = (path: string) => route.path === path
 
+// 根据当前路由计算应该展开的菜单
+const activeAccordionValue = computed(() => {
+  const currentPath = route.path
+  const index = menuList.value.findIndex(
+    (menu) =>
+      currentPath.startsWith(menu.path) ||
+      menu.children?.some(
+        (child) =>
+          currentPath === (child.path.startsWith('/') ? child.path : `${menu.path}/${child.path}`),
+      ),
+  )
+  return index >= 0 ? `item-${index}` : undefined
+})
+
 // 将 kebab-case 转换为 PascalCase
 function toPascalCase(str: string): string {
   if (!str) return ''
@@ -43,7 +57,7 @@ function getIcon(iconName: string) {
 </script>
 
 <template>
-  <Accordion type="single" collapsible class="w-full" default-value="item-0">
+  <Accordion type="single" collapsible class="w-full" :default-value="activeAccordionValue">
     <AccordionItem
       v-for="(item, index) in menuList"
       :key="item.path"
@@ -69,7 +83,7 @@ function getIcon(iconName: string) {
               'flex items-center gap-3 rounded-lg px-3 text-sm transition-all hover:text-primary',
               isActive(child.path.startsWith('/') ? child.path : `${item.path}/${child.path}`)
                 ? 'bg-muted text-primary'
-                : 'text-muted-foreground'
+                : 'text-muted-foreground',
             )
           "
           :style="menuItemStyle"

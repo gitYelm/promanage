@@ -9,7 +9,7 @@ const props = withDefaults(
   defineProps<PinInputRootProps<Type> & { class?: HTMLAttributes['class'] }>(),
   {
     modelValue: () => [],
-  }
+  },
 )
 const emits = defineEmits<PinInputRootEmits<Type>>()
 

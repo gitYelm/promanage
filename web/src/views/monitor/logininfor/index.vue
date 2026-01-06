@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import {
   Table,
   TableBody,
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,13 +31,19 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { Trash2, RefreshCw, Search } from 'lucide-vue-next'
-import { listLogininfor, cleanLogininfor, type LogininforQuery } from '@/api/monitor/logininfor'
+import {
+  listLogininfor,
+  delLogininfor,
+  cleanLogininfor,
+  type LogininforQuery,
+} from '@/api/monitor/logininfor'
 import type { SysLoginLog } from '@/api/system/types'
 import { formatDate } from '@/utils/format'
 import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
 const { toast } = useToast()
 
@@ -53,7 +60,23 @@ const queryParams = reactive<LogininforQuery & { status: string }>({
   beginTime: undefined,
   endTime: undefined,
 })
+
+// 选择相关
+const selectedIds = ref<string[]>([])
+const selectAll = ref(false)
+const hasSelectedRows = computed(() => selectedIds.value.length > 0)
+
+// 监听全选状态变化
+watch(selectAll, (newVal) => {
+  if (newVal) {
+    selectedIds.value = logList.value.map((item) => item.infoId)
+  } else {
+    selectedIds.value = []
+  }
+})
+
 const showCleanDialog = ref(false)
+const showBatchDeleteDialog = ref(false)
 
 // Fetch Data
 async function getList() {
@@ -65,6 +88,10 @@ async function getList() {
     })
     logList.value = res.rows
     total.value = res.total
+    // 清除已不存在的选中项
+    selectedIds.value = selectedIds.value.filter((id) =>
+      res.rows.some((r: SysLoginLog) => r.infoId === id),
+    )
   } finally {
     loading.value = false
   }
@@ -83,6 +110,39 @@ function resetQuery() {
   queryParams.beginTime = undefined
   queryParams.endTime = undefined
   handleQuery()
+}
+
+// 选择操作
+function toggleSelect(infoId: string) {
+  const idx = selectedIds.value.indexOf(infoId)
+  if (idx > -1) {
+    selectedIds.value.splice(idx, 1)
+  } else {
+    selectedIds.value.push(infoId)
+  }
+  selectAll.value =
+    selectedIds.value.length > 0 && selectedIds.value.length === logList.value.length
+}
+
+// 批量删除
+function handleBatchDelete() {
+  if (selectedIds.value.length === 0) {
+    toast({ title: '提示', description: '请选择要删除的日志', variant: 'destructive' })
+    return
+  }
+  showBatchDeleteDialog.value = true
+}
+
+async function confirmBatchDelete() {
+  try {
+    await delLogininfor(selectedIds.value)
+    toast({ title: '删除成功', description: `已删除 ${selectedIds.value.length} 条日志` })
+    selectedIds.value = []
+    selectAll.value = false
+    getList()
+  } finally {
+    showBatchDeleteDialog.value = false
+  }
 }
 
 async function handleClean() {
@@ -184,10 +244,30 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 批量操作栏 -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="hasSelectedRows"
+        class="flex items-center gap-4 px-4 py-3 bg-muted/50 border rounded-lg"
+      >
+        <span class="text-sm">
+          已选择 <span class="font-medium">{{ selectedIds.length }}</span> 项
+        </span>
+        <Button variant="destructive" size="sm" @click="handleBatchDelete"> 批量删除 </Button>
+      </div>
+    </Transition>
+
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
       <!-- 骨架屏 -->
-      <TableSkeleton v-if="loading" :columns="8" :rows="10" :show-actions="false" />
+      <TableSkeleton v-if="loading" :columns="8" :rows="10" :show-actions="false" show-checkbox />
 
       <!-- 空状态 -->
       <EmptyState
@@ -200,6 +280,9 @@ onMounted(() => {
       <Table v-else>
         <TableHeader>
           <TableRow>
+            <TableHead class="w-[50px]">
+              <Checkbox v-model="selectAll" :disabled="logList.length === 0" />
+            </TableHead>
             <TableHead class="w-[100px]">访问编号</TableHead>
             <TableHead class="w-[120px]">用户名称</TableHead>
             <TableHead class="w-[140px]">登录地址</TableHead>
@@ -213,6 +296,12 @@ onMounted(() => {
         </TableHeader>
         <TableBody>
           <TableRow v-for="item in logList" :key="item.infoId" class="h-12">
+            <TableCell>
+              <Checkbox
+                :model-value="selectedIds.includes(item.infoId)"
+                @update:model-value="() => toggleSelect(item.infoId)"
+              />
+            </TableCell>
             <TableCell>{{ item.infoId }}</TableCell>
             <TableCell>{{ item.userName }}</TableCell>
             <TableCell>{{ item.ipaddr }}</TableCell>
@@ -237,6 +326,16 @@ onMounted(() => {
       v-model:page-size="queryParams.pageSize"
       :total="total"
       @change="getList"
+    />
+
+    <!-- Batch Delete Confirmation Dialog -->
+    <ConfirmDialog
+      v-model:open="showBatchDeleteDialog"
+      title="确认批量删除"
+      :description="`您确定要删除选中的 ${selectedIds.length} 条登录日志吗？此操作无法撤销。`"
+      confirm-text="删除"
+      destructive
+      @confirm="confirmBatchDelete"
     />
   </div>
 </template>

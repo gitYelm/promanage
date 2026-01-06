@@ -37,7 +37,7 @@ watch(
         console.error('获取用户信息失败:', error)
       }
     }
-  }
+  },
 )
 
 // 获取完整的头像URL

@@ -22,7 +22,7 @@ const props = withDefaults(
   {
     defaultOpen: !defaultDocument?.cookie.includes(`${SIDEBAR_COOKIE_NAME}=false`),
     open: undefined,
-  }
+  },
 )
 
 const emits = defineEmits<{
@@ -85,7 +85,7 @@ provideSidebarContext({
       :class="
         cn(
           'group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar',
-          props.class
+          props.class,
         )
       "
       v-bind="$attrs"

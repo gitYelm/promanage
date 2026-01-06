@@ -73,7 +73,7 @@ watch(
   () => {
     updateTheme()
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
 

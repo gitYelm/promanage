@@ -32,7 +32,7 @@ service.interceptors.request.use(
   },
   (error: unknown) => {
     return Promise.reject(error)
-  }
+  },
 )
 
 // response 拦截器
@@ -164,7 +164,7 @@ service.interceptors.response.use(
       variant: 'destructive',
     })
     return Promise.reject(new Error(message))
-  }
+  },
 )
 
 export default service

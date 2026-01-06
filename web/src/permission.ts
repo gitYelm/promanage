@@ -69,7 +69,7 @@ router.beforeEach(async (to, _from, next) => {
         if (
           requiredPerms &&
           !requiredPerms.some(
-            (p) => userStore.permissions.includes(p) || userStore.permissions.includes('*:*:*')
+            (p) => userStore.permissions.includes(p) || userStore.permissions.includes('*:*:*'),
           )
         ) {
           next('/403')

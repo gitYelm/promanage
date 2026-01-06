@@ -1,21 +1,21 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator'
 
 export class QueryConfigDto {
   @IsOptional()
   @IsString()
-  configName?: string;
+  configName?: string
 
   @IsOptional()
   @IsString()
-  configKey?: string;
+  configKey?: string
 
   @IsOptional()
   @IsString()
-  configType?: string;
+  configType?: string
 
   @IsOptional()
-  pageNum?: number;
+  pageNum?: number
 
   @IsOptional()
-  pageSize?: number;
+  pageSize?: number
 }

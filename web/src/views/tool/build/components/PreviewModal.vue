@@ -145,7 +145,7 @@ watch(
       })
       previewForm.value = formData
     }
-  }
+  },
 )
 
 function close() {
@@ -251,7 +251,7 @@ function close() {
                   :class="
                     cn(
                       'w-[240px] justify-start text-left font-normal',
-                      !previewForm[field.key] && 'text-muted-foreground'
+                      !previewForm[field.key] && 'text-muted-foreground',
                     )
                   "
                 >
@@ -440,7 +440,7 @@ function close() {
                   :class="
                     cn(
                       'w-[240px] justify-between',
-                      !previewForm[field.key] && 'text-muted-foreground'
+                      !previewForm[field.key] && 'text-muted-foreground',
                     )
                   "
                 >

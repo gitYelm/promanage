@@ -404,6 +404,32 @@ check_docker() {
   return 0
 }
 
+# 生成 Git 提交记录 JSON（用于更新日志页面）
+generate_commits_json() {
+  local output_file="$SERVER_DIR/commits.json"
+  local commit_count="${1:-100}"
+  
+  printf "${FG_BLUE}📝 生成 Git 提交记录...${RESET}\n"
+  
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    printf "${FG_YELLOW}⚠️  不在 git 仓库中，跳过生成${RESET}\n"
+    echo "[]" > "$output_file"
+    return 0
+  fi
+  
+  git log -n "$commit_count" --pretty=format:'{
+  "sha": "%H",
+  "shortSha": "%h",
+  "message": "%s",
+  "date": "%aI",
+  "author": "%an"
+},' | sed '$ s/,$//' | awk 'BEGIN{print "["} {print} END{print "]"}' > "$output_file"
+  
+  local count
+  count=$(git log -n "$commit_count" --oneline | wc -l | tr -d ' ')
+  printf "${FG_GREEN}✓ 已生成 ${count} 条提交记录${RESET}\n"
+}
+
 docker_infra_up() {
   check_docker || return 1
   printf "${FG_BLUE}执行: docker-compose up -d postgres redis${RESET}\n"
@@ -413,6 +439,7 @@ docker_infra_up() {
 
 docker_up() {
   check_docker || return 1
+  generate_commits_json
   printf "${FG_BLUE}执行: docker-compose up -d${RESET}\n"
   docker-compose up -d
   printf "${FG_GREEN}✓ 全部服务已启动${RESET}\n"
@@ -421,6 +448,7 @@ docker_up() {
 
 docker_up_build() {
   check_docker || return 1
+  generate_commits_json
   printf "${FG_BLUE}执行: docker-compose up -d --build${RESET}\n"
   docker-compose up -d --build
   printf "${FG_GREEN}✓ 全部服务已构建并启动${RESET}\n"
@@ -429,6 +457,7 @@ docker_up_build() {
 
 docker_build_server() {
   check_docker || return 1
+  generate_commits_json
   printf "${FG_BLUE}执行: docker-compose build server${RESET}\n"
   docker-compose build server
   printf "${FG_GREEN}✓ 后端镜像构建完成${RESET}\n"

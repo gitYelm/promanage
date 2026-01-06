@@ -50,7 +50,7 @@ export const ALL_OPTION_VALUE = '__all__'
  */
 export function withAllOption(
   options: readonly SelectOption[] | SelectOption[],
-  allLabel = '全部'
+  allLabel = '全部',
 ): SelectOption[] {
   return [{ label: allLabel, value: ALL_OPTION_VALUE }, ...options]
 }
@@ -70,7 +70,7 @@ export function toQueryValue(value: string | undefined): string | undefined {
  * @returns 包含"全部"选项的状态列表
  */
 export function getStatusOptionsWithAll(
-  type: keyof typeof STATUS_OPTIONS = 'normalDisable'
+  type: keyof typeof STATUS_OPTIONS = 'normalDisable',
 ): SelectOption[] {
   return withAllOption(STATUS_OPTIONS[type])
 }
@@ -81,7 +81,7 @@ export function getStatusOptionsWithAll(
  * @returns 状态选项列表
  */
 export function getStatusOptions(
-  type: keyof typeof STATUS_OPTIONS = 'normalDisable'
+  type: keyof typeof STATUS_OPTIONS = 'normalDisable',
 ): SelectOption[] {
   return [...STATUS_OPTIONS[type]]
 }
@@ -94,7 +94,7 @@ export function getStatusOptions(
  */
 export function getOptionLabel(
   options: readonly SelectOption[] | SelectOption[],
-  value: string
+  value: string,
 ): string {
   return options.find((opt) => opt.value === value)?.label ?? value
 }

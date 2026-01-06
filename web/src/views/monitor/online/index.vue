@@ -130,7 +130,7 @@ async function getList() {
     total.value = res.total
     // 清除已不存在的选中项
     selectedIds.value = selectedIds.value.filter((id) =>
-      res.rows.some((r: SysUserOnline) => r.tokenId === id)
+      res.rows.some((r: SysUserOnline) => r.tokenId === id),
     )
   } finally {
     loading.value = false
@@ -147,12 +147,6 @@ function resetQuery() {
   queryParams.ipaddr = ''
   queryParams.userName = ''
   handleQuery()
-}
-
-// 清除选择
-function clearSelection() {
-  selectedIds.value = []
-  selectAll.value = false
 }
 
 // 选择操作
@@ -293,27 +287,12 @@ onUnmounted(() => {
     >
       <div
         v-if="hasSelectedRows"
-        class="flex items-center justify-between gap-4 px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg"
+        class="flex items-center gap-4 px-4 py-3 bg-muted/50 border rounded-lg"
       >
-        <div class="flex items-center gap-2 text-sm">
-          <span class="text-muted-foreground">已选择</span>
-          <span class="font-medium text-primary">{{ selectedIds.length }}</span>
-          <span class="text-muted-foreground">项</span>
-          <Button
-            variant="link"
-            size="sm"
-            class="h-auto p-0 text-muted-foreground"
-            @click="clearSelection"
-          >
-            取消选择
-          </Button>
-        </div>
-        <div class="flex items-center gap-2">
-          <Button variant="destructive" size="sm" @click="openLogoutDialog()">
-            <LogOut class="h-4 w-4 mr-2" />
-            批量强退
-          </Button>
-        </div>
+        <span class="text-sm">
+          已选择 <span class="font-medium">{{ selectedIds.length }}</span> 项
+        </span>
+        <Button variant="destructive" size="sm" @click="openLogoutDialog()"> 批量强退 </Button>
       </div>
     </Transition>
 

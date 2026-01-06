@@ -1,6 +1,6 @@
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata } from '@nestjs/common'
 
-export const PERMISSION_KEY = 'permissions';
+export const PERMISSION_KEY = 'permissions'
 
 /**
  * 权限校验装饰器
@@ -9,4 +9,4 @@ export const PERMISSION_KEY = 'permissions';
  * @example @RequirePermission('system:user:add', 'system:user:edit') // 满足其一即可
  */
 export const RequirePermission = (...permissions: string[]) =>
-  SetMetadata(PERMISSION_KEY, permissions);
+  SetMetadata(PERMISSION_KEY, permissions)

@@ -1,7 +1,7 @@
-import { Module, Global } from '@nestjs/common';
-import { WinstonModule } from 'nest-winston';
-import { LoggerService } from './logger.service';
-import { winstonConfig } from './logger.config';
+import { Module, Global } from '@nestjs/common'
+import { WinstonModule } from 'nest-winston'
+import { LoggerService } from './logger.service'
+import { winstonConfig } from './logger.config'
 
 /**
  * 全局日志模块

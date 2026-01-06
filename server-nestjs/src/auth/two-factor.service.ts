@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { authenticator } from 'otplib';
-import * as QRCode from 'qrcode';
-import { RedisService } from '../redis/redis.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { LoggerService } from '../common/logger/logger.service';
-import { generateUuid } from '../common/utils/uuid.util';
+import { Injectable } from '@nestjs/common'
+import { authenticator } from 'otplib'
+import * as QRCode from 'qrcode'
+import { RedisService } from '../redis/redis.service'
+import { PrismaService } from '../prisma/prisma.service'
+import { LoggerService } from '../common/logger/logger.service'
+import { generateUuid } from '../common/utils/uuid.util'
 
-const TWO_FACTOR_TEMP_PREFIX = '2fa:temp:'; // 临时存储待验证的登录信息
-const TWO_FACTOR_TEMP_EXPIRE = 300; // 5分钟过期
+const TWO_FACTOR_TEMP_PREFIX = '2fa:temp:' // 临时存储待验证的登录信息
+const TWO_FACTOR_TEMP_EXPIRE = 300 // 5分钟过期
 
 @Injectable()
 export class TwoFactorService {
@@ -23,24 +23,24 @@ export class TwoFactorService {
   async isTwoFactorEnabled(): Promise<boolean> {
     const config = await this.prisma.sysConfig.findFirst({
       where: { configKey: 'sys.account.twoFactorEnabled' },
-    });
-    return config?.configValue === 'true';
+    })
+    return config?.configValue === 'true'
   }
 
   /**
    * 生成用户的 2FA 密钥
    */
   generateSecret(username: string): { secret: string; otpauthUrl: string } {
-    const secret = authenticator.generateSecret();
-    const otpauthUrl = authenticator.keyuri(username, 'RBAC Admin Pro', secret);
-    return { secret, otpauthUrl };
+    const secret = authenticator.generateSecret()
+    const otpauthUrl = authenticator.keyuri(username, 'RBAC Admin Pro', secret)
+    return { secret, otpauthUrl }
   }
 
   /**
    * 生成 QR 码图片 (base64)
    */
   async generateQRCode(otpauthUrl: string): Promise<string> {
-    return QRCode.toDataURL(otpauthUrl);
+    return QRCode.toDataURL(otpauthUrl)
   }
 
   /**
@@ -48,9 +48,9 @@ export class TwoFactorService {
    */
   verifyToken(secret: string, token: string): boolean {
     try {
-      return authenticator.verify({ token, secret });
+      return authenticator.verify({ token, secret })
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -64,8 +64,8 @@ export class TwoFactorService {
         twoFactorSecret: secret,
         twoFactorEnabled: true,
       },
-    });
-    this.logger.log(`用户 ${userId} 启用了两步验证`, 'TwoFactorService');
+    })
+    this.logger.log(`用户 ${userId} 启用了两步验证`, 'TwoFactorService')
   }
 
   /**
@@ -78,8 +78,8 @@ export class TwoFactorService {
         twoFactorSecret: null,
         twoFactorEnabled: false,
       },
-    });
-    this.logger.log(`用户 ${userId} 禁用了两步验证`, 'TwoFactorService');
+    })
+    this.logger.log(`用户 ${userId} 禁用了两步验证`, 'TwoFactorService')
   }
 
   /**
@@ -91,11 +91,11 @@ export class TwoFactorService {
     const user = await this.prisma.sysUser.findUnique({
       where: { userId: BigInt(userId) },
       select: { twoFactorEnabled: true, twoFactorSecret: true },
-    });
+    })
     return {
       enabled: user?.twoFactorEnabled ?? false,
       secret: user?.twoFactorSecret ?? null,
-    };
+    }
   }
 
   /**
@@ -105,29 +105,25 @@ export class TwoFactorService {
     tempToken: string,
     data: { userId: string; username: string },
   ): Promise<void> {
-    const key = TWO_FACTOR_TEMP_PREFIX + tempToken;
-    await this.redis
-      .getClient()
-      .setex(key, TWO_FACTOR_TEMP_EXPIRE, JSON.stringify(data));
+    const key = TWO_FACTOR_TEMP_PREFIX + tempToken
+    await this.redis.getClient().setex(key, TWO_FACTOR_TEMP_EXPIRE, JSON.stringify(data))
   }
 
   /**
    * 获取并删除临时登录信息
    */
-  async getTempLogin(
-    tempToken: string,
-  ): Promise<{ userId: string; username: string } | null> {
-    const key = TWO_FACTOR_TEMP_PREFIX + tempToken;
-    const data = await this.redis.getClient().get(key);
-    if (!data) return null;
-    void this.redis.getClient().del(key);
-    return JSON.parse(data) as { userId: string; username: string };
+  async getTempLogin(tempToken: string): Promise<{ userId: string; username: string } | null> {
+    const key = TWO_FACTOR_TEMP_PREFIX + tempToken
+    const data = await this.redis.getClient().get(key)
+    if (!data) return null
+    void this.redis.getClient().del(key)
+    return JSON.parse(data) as { userId: string; username: string }
   }
 
   /**
    * 生成临时 token
    */
   generateTempToken(): string {
-    return generateUuid();
+    return generateUuid()
   }
 }

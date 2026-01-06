@@ -23,7 +23,7 @@ watch(
   () => {
     tabsStore.addTab(route)
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // 切换标签页
@@ -84,7 +84,7 @@ function handleCloseRight(path: string) {
                   'group relative flex h-8 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors',
                   tabsStore.activeTab === tab.path
                     ? 'border-primary/50 bg-primary/10 text-primary'
-                    : 'border-transparent hover:border-border hover:bg-muted'
+                    : 'border-transparent hover:border-border hover:bg-muted',
                 )
               "
               @click="handleTabClick(tab.path)"

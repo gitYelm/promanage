@@ -112,7 +112,7 @@ const pageTransitions: { value: PageTransition; label: string }[] = [
                     'justify-start gap-2 px-3',
                     themeStore.themeName === theme.name &&
                       !themeStore.isCustomTheme &&
-                      'border-primary border-2'
+                      'border-primary border-2',
                   )
                 "
                 @click="themeStore.setTheme(theme.name)"
@@ -136,7 +136,7 @@ const pageTransitions: { value: PageTransition; label: string }[] = [
                     :class="
                       cn(
                         'justify-start gap-2 px-3',
-                        themeStore.isCustomTheme && 'border-primary border-2'
+                        themeStore.isCustomTheme && 'border-primary border-2',
                       )
                     "
                   >
@@ -227,7 +227,7 @@ const pageTransitions: { value: PageTransition; label: string }[] = [
                 :class="
                   cn(
                     'text-xs',
-                    themeStore.menuMode === mode.value && 'border-primary border-2 bg-primary/5'
+                    themeStore.menuMode === mode.value && 'border-primary border-2 bg-primary/5',
                   )
                 "
                 @click="themeStore.setMenuMode(mode.value)"

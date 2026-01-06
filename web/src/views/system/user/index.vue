@@ -58,8 +58,6 @@ import {
   RefreshCw,
   Key,
   Eye,
-  CheckSquare,
-  XSquare,
   Filter,
   Edit,
   Settings2,
@@ -484,7 +482,7 @@ async function confirmImport() {
 }
 
 // 清除选择
-function clearSelection() {
+function _clearSelection() {
   selectedRows.value = []
   selectAll.value = false
 }
@@ -562,7 +560,7 @@ const _flattenedDepts = computed(() => {
   const result: Array<{ id: string; label: string }> = []
   const traverse = (
     nodes: Array<{ deptId: string; deptName: string; children?: any[] }>,
-    prefix = ''
+    prefix = '',
   ) => {
     for (const node of nodes || []) {
       result.push({ id: node.deptId, label: prefix + node.deptName })
@@ -779,35 +777,14 @@ onMounted(async () => {
     >
       <div
         v-if="hasSelectedRows"
-        class="flex items-center justify-between gap-4 px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg"
+        class="flex items-center gap-4 px-4 py-3 bg-muted/50 border rounded-lg"
       >
-        <div class="flex items-center gap-2 text-sm">
-          <span class="text-muted-foreground">已选择</span>
-          <span class="font-medium text-primary">{{ selectedRows.length }}</span>
-          <span class="text-muted-foreground">项</span>
-          <Button
-            variant="link"
-            size="sm"
-            class="h-auto p-0 text-muted-foreground"
-            @click="clearSelection"
-          >
-            取消选择
-          </Button>
-        </div>
-        <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" @click="handleBatchStatus('0')">
-            <CheckSquare class="h-4 w-4 mr-2" />
-            批量启用
-          </Button>
-          <Button variant="outline" size="sm" @click="handleBatchStatus('1')">
-            <XSquare class="h-4 w-4 mr-2" />
-            批量停用
-          </Button>
-          <Button variant="destructive" size="sm" @click="handleBatchDelete">
-            <Trash2 class="h-4 w-4 mr-2" />
-            批量删除
-          </Button>
-        </div>
+        <span class="text-sm">
+          已选择 <span class="font-medium">{{ selectedRows.length }}</span> 项
+        </span>
+        <Button variant="outline" size="sm" @click="handleBatchStatus('0')"> 批量启用 </Button>
+        <Button variant="outline" size="sm" @click="handleBatchStatus('1')"> 批量停用 </Button>
+        <Button variant="destructive" size="sm" @click="handleBatchDelete"> 批量删除 </Button>
       </div>
     </Transition>
 

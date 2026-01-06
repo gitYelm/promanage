@@ -35,11 +35,11 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/no-unsafe-enum-comparison': 'off',
       '@typescript-eslint/no-base-to-string': 'off',
-      
+
       // Promise 相关规则改为警告
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/require-await': 'off',
-      
+
       // 未使用变量规则
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -48,9 +48,22 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
-      
-      // Prettier 配置
-      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+
+      // Prettier 配置 - 需要与 .prettierrc.json 保持一致
+      'prettier/prettier': [
+        'error',
+        {
+          semi: false,
+          singleQuote: true,
+          printWidth: 100,
+          tabWidth: 2,
+          useTabs: false,
+          trailingComma: 'all',
+          bracketSpacing: true,
+          arrowParens: 'always',
+          endOfLine: 'auto',
+        },
+      ],
     },
   },
 );

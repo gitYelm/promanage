@@ -1,5 +1,5 @@
-import { IsString, IsOptional } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateConfigDto {
   @ApiProperty({
@@ -7,15 +7,15 @@ export class CreateConfigDto {
     example: '主框架页-默认皮肤样式名称',
   })
   @IsString()
-  configName!: string;
+  configName!: string
 
   @ApiProperty({ description: '参数键名', example: 'sys.index.skinName' })
   @IsString()
-  configKey!: string;
+  configKey!: string
 
   @ApiProperty({ description: '参数键值', example: 'skin-blue' })
   @IsString()
-  configValue!: string;
+  configValue!: string
 
   @ApiPropertyOptional({
     description: '系统内置',
@@ -24,5 +24,5 @@ export class CreateConfigDto {
   })
   @IsOptional()
   @IsString()
-  configType?: string;
+  configType?: string
 }

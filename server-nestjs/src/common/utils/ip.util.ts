@@ -1,5 +1,5 @@
-import * as geoip from 'geoip-lite';
-import type { Request } from 'express';
+import * as geoip from 'geoip-lite'
+import type { Request } from 'express'
 
 /**
  * IP 工具类
@@ -10,30 +10,27 @@ export class IpUtil {
    */
   static getClientIp(request: Request): string {
     // 优先从 x-forwarded-for 获取(代理/负载均衡场景)
-    const forwarded = request.headers['x-forwarded-for'];
+    const forwarded = request.headers['x-forwarded-for']
     if (forwarded) {
-      const ip =
-        typeof forwarded === 'string'
-          ? forwarded.split(',')[0].trim()
-          : forwarded[0];
-      return ip;
+      const ip = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : forwarded[0]
+      return ip
     }
 
     // 从 x-real-ip 获取
-    const realIp = request.headers['x-real-ip'];
+    const realIp = request.headers['x-real-ip']
     if (realIp) {
-      return typeof realIp === 'string' ? realIp : realIp[0];
+      return typeof realIp === 'string' ? realIp : realIp[0]
     }
 
     // 从 socket 获取
-    const socketIp = request.socket.remoteAddress || '';
+    const socketIp = request.socket.remoteAddress || ''
 
     // 处理 IPv6 的 IPv4 映射地址
     if (socketIp.startsWith('::ffff:')) {
-      return socketIp.substring(7);
+      return socketIp.substring(7)
     }
 
-    return socketIp || request.ip || '未知';
+    return socketIp || request.ip || '未知'
   }
 
   /**
@@ -42,13 +39,13 @@ export class IpUtil {
   static getLocation(ip: string): string {
     // 本地 IP 直接返回
     if (this.isLocalIp(ip)) {
-      return '内网IP';
+      return '内网IP'
     }
 
     try {
-      const geo = geoip.lookup(ip);
+      const geo = geoip.lookup(ip)
       if (!geo) {
-        return '未知';
+        return '未知'
       }
 
       // 中国城市映射
@@ -123,19 +120,19 @@ export class IpUtil {
         Huaian: '淮安',
         Lianyungang: '连云港',
         Suqian: '宿迁',
-      };
-
-      const country = geo.country === 'CN' ? '中国' : geo.country;
-      const city = geo.city ? cityMap[geo.city] || geo.city : '';
-      const region = geo.region || '';
-
-      if (country === '中国') {
-        return city ? `${country} ${city}` : `${country} ${region}`;
       }
 
-      return city ? `${country} ${city}` : country;
+      const country = geo.country === 'CN' ? '中国' : geo.country
+      const city = geo.city ? cityMap[geo.city] || geo.city : ''
+      const region = geo.region || ''
+
+      if (country === '中国') {
+        return city ? `${country} ${city}` : `${country} ${region}`
+      }
+
+      return city ? `${country} ${city}` : country
     } catch {
-      return '未知';
+      return '未知'
     }
   }
 
@@ -143,7 +140,7 @@ export class IpUtil {
    * 判断是否为本地 IP
    */
   private static isLocalIp(ip: string): boolean {
-    if (!ip || ip === '未知') return true;
+    if (!ip || ip === '未知') return true
 
     return (
       ip === 'localhost' ||
@@ -167,6 +164,6 @@ export class IpUtil {
       ip.startsWith('172.29.') ||
       ip.startsWith('172.30.') ||
       ip.startsWith('172.31.')
-    );
+    )
   }
 }

@@ -6,8 +6,8 @@ import {
   IsEmail,
   ValidateIf,
   Matches,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 /**
  * 创建用户 DTO
@@ -16,43 +16,38 @@ export class CreateUserDto {
   @ApiProperty({ description: '用户账号', example: 'zhangsan' })
   @IsNotEmpty({ message: '用户名称不能为空' })
   @IsString()
-  userName: string;
+  userName: string
 
   @ApiProperty({ description: '用户昵称', example: '张三' })
   @IsNotEmpty({ message: '用户昵称不能为空' })
   @IsString()
-  nickName: string;
+  nickName: string
 
   @ApiPropertyOptional({ description: '用户密码', example: '123456' })
   @IsOptional()
   @IsString()
-  password?: string;
+  password?: string
 
   @ApiPropertyOptional({ description: '部门ID', example: '100' })
   @IsOptional()
   @IsString()
-  deptId?: string;
+  deptId?: string
 
   @ApiPropertyOptional({ description: '手机号码', example: '13800138000' })
   @ValidateIf(
     (o: CreateUserDto) =>
-      o.phonenumber !== '' &&
-      o.phonenumber !== null &&
-      o.phonenumber !== undefined,
+      o.phonenumber !== '' && o.phonenumber !== null && o.phonenumber !== undefined,
   )
   @Matches(/^1[3-9]\d{9}$/, { message: '手机号格式不正确' })
-  phonenumber?: string;
+  phonenumber?: string
 
   @ApiPropertyOptional({
     description: '邮箱地址',
     example: 'zhangsan@example.com',
   })
-  @ValidateIf(
-    (o: CreateUserDto) =>
-      o.email !== '' && o.email !== null && o.email !== undefined,
-  )
+  @ValidateIf((o: CreateUserDto) => o.email !== '' && o.email !== null && o.email !== undefined)
   @IsEmail({}, { message: '邮箱格式不正确' })
-  email?: string;
+  email?: string
 
   @ApiPropertyOptional({
     description: '用户性别（0=男 1=女 2=未知）',
@@ -61,7 +56,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  sex?: string;
+  sex?: string
 
   @ApiPropertyOptional({
     description: '用户类型（00=系统用户）',
@@ -69,7 +64,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  userType?: string;
+  userType?: string
 
   @ApiPropertyOptional({
     description: '用户状态（0=正常 1=停用）',
@@ -78,17 +73,17 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  status?: string;
+  status?: string
 
   @ApiPropertyOptional({ description: '备注信息', example: '备注' })
   @IsOptional()
   @IsString()
-  remark?: string;
+  remark?: string
 
   @ApiPropertyOptional({ description: '头像地址', example: '/avatar.png' })
   @IsOptional()
   @IsString()
-  avatar?: string;
+  avatar?: string
 
   @ApiPropertyOptional({
     description: '角色ID列表',
@@ -97,7 +92,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsArray()
-  roleIds?: string[];
+  roleIds?: string[]
 
   @ApiPropertyOptional({
     description: '岗位ID列表',
@@ -106,5 +101,5 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsArray()
-  postIds?: string[];
+  postIds?: string[]
 }

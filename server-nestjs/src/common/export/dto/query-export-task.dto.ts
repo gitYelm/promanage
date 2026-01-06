@@ -1,12 +1,12 @@
-import { IsOptional, IsString, IsEnum } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { PaginationDto } from '../../dto/pagination.dto';
+import { IsOptional, IsString, IsEnum } from 'class-validator'
+import { ApiPropertyOptional } from '@nestjs/swagger'
+import { PaginationDto } from '../../dto/pagination.dto'
 
 export class QueryExportTaskDto extends PaginationDto {
   @ApiPropertyOptional({ description: '模块名称' })
   @IsOptional()
   @IsString()
-  module?: string;
+  module?: string
 
   @ApiPropertyOptional({
     description: '状态',
@@ -14,5 +14,5 @@ export class QueryExportTaskDto extends PaginationDto {
   })
   @IsOptional()
   @IsEnum(['pending', 'processing', 'completed', 'failed'])
-  status?: string;
+  status?: string
 }

@@ -252,4 +252,4 @@ export const ErrorCodeMessage: Record<ErrorCode, string> = {
   [ErrorCode.JOB_NOT_FOUND]: '定时任务不存在',
   [ErrorCode.JOB_NAME_EXISTS]: '定时任务名称已存在',
   [ErrorCode.JOB_IS_RUNNING]: '定时任务正在运行',
-};
+}

@@ -90,12 +90,12 @@ watch(
       format.value = 'xlsx'
       scope.value = props.selectedCount ? 'selected' : 'all'
     }
-  }
+  },
 )
 
 // 全选/取消全选
 const allSelected = computed(
-  () => selectedColumnKeys.value.length === availableColumns.value.length
+  () => selectedColumnKeys.value.length === availableColumns.value.length,
 )
 function toggleSelectAll() {
   if (allSelected.value) {

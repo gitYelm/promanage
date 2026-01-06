@@ -126,7 +126,7 @@ watch(
     if (editor.value && editor.value.getHTML() !== newValue) {
       editor.value.commands.setContent(newValue, { emitUpdate: false })
     }
-  }
+  },
 )
 
 onBeforeUnmount(() => {

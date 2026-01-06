@@ -66,6 +66,8 @@ services:
       - server_logs:/app/logs
       - ./server-nestjs/uploads:/app/uploads
       - ./server-nestjs/exports:/app/exports
+      # Git 提交记录（部署前运行 ./server-nestjs/scripts/generate-commits.sh 生成）
+      - ./server-nestjs/commits.json:/app/commits.json:ro
     ports:
       - "3000:3000"
     networks:

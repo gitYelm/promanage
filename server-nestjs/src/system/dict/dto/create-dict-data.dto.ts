@@ -1,27 +1,27 @@
-import { IsString, IsOptional } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateDictDataDto {
   @ApiPropertyOptional({ description: '字典排序', example: 1 })
   @IsOptional()
-  dictSort?: number;
+  dictSort?: number
 
   @ApiProperty({ description: '字典标签', example: '男' })
   @IsString()
-  dictLabel!: string;
+  dictLabel!: string
 
   @ApiProperty({ description: '字典键值', example: '0' })
   @IsString()
-  dictValue!: string;
+  dictValue!: string
 
   @ApiProperty({ description: '字典类型', example: 'sys_user_sex' })
   @IsString()
-  dictType!: string;
+  dictType!: string
 
   @ApiPropertyOptional({ description: '样式属性', example: '' })
   @IsOptional()
   @IsString()
-  cssClass?: string;
+  cssClass?: string
 
   @ApiPropertyOptional({
     description: '表格回显样式',
@@ -30,7 +30,7 @@ export class CreateDictDataDto {
   })
   @IsOptional()
   @IsString()
-  listClass?: string;
+  listClass?: string
 
   @ApiPropertyOptional({
     description: '是否默认',
@@ -39,10 +39,10 @@ export class CreateDictDataDto {
   })
   @IsOptional()
   @IsString()
-  isDefault?: string;
+  isDefault?: string
 
   @ApiPropertyOptional({ description: '状态', example: '0', enum: ['0', '1'] })
   @IsOptional()
   @IsString()
-  status?: string;
+  status?: string
 }

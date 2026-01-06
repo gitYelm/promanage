@@ -1,10 +1,10 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { QueryConfigDto } from './dto/query-config.dto';
-import { CreateConfigDto } from './dto/create-config.dto';
-import { UpdateConfigDto } from './dto/update-config.dto';
-import { Prisma } from '@prisma/client';
-import { LoggerService } from '../../common/logger/logger.service';
+import { Injectable, BadRequestException } from '@nestjs/common'
+import { PrismaService } from '../../prisma/prisma.service'
+import { QueryConfigDto } from './dto/query-config.dto'
+import { CreateConfigDto } from './dto/create-config.dto'
+import { UpdateConfigDto } from './dto/update-config.dto'
+import { Prisma } from '@prisma/client'
+import { LoggerService } from '../../common/logger/logger.service'
 
 @Injectable()
 export class ConfigService {
@@ -14,12 +14,12 @@ export class ConfigService {
   ) {}
 
   async findAll(query: QueryConfigDto) {
-    const where: Prisma.SysConfigWhereInput = {};
-    if (query.configName) where.configName = { contains: query.configName };
-    if (query.configKey) where.configKey = { contains: query.configKey };
-    if (query.configType) where.configType = query.configType;
-    const pageNum = Number(query.pageNum ?? 1);
-    const pageSize = Number(query.pageSize ?? 20);
+    const where: Prisma.SysConfigWhereInput = {}
+    if (query.configName) where.configName = { contains: query.configName }
+    if (query.configKey) where.configKey = { contains: query.configKey }
+    if (query.configType) where.configType = query.configType
+    const pageNum = Number(query.pageNum ?? 1)
+    const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
       this.prisma.sysConfig.count({ where }),
       this.prisma.sysConfig.findMany({
@@ -28,84 +28,75 @@ export class ConfigService {
         take: Number(pageSize),
         orderBy: { configId: 'asc' },
       }),
-    ]);
-    return { total, rows };
+    ])
+    return { total, rows }
   }
 
   async findOne(configId: string) {
     return this.prisma.sysConfig.findUnique({
       where: { configId: BigInt(configId) },
-    });
+    })
   }
 
   async create(dto: CreateConfigDto) {
-    this.logger.log(
-      `创建系统参数: ${dto.configName} (${dto.configKey})`,
-      'ConfigService',
-    );
+    this.logger.log(`创建系统参数: ${dto.configName} (${dto.configKey})`, 'ConfigService')
 
     const exist = await this.prisma.sysConfig.findFirst({
       where: { configKey: dto.configKey },
-    });
+    })
     if (exist) {
-      this.logger.warn(
-        `创建参数失败,键已存在: ${dto.configKey}`,
-        'ConfigService',
-      );
-      throw new BadRequestException('参数键已存在');
+      this.logger.warn(`创建参数失败,键已存在: ${dto.configKey}`, 'ConfigService')
+      throw new BadRequestException('参数键已存在')
     }
 
     const result = await this.prisma.sysConfig.create({
       data: { ...dto, createTime: new Date() },
-    });
+    })
 
     this.logger.log(
       `系统参数创建成功: ${result.configName} (ID: ${result.configId})`,
       'ConfigService',
-    );
-    return result;
+    )
+    return result
   }
 
   async update(configId: string, dto: UpdateConfigDto) {
-    this.logger.log(`更新系统参数: ${configId}`, 'ConfigService');
+    this.logger.log(`更新系统参数: ${configId}`, 'ConfigService')
 
-    const config = await this.findOne(configId);
+    const config = await this.findOne(configId)
     if (!config) {
-      this.logger.warn(`更新参数失败,参数不存在: ${configId}`, 'ConfigService');
-      throw new BadRequestException('参数不存在');
+      this.logger.warn(`更新参数失败,参数不存在: ${configId}`, 'ConfigService')
+      throw new BadRequestException('参数不存在')
     }
 
     const result = await this.prisma.sysConfig.update({
       where: { configId: BigInt(configId) },
       data: { ...dto, updateTime: new Date() },
-    });
+    })
 
     this.logger.log(
       `系统参数更新成功: ${result.configName} (${result.configKey}=${result.configValue})`,
       'ConfigService',
-    );
-    return result;
+    )
+    return result
   }
 
   async remove(configIds: string[]) {
-    this.logger.log(`删除系统参数: ${configIds.length} 个`, 'ConfigService');
+    this.logger.log(`删除系统参数: ${configIds.length} 个`, 'ConfigService')
 
     await this.prisma.sysConfig.deleteMany({
       where: { configId: { in: configIds.map((id) => BigInt(id)) } },
-    });
+    })
 
-    this.logger.log(
-      `系统参数删除成功: ${configIds.length} 个`,
-      'ConfigService',
-    );
-    return {};
+    this.logger.log(`系统参数删除成功: ${configIds.length} 个`, 'ConfigService')
+    return {}
   }
 
   async refreshCache() {
-    this.logger.log('刷新系统参数缓存', 'ConfigService');
-    await Promise.resolve();
-    this.logger.log('系统参数缓存刷新成功', 'ConfigService');
-    return {};
+    this.logger.log('刷新系统参数缓存', 'ConfigService')
+    await Promise.resolve()
+    this.logger.log('系统参数缓存刷新成功', 'ConfigService')
+    return {}
   }
 
   /**
@@ -114,29 +105,29 @@ export class ConfigService {
   async getConfigValue(configKey: string): Promise<string | null> {
     const config = await this.prisma.sysConfig.findFirst({
       where: { configKey },
-    });
-    return config?.configValue ?? null;
+    })
+    return config?.configValue ?? null
   }
 
   /**
    * 获取初始密码配置
    */
   async getInitPassword(): Promise<string> {
-    const password = await this.getConfigValue('sys.account.initPassword');
-    return password || 'admin123';
+    const password = await this.getConfigValue('sys.account.initPassword')
+    return password || 'admin123'
   }
 
   /**
    * 获取网站公开配置（无需登录）
    */
   async getSiteConfig(): Promise<{
-    name: string;
-    description: string;
-    logo: string;
-    favicon: string;
-    copyright: string;
-    icp: string;
-    loginPath: string;
+    name: string
+    description: string
+    logo: string
+    favicon: string
+    copyright: string
+    icp: string
+    loginPath: string
   }> {
     const configs = await this.prisma.sysConfig.findMany({
       where: {
@@ -152,25 +143,23 @@ export class ConfigService {
           ],
         },
       },
-    });
+    })
 
-    const configMap: Record<string, string> = {};
+    const configMap: Record<string, string> = {}
     configs.forEach((c) => {
       if (c.configKey) {
-        configMap[c.configKey] = c.configValue ?? '';
+        configMap[c.configKey] = c.configValue ?? ''
       }
-    });
+    })
 
     return {
       name: configMap['sys.app.name'] || 'RBAC Admin Pro',
       description: configMap['sys.app.description'] || '企业级权限管理系统',
       logo: configMap['sys.app.logo'] || '',
       favicon: configMap['sys.app.favicon'] || '',
-      copyright:
-        configMap['sys.app.copyright'] ||
-        '© 2025 RBAC Admin Pro. All rights reserved.',
+      copyright: configMap['sys.app.copyright'] || '© 2025 RBAC Admin Pro. All rights reserved.',
       icp: configMap['sys.app.icp'] || '',
       loginPath: configMap['sys.security.loginPath'] || '/login',
-    };
+    }
   }
 }
