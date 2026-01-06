@@ -42,14 +42,12 @@ export class TokenBlacklistService {
       // 解析失败使用默认 TTL
     }
 
-    const client = this.redis.getClient()
-    await client.setex(this.key(token), ttl, '1')
+    await this.redis.setex(this.key(token), ttl, '1')
   }
 
   async isBlacklisted(token: string) {
     if (!token) return false
-    const client = this.redis.getClient()
-    const exists = await client.exists(this.key(token))
+    const exists = await this.redis.exists(this.key(token))
     return exists === 1
   }
 }

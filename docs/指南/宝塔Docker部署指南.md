@@ -126,7 +126,7 @@ docker compose ps
 docker compose logs -f
 ```
 
-> 注意：直接使用 docker compose 不会生成更新日志数据，「更新日志」页面需要配置 GitHub API 或显示为空。
+> 注意：直接使用 docker compose 不会更新提交记录，「更新日志」页面将使用仓库中已有的 `commits.json` 作为兜底数据。如需最新记录，可配置 GitHub API 或使用 `monorepo.sh` 部署。
 
 首次启动需要构建镜像，可能需要 5-10 分钟，请耐心等待。
 

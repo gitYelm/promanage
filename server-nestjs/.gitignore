@@ -14,6 +14,3 @@ uploads/
 
 # 导出文件
 exports/
-
-# 构建时生成的 Git 提交记录
-commits.json

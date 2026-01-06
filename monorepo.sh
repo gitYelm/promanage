@@ -404,6 +404,38 @@ check_docker() {
   return 0
 }
 
+# 解析提交类型
+parse_commit_type() {
+  local msg="$1"
+  # 英文类型匹配
+  if echo "$msg" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)[(:)]'; then
+    echo "$msg" | sed -E 's/^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert).*/\1/'
+    return
+  fi
+  # 中文类型匹配
+  case "$msg" in
+    新增*) echo "feat" ;;
+    修复*) echo "fix" ;;
+    文档*) echo "docs" ;;
+    样式*) echo "style" ;;
+    重构*) echo "refactor" ;;
+    优化*) echo "perf" ;;
+    测试*) echo "test" ;;
+    构建*) echo "chore" ;;
+    *) echo "other" ;;
+  esac
+}
+
+# 清理提交信息（移除类型前缀）
+clean_commit_message() {
+  local msg="$1"
+  # 移除英文类型前缀
+  msg=$(echo "$msg" | sed -E 's/^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?:[[:space:]]*//')
+  # 移除中文类型前缀
+  msg=$(echo "$msg" | sed -E 's/^(新增|修复|文档|样式|重构|优化|测试|构建):[[:space:]]*//')
+  echo "$msg"
+}
+
 # 生成 Git 提交记录 JSON（用于更新日志页面）
 generate_commits_json() {
   local output_file="$SERVER_DIR/commits.json"
@@ -417,13 +449,30 @@ generate_commits_json() {
     return 0
   fi
   
-  git log -n "$commit_count" --pretty=format:'{
-  "sha": "%H",
-  "shortSha": "%h",
-  "message": "%s",
-  "date": "%aI",
-  "author": "%an"
-},' | sed '$ s/,$//' | awk 'BEGIN{print "["} {print} END{print "]"}' > "$output_file"
+  # 使用分隔符避免 JSON 转义问题
+  local SEP=$'\x1f'  # ASCII Unit Separator
+  local first=true
+  
+  echo "[" > "$output_file"
+  
+  git log -n "$commit_count" --pretty=format:"%H${SEP}%h${SEP}%s${SEP}%aI${SEP}%an" | while IFS="$SEP" read -r sha shortSha rawMsg date author; do
+    local type=$(parse_commit_type "$rawMsg")
+    local message=$(clean_commit_message "$rawMsg")
+    # 转义 JSON 特殊字符
+    message=$(echo "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g')
+    
+    if [ "$first" = true ]; then
+      first=false
+    else
+      echo "," >> "$output_file"
+    fi
+    
+    printf '  {"sha":"%s","shortSha":"%s","message":"%s","type":"%s","date":"%s","author":"%s"}' \
+      "$sha" "$shortSha" "$message" "$type" "$date" "$author" >> "$output_file"
+  done
+  
+  echo "" >> "$output_file"
+  echo "]" >> "$output_file"
   
   local count
   count=$(git log -n "$commit_count" --oneline | wc -l | tr -d ' ')

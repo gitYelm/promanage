@@ -106,7 +106,7 @@ export class TwoFactorService {
     data: { userId: string; username: string },
   ): Promise<void> {
     const key = TWO_FACTOR_TEMP_PREFIX + tempToken
-    await this.redis.getClient().setex(key, TWO_FACTOR_TEMP_EXPIRE, JSON.stringify(data))
+    await this.redis.setex(key, TWO_FACTOR_TEMP_EXPIRE, JSON.stringify(data))
   }
 
   /**
@@ -114,9 +114,9 @@ export class TwoFactorService {
    */
   async getTempLogin(tempToken: string): Promise<{ userId: string; username: string } | null> {
     const key = TWO_FACTOR_TEMP_PREFIX + tempToken
-    const data = await this.redis.getClient().get(key)
+    const data = await this.redis.get(key)
     if (!data) return null
-    void this.redis.getClient().del(key)
+    this.redis.del(key)
     return JSON.parse(data) as { userId: string; username: string }
   }
 

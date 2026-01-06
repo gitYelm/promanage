@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { HttpService } from '@nestjs/axios'
 import { ConfigService } from '../config/config.service'
 import { LoggerService } from '../../common/logger/logger.service'
+import { RedisService } from '../../redis/redis.service'
 import { firstValueFrom } from 'rxjs'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -31,14 +32,24 @@ interface GitHubCommit {
   }
 }
 
+interface CachedResult {
+  rows: CommitInfo[]
+  total: number
+  source: 'github' | 'static'
+  repoUrl?: string
+}
+
 @Injectable()
 export class ChangelogService {
   private readonly GITHUB_API = 'https://api.github.com'
+  private readonly CACHE_KEY_PREFIX = 'changelog:'
+  private readonly CACHE_TTL = 300 // 5 分钟缓存
 
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
+    private readonly redis: RedisService,
   ) {}
 
   /**
@@ -67,7 +78,7 @@ export class ChangelogService {
   }
 
   /**
-   * 获取提交记录（优先 GitHub API，降级静态文件）
+   * 获取提交记录（优先缓存，其次 GitHub API，降级静态文件）
    */
   async getCommits(
     page = 1,
@@ -78,33 +89,70 @@ export class ChangelogService {
     source: 'github' | 'static'
     repoUrl?: string
   }> {
+    const cacheKey = `${this.CACHE_KEY_PREFIX}${page}:${perPage}`
+
+    // 尝试从缓存获取
+    try {
+      const cached = await this.redis.get(cacheKey)
+      if (cached) {
+        this.logger.debug(`从缓存获取更新日志: ${cacheKey}`, 'ChangelogService')
+        return JSON.parse(cached) as CachedResult
+      }
+    } catch {
+      // 缓存读取失败，继续请求
+    }
+
     const repoInfo = await this.getRepoInfo()
     const repoUrl = repoInfo ? `https://github.com/${repoInfo.owner}/${repoInfo.repo}` : undefined
+
+    let result: CachedResult
 
     // 尝试从 GitHub API 获取
     if (repoInfo) {
       try {
         const token = await this.configService.getConfigValue('sys.git.token')
-        const result = await this.fetchFromGitHub(repoInfo, page, perPage, token)
-        return { ...result, source: 'github', repoUrl }
+        const data = await this.fetchFromGitHub(repoInfo, page, perPage, token)
+        result = { ...data, source: 'github', repoUrl }
       } catch (error) {
         this.logger.warn(
           `GitHub API 请求失败，降级使用静态文件: ${error instanceof Error ? error.message : error}`,
           'ChangelogService',
         )
+        // 降级到静态文件
+        const data = await this.readStaticCommitsSafe(page, perPage)
+        result = { ...data, source: 'static', repoUrl }
       }
+    } else {
+      // 无仓库配置，使用静态文件
+      const data = await this.readStaticCommitsSafe(page, perPage)
+      result = { ...data, source: 'static', repoUrl }
     }
 
-    // 降级：读取静态 JSON 文件
+    // 写入缓存
     try {
-      const result = await this.readStaticCommits(page, perPage)
-      return { ...result, source: 'static', repoUrl }
+      await this.redis.setex(cacheKey, this.CACHE_TTL, JSON.stringify(result))
+    } catch {
+      // 缓存写入失败，不影响返回
+    }
+
+    return result
+  }
+
+  /**
+   * 安全读取静态文件（不抛异常）
+   */
+  private async readStaticCommitsSafe(
+    page: number,
+    perPage: number,
+  ): Promise<{ rows: CommitInfo[]; total: number }> {
+    try {
+      return await this.readStaticCommits(page, perPage)
     } catch (error) {
       this.logger.error(
         `读取静态提交记录失败: ${error instanceof Error ? error.message : error}`,
         'ChangelogService',
       )
-      return { rows: [], total: 0, source: 'static', repoUrl }
+      return { rows: [], total: 0 }
     }
   }
 

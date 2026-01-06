@@ -39,6 +39,10 @@ class InMemoryRedisClient {
   get(key: string) {
     const item = this.kv.get(key)
     if (!item) return Promise.resolve(null)
+    if (item.expiresAt && item.expiresAt < Date.now()) {
+      this.kv.delete(key)
+      return Promise.resolve(null)
+    }
     this.stats.get++
     return Promise.resolve(item.value)
   }
@@ -235,6 +239,7 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
+  /** 获取原始客户端（用于复杂操作） */
   getClient(): Redis | InMemoryRedisClient {
     return this.client
   }
@@ -242,6 +247,28 @@ export class RedisService implements OnModuleDestroy {
   /** 是否使用真实 Redis */
   isUsingRealRedis(): boolean {
     return this.isRealRedis
+  }
+
+  // ==================== 常用方法封装 ====================
+
+  /** 获取值 */
+  get(key: string): Promise<string | null> {
+    return this.client.get(key)
+  }
+
+  /** 设置值（带过期时间，单位秒） */
+  setex(key: string, ttl: number, value: string): Promise<string> {
+    return this.client.setex(key, ttl, value)
+  }
+
+  /** 检查 key 是否存在 */
+  exists(key: string): Promise<number> {
+    return this.client.exists(key)
+  }
+
+  /** 删除 key */
+  del(key: string): void {
+    void this.client.del(key)
   }
 
   onModuleDestroy() {

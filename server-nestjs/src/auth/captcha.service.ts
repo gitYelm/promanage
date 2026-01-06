@@ -46,7 +46,7 @@ export class CaptchaService {
     const key = CAPTCHA_PREFIX + uuid
 
     // 存储验证码到 Redis，5分钟过期
-    await this.redis.getClient().setex(key, CAPTCHA_EXPIRE, captcha.text.toLowerCase())
+    await this.redis.setex(key, CAPTCHA_EXPIRE, captcha.text.toLowerCase())
 
     // 返回 base64 编码的 SVG
     const img = 'data:image/svg+xml;base64,' + Buffer.from(captcha.data).toString('base64')
@@ -61,12 +61,12 @@ export class CaptchaService {
     if (!uuid || !code) return false
 
     const key = CAPTCHA_PREFIX + uuid
-    const storedCode = await this.redis.getClient().get(key)
+    const storedCode = await this.redis.get(key)
 
     if (!storedCode) return false
 
     // 验证后删除，防止重复使用
-    void this.redis.getClient().del(key)
+    this.redis.del(key)
 
     return storedCode === code.toLowerCase()
   }
