@@ -9,6 +9,7 @@ import { NestExpressApplication } from '@nestjs/platform-express'
 import { join } from 'path'
 import { json, urlencoded } from 'express'
 import redoc from 'redoc-express'
+import helmet from 'helmet'
 
 // 全局 BigInt 序列化支持
 // 解决 "TypeError: Do not know how to serialize a BigInt" 错误
@@ -26,6 +27,25 @@ async function bootstrap() {
   // 使用自定义日志服务
   const logger = app.get(LoggerService)
   app.useLogger(logger)
+
+  // 安全响应头 (Helmet)
+  // 配置 CSP、X-Frame-Options、X-Content-Type-Options 等安全头
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"], // Swagger UI 需要内联样式
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Swagger UI 需要
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          fontSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // 允许嵌入资源
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // 允许跨域资源访问
+    }),
+  )
 
   // 配置静态文件服务 (用于访问上传的文件)
   // 设置 CORS 头允许跨域访问

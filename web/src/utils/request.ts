@@ -144,6 +144,9 @@ service.interceptors.response.use(
       } else if (httpStatus === 403) {
         title = '权限不足'
         message = errorMessage || '您没有权限执行此操作'
+      } else if (httpStatus === 429) {
+        title = '请求过于频繁'
+        message = '请稍后再试'
       } else if (httpStatus === 500) {
         title = '系统错误'
         message = errorMessage || '系统内部错误'

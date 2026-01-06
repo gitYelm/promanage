@@ -1,6 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common'
-import { APP_INTERCEPTOR } from '@nestjs/core'
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { ConfigModule } from '@nestjs/config'
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { PrismaModule } from './prisma/prisma.module'
@@ -29,6 +30,13 @@ import { ChangelogModule } from './system/changelog/changelog.module'
     ConfigModule.forRoot({
       isGlobal: true, // 全局可用
     }),
+    // 全局请求限流：每个 IP 每分钟最多 100 次请求
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 60 秒
+        limit: 100, // 最多 100 次请求
+      },
+    ]),
     LoggerModule,
     PrismaModule,
     UserModule,
@@ -51,6 +59,10 @@ import { ChangelogModule } from './system/changelog/changelog.module'
   providers: [
     AppService,
     PermissionGuard,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: OperationLogInterceptor,
