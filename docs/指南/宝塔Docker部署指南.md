@@ -24,9 +24,19 @@
 
 ### 1.2 安装 Docker
 
+**方式一：通过全站服务安装（推荐）**
+
+1. 进入宝塔面板左侧菜单「Docker」
+2. 如果未安装，会提示安装 Docker 服务
+3. 点击安装，等待完成
+
+**方式二：通过软件商店安装**
+
 1. 进入宝塔面板「软件商店」
-2. 搜索「Docker管理器」并安装
-3. 安装完成后会自动安装 Docker 和 Docker Compose
+2. 搜索「Docker」，找到官方应用
+3. 点击安装
+
+> 注意：旧版「Docker管理器」已停止维护，请使用宝塔新版 Docker 功能。
 
 ### 1.3 验证安装
 
@@ -175,7 +185,9 @@ client_max_body_size 100m;
 
 ## 六、初始化数据库
 
-推荐使用 Prisma 初始化数据库（确保与代码同步）：
+> ✅ **自动初始化**：从 v2.x 版本开始，server 容器启动时会自动执行数据库迁移，首次部署还会自动导入种子数据，无需手动操作。
+
+如果自动初始化失败，可以手动执行：
 
 ```bash
 cd /www/wwwroot/rbac-admin-pro
@@ -187,11 +199,49 @@ docker compose exec server npx prisma migrate deploy
 docker compose exec server npx prisma db seed
 ```
 
+或使用管理脚本（选项 20）：
+
+```bash
+./monorepo.sh --action 20
+```
+
 如需完全重置数据库（⚠️ 会删除所有数据）：
 
 ```bash
 docker compose exec server sh -c "npx prisma migrate reset --force && npx prisma db seed"
+
+# 或使用管理脚本（选项 21）
+./monorepo.sh --action 21
 ```
+
+### 6.1 验证部署
+
+初始化完成后，执行以下命令验证服务是否正常：
+
+```bash
+# 1. 检查所有容器状态（应显示 healthy 或 running）
+docker compose ps
+
+# 2. 检查后端健康状态
+curl http://127.0.0.1:3000/api/health
+# 预期返回: {"code":200,"msg":"success","data":{"status":"ok",...}}
+
+# 3. 测试登录接口
+curl -X POST http://127.0.0.1:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+# 预期返回: {"code":200,"msg":"success","data":{"token":"..."}}
+
+# 4. 检查前端是否可访问
+curl -I http://127.0.0.1:8080
+# 预期返回: HTTP/1.1 200 OK
+
+# 5. 检查数据库连接
+docker compose exec postgres psql -U rbac_admin -d rbac_admin -c "SELECT COUNT(*) FROM sys_user;"
+# 预期返回用户数量
+```
+
+如果以上检查都通过，说明部署成功。
 
 ## 七、常用命令
 
@@ -224,17 +274,59 @@ docker compose logs -f server
 
 ### 更新部署
 
+**方式一：Git 拉取更新（推荐）**
+
 ```bash
 cd /www/wwwroot/rbac-admin-pro
 
 # 拉取最新代码
 git pull origin main
 
-# 使用脚本重新构建（推荐，会自动更新提交记录）
-./monorepo.sh --action 12
-
-# 或直接使用 docker compose
+# 重新构建并启动
 docker compose up -d --build
+```
+
+**方式二：上传代码包更新**
+
+1. 停止服务：`docker compose down`
+2. 重命名旧目录：`mv rbac-admin-pro rbac-admin-pro-bak`
+3. 上传新代码包到 `/www/wwwroot/` 并解压为 `rbac-admin-pro`
+4. 从旧目录复制配置和数据：
+```bash
+cp rbac-admin-pro-bak/.env rbac-admin-pro/
+cp -r rbac-admin-pro-bak/server-nestjs/uploads rbac-admin-pro/server-nestjs/
+cp -r rbac-admin-pro-bak/server-nestjs/exports rbac-admin-pro/server-nestjs/
+```
+5. 启动服务：
+```bash
+cd /www/wwwroot/rbac-admin-pro
+docker compose up -d --build
+```
+6. 确认服务正常后，删除旧目录：`rm -rf rbac-admin-pro-bak`
+
+> ✅ **自动处理数据库变更**：容器启动时会自动检测并应用新的数据库迁移，现有数据不会丢失。只有首次部署（数据库为空）才会导入种子数据，后续更新不会重复导入。
+
+### 完全重置部署
+
+如需删除所有数据重新部署（⚠️ 会清空数据库）：
+
+```bash
+cd /www/wwwroot/rbac-admin-pro
+
+# 拉取最新代码
+git pull origin main
+
+# 停止并删除容器和数据卷
+docker compose down -v
+
+# 重新构建并启动
+docker compose up -d --build
+
+# 查看状态
+docker compose ps
+
+# 清理旧镜像释放空间（可选）
+docker image prune -f
 ```
 
 ### 进入容器调试
@@ -334,10 +426,14 @@ vi /etc/docker/daemon.json
 ```json
 {
   "registry-mirrors": [
-    "https://docker.1ms.run"
+    "https://docker.rainbond.cc",
+    "https://docker.1panel.live",
+    "https://hub.rat.dev"
   ]
 }
 ```
+
+> 镜像加速源可能会失效，如遇问题可搜索「Docker 国内镜像源」获取最新可用地址。
 
 ```bash
 # 重启 Docker

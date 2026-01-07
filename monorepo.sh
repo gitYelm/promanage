@@ -576,6 +576,41 @@ docker_restart_service() {
   esac
 }
 
+docker_db_migrate() {
+  check_docker || return 1
+  printf "${FG_BLUE}执行数据库迁移...${RESET}\n"
+  docker-compose exec server npx prisma migrate deploy
+  printf "${FG_GREEN}✓ 数据库迁移完成${RESET}\n"
+}
+
+docker_db_seed() {
+  check_docker || return 1
+  printf "${FG_BLUE}导入种子数据...${RESET}\n"
+  docker-compose exec server npx prisma db seed
+  printf "${FG_GREEN}✓ 种子数据导入完成${RESET}\n"
+}
+
+docker_db_init() {
+  check_docker || return 1
+  printf "${FG_BLUE}初始化数据库 (迁移 + 种子数据)...${RESET}\n"
+  docker-compose exec server npx prisma migrate deploy
+  docker-compose exec server npx prisma db seed
+  printf "${FG_GREEN}✓ 数据库初始化完成${RESET}\n"
+}
+
+docker_db_reset() {
+  check_docker || return 1
+  printf "${FG_YELLOW}⚠️  警告: 此操作将删除所有数据并重置数据库到初始状态!${RESET}\n"
+  read -rp "确认重置数据库? (y/N): " confirm
+  if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+    printf "${FG_BLUE}正在重置数据库...${RESET}\n"
+    docker-compose exec server sh -c "npx prisma migrate reset --force && npx prisma db seed"
+    printf "${FG_GREEN}✓ 数据库已重置并重新初始化${RESET}\n"
+  else
+    printf "${FG_BLUE}已取消重置操作${RESET}\n"
+  fi
+}
+
 print_menu() {
   local WEB_PORT SERVER_PORT wpid spid wstatus sstatus
   local WEB_INFO SERVER_INFO WEB_SRC SERVER_SRC WEB_LOG SERVER_LOG WEB_UP SERVER_UP
@@ -625,6 +660,8 @@ print_menu() {
   printf -- "${FG_CYAN}17${RESET}. 重启指定服务                    ${FG_GRAY}docker-compose restart [service]${RESET}\n"
   printf -- "${FG_CYAN}18${RESET}. 查看服务状态                    ${FG_GRAY}docker-compose ps${RESET}\n"
   printf -- "${FG_CYAN}19${RESET}. 查看服务日志                    ${FG_GRAY}docker-compose logs -f [service]${RESET}\n"
+  printf -- "${FG_CYAN}20${RESET}. 初始化数据库 (迁移+种子)        ${FG_GRAY}prisma migrate deploy && db seed${RESET}\n"
+  printf -- "${FG_RED}21${RESET}. 重置数据库 (危险)               ${FG_GRAY}prisma migrate reset --force${RESET}\n"
   hr
   printf -- "${FG_CYAN}0${RESET}.  退出\n"
 }
@@ -650,6 +687,8 @@ run_by_id() {
     17) docker_restart_service ;;
     18) docker_ps ;;
     19) docker_logs ;;
+    20) docker_db_init ;;
+    21) docker_db_reset ;;
     0) exit 0 ;;
     *) echo "无效的选项" ;;
   esac

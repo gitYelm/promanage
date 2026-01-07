@@ -1,4 +1,9 @@
 [
+  {"sha":"4a4773001f3be15b730bdd4374979b96ca2e75e7","shortSha":"4a47730","message":"移除 CI 工作流","type":"chore","date":"2026-01-07T16:31:29+08:00","author":"lyfe2025"},
+  {"sha":"656ce614ecc902b687dff11ce8606b2e5b1fe841","shortSha":"656ce61","message":"完善 CORS 配置文档和安全策略说明","type":"docs","date":"2026-01-07T16:22:01+08:00","author":"lyfe2025"},
+  {"sha":"b95fb731c1ee7eaa2132b57bec2f9e7888326784","shortSha":"b95fb73","message":"实现 Helmet 安全头和请求限流防护","type":"feat","date":"2026-01-06T10:46:19+08:00","author":"lyfe2025"},
+  {"sha":"d233b97584e482a3aca8b7bbcd9df618f8456dd4","shortSha":"d233b97","message":"重构文档结构并更新技术栈版本信息","type":"docs","date":"2026-01-06T10:20:35+08:00","author":"lyfe2025"},
+  {"sha":"d14a8bde7fef32a13098140a5064aed030bb86ec","shortSha":"d14a8bd","message":"优化 Git 提交记录生成和部署流程","type":"chore","date":"2026-01-06T09:25:19+08:00","author":"lyfe2025"},
   {"sha":"6fbbbb1e211d90246e18fd9b186cd6518f064c61","shortSha":"6fbbbb1","message":"修复属性继承问题并合并$attrs","type":"fix","date":"2026-01-06T09:05:58+08:00","author":"lyfe2025"},
   {"sha":"a6d7506eb9a540a7701c817d41cac2dbec76e4fd","shortSha":"a6d7506","message":"统一代码风格配置和优化项目规范","type":"chore","date":"2026-01-06T09:02:29+08:00","author":"lyfe2025"},
   {"sha":"fdb4da8200e143e52e945d43a12ff2a4bf36a35a","shortSha":"fdb4da8","message":"实现用户状态缓存机制防止已删除用户登录","type":"feat","date":"2026-01-05T03:08:25+08:00","author":"lyfe2025"},
@@ -92,10 +97,5 @@
   {"sha":"cb98e3bea16cc07c1d239f72c83428ed7a286710","shortSha":"cb98e3b","message":"add product, structure, and tech documentation","type":"docs","date":"2025-12-08T20:37:36+08:00","author":"lyfe2025"},
   {"sha":"d72e0b5d8de00c41360a7c687e7760ae773a92d2","shortSha":"d72e0b5","message":"优化角色状态显示组件","type":"feat","date":"2025-12-08T20:17:31+08:00","author":"lyfe2025"},
   {"sha":"2d8d7725d87e5b7b7b84b29d0a9a0f92825b99d0","shortSha":"2d8d772","message":"完成角色、部门和菜单管理功能优化","type":"feat","date":"2025-12-08T19:33:17+08:00","author":"lyfe2025"},
-  {"sha":"6510ea27fbb07daac1f8791ea56ef0601305663e","shortSha":"6510ea2","message":"更新项目进度和已完成功能状态","type":"docs","date":"2025-12-05T13:35:27+08:00","author":"lyfe2025"},
-  {"sha":"1f4bf111cd6c7ed522bb97eecc7155548e7ccaab","shortSha":"1f4bf11","message":"``` feat(初始化数据): 扩展角色和用户体系,完善权限分配","type":"other","date":"2025-12-05T13:29:39+08:00","author":"lyfe2025"},
-  {"sha":"7a5f23c42ec4e5397241fe414f94766720bd2b1b","shortSha":"7a5f23c","message":"remove .run directory from git tracking","type":"chore","date":"2025-12-05T12:34:28+08:00","author":"lyfe2025"},
-  {"sha":"84b969d755c1804f01561fddb7dbe36d279878a2","shortSha":"84b969d","message":"修复用户编辑URL参数匹配问题并优化数据加载","type":"fix","date":"2025-12-05T12:32:38+08:00","author":"lyfe2025"},
-  {"sha":"e9cbaf5272cb3afa2ed6c183617d9180b60c5ae7","shortSha":"e9cbaf5","message":"``` chore(dev): 更新开发环境进程PID并完善系统文档","type":"other","date":"2025-12-05T12:27:53+08:00","author":"lyfe2025"},
-  {"sha":"da52452e4294a6f211ba7ca3db7dce47849e0729","shortSha":"da52452","message":"移除普通用户角色和示例用户初始化数据","type":"refactor","date":"2025-12-05T09:09:29+08:00","author":"lyfe2025"}
+  {"sha":"6510ea27fbb07daac1f8791ea56ef0601305663e","shortSha":"6510ea2","message":"更新项目进度和已完成功能状态","type":"docs","date":"2025-12-05T13:35:27+08:00","author":"lyfe2025"}
 ]

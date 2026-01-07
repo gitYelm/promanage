@@ -33,8 +33,12 @@ RUN DATABASE_URL="postgresql://temp:temp@localhost:5432/temp" pnpm prisma genera
 # 构建应用
 RUN pnpm build
 
+# 复制启动脚本
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # 暴露端口
 EXPOSE 3000
 
-# 启动应用（注意：构建产物在 dist/src/ 目录下）
-CMD ["node", "dist/src/main.js"]
+# 使用启动脚本（自动执行迁移和种子数据）
+ENTRYPOINT ["/docker-entrypoint.sh"]
