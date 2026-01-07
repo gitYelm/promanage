@@ -28,6 +28,12 @@ async function bootstrap() {
   const logger = app.get(LoggerService)
   app.useLogger(logger)
 
+  // CORS 配置 (提前解析，供 Helmet 和 CORS 中间件共用)
+  const isProduction = process.env.NODE_ENV === 'production'
+  const corsOrigins = process.env.CORS_ORIGINS?.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean)
+
   // 安全响应头 (Helmet)
   // 配置 CSP、X-Frame-Options、X-Content-Type-Options 等安全头
   app.use(
@@ -40,10 +46,13 @@ async function bootstrap() {
           imgSrc: ["'self'", 'data:', 'blob:'],
           fontSrc: ["'self'", 'data:'],
           connectSrc: ["'self'"],
+          // iframe 嵌入策略：生产环境仅允许 CORS 白名单，开发环境允许所有
+          frameAncestors: isProduction ? ["'self'", ...(corsOrigins || [])] : ["'self'", '*'],
         },
       },
       crossOriginEmbedderPolicy: false, // 允许嵌入资源
       crossOriginResourcePolicy: { policy: 'cross-origin' }, // 允许跨域资源访问
+      frameguard: false, // 禁用 X-Frame-Options，使用 CSP frame-ancestors 代替
     }),
   )
 
@@ -79,14 +88,10 @@ async function bootstrap() {
   // 启用 CORS (跨域资源共享)
   // 生产环境必须配置白名单，未配置则拒绝所有跨域请求
   // 开发环境允许所有来源
-  const isProduction = process.env.NODE_ENV === 'production'
-  const corsOrigins = process.env.CORS_ORIGINS?.split(',')
-    .map((o) => o.trim())
-    .filter(Boolean)
-
+  // 注意：如果使用 nginx 反向代理（前后端同域），无需配置 CORS_ORIGINS
   if (isProduction && (!corsOrigins || corsOrigins.length === 0)) {
     logger.warn(
-      '生产环境未配置 CORS_ORIGINS，将拒绝所有跨域请求！请在 .env 中配置允许的来源',
+      '生产环境未配置 CORS_ORIGINS，跨域请求和跨域 iframe 嵌入将被拒绝（同域部署可忽略此警告）',
       'Bootstrap',
     )
   }
