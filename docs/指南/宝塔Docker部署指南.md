@@ -236,8 +236,8 @@ curl -X POST http://127.0.0.1:3000/api/auth/login \
 curl -I http://127.0.0.1:8080
 # 预期返回: HTTP/1.1 200 OK
 
-# 5. 检查数据库连接
-docker compose exec postgres psql -U rbac_admin -d rbac_admin -c "SELECT COUNT(*) FROM sys_user;"
+# 5. 检查数据库连接（默认配置，如有修改请替换数据库名）
+docker compose exec postgres psql -U rbac_admin -d rbac_admin_pro -c "SELECT COUNT(*) FROM sys_user;"
 # 预期返回用户数量
 ```
 
@@ -335,8 +335,8 @@ docker image prune -f
 # 进入后端容器
 docker compose exec server sh
 
-# 进入数据库容器
-docker compose exec postgres psql -U rbac_admin -d rbac_admin
+# 进入数据库容器（默认配置，如有修改请替换数据库名）
+docker compose exec postgres psql -U rbac_admin -d rbac_admin_pro
 
 # 进入 Redis 容器
 docker compose exec redis redis-cli
@@ -362,27 +362,31 @@ docker system prune -f
 
 ### 8.1 手动备份数据库
 
+> 以下命令中的 `<DB_NAME>` 和 `<DB_USER>` 需替换为你 `.env` 中配置的 `POSTGRES_DB` 和 `POSTGRES_USER` 值。
+
 ```bash
 # 备份到文件
-docker compose exec postgres pg_dump -U rbac_admin rbac_admin > backup_$(date +%Y%m%d_%H%M%S).sql
+docker compose exec postgres pg_dump -U <DB_USER> <DB_NAME> > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 恢复数据库
-cat backup_xxx.sql | docker compose exec -T postgres psql -U rbac_admin -d rbac_admin
+cat backup_xxx.sql | docker compose exec -T postgres psql -U <DB_USER> -d <DB_NAME>
 ```
 
 ### 8.2 定时备份（宝塔计划任务）
 
-在宝塔「计划任务」中添加 Shell 脚本：
+在宝塔「计划任务」中添加 Shell 脚本（注意修改 `DB_USER` 和 `DB_NAME` 为你的配置）：
 
 ```bash
 #!/bin/bash
-BACKUP_DIR=/www/backup/backupbee
+BACKUP_DIR=/www/backup/rbac-admin
 DATE=$(date +%Y%m%d_%H%M%S)
+DB_USER=rbac_admin      # 修改为你的 POSTGRES_USER
+DB_NAME=rbac_admin_pro  # 修改为你的 POSTGRES_DB
 
 mkdir -p $BACKUP_DIR
 
 cd /www/wwwroot/rbac-admin-pro
-docker compose exec -T postgres pg_dump -U rbac_admin rbac_admin > $BACKUP_DIR/db_$DATE.sql
+docker compose exec -T postgres pg_dump -U $DB_USER $DB_NAME > $BACKUP_DIR/db_$DATE.sql
 
 # 保留最近 7 天的备份
 find $BACKUP_DIR -name "db_*.sql" -mtime +7 -delete
@@ -473,8 +477,8 @@ docker compose ps postgres
 # 查看 postgres 日志
 docker compose logs postgres
 
-# 测试连接
-docker compose exec postgres psql -U rbac_admin -d rbac_admin -c "SELECT 1"
+# 测试连接（默认配置，如有修改请替换数据库名）
+docker compose exec postgres psql -U rbac_admin -d rbac_admin_pro -c "SELECT 1"
 ```
 
 ### Q5: 磁盘空间不足

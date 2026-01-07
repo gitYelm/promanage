@@ -9,6 +9,11 @@
 </p>
 
 <p align="center">
+  <a href="https://rbac.pynb.org/login">🌐 在线演示</a> ·
+  <a href="https://rbac.pynb.org/api-docs">📖 接口文档</a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js" alt="Vue">
   <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
   <img src="https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma" alt="Prisma">
