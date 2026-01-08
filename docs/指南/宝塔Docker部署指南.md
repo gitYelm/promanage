@@ -284,6 +284,9 @@ git pull origin main
 
 # 重新构建并启动
 docker compose up -d --build
+
+# 如果新版本有新增配置项，执行增量 seed（不会覆盖已有数据）
+docker compose exec server npx prisma db seed
 ```
 
 **方式二：上传代码包更新**
@@ -301,10 +304,15 @@ cp -r rbac-admin-pro-bak/server-nestjs/exports rbac-admin-pro/server-nestjs/
 ```bash
 cd /www/wwwroot/rbac-admin-pro
 docker compose up -d --build
+
+# 如果新版本有新增配置项，执行增量 seed（不会覆盖已有数据）
+docker compose exec server npx prisma db seed
 ```
 6. 确认服务正常后，删除旧目录：`rm -rf rbac-admin-pro-bak`
 
-> ✅ **自动处理数据库变更**：容器启动时会自动检测并应用新的数据库迁移，现有数据不会丢失。只有首次部署（数据库为空）才会导入种子数据，后续更新不会重复导入。
+> ✅ **自动处理数据库变更**：容器启动时会自动检测并应用新的数据库迁移，现有数据不会丢失。只有首次部署（数据库为空）才会自动导入种子数据。
+>
+> ⚠️ **新增配置项**：如果新版本添加了系统参数（如上传大小限制），需要手动执行 `docker compose exec server npx prisma db seed`。seed 是增量的，只会插入不存在的记录，不会覆盖已修改的配置。
 
 ### 完全重置部署
 
