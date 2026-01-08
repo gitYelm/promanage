@@ -27,6 +27,19 @@ export class ConfigController {
     return await this.service.getSiteConfig()
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @Get('upload')
+  @ApiOperation({ summary: '获取上传配置' })
+  async getUploadConfig(): Promise<{
+    editorImageMaxSize: number
+    editorVideoMaxSize: number
+    avatarMaxSize: number
+    systemMaxSize: number
+  }> {
+    return await this.service.getUploadConfig()
+  }
+
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ApiBearerAuth('JWT-auth')
   @RequirePermission('system:config:list')

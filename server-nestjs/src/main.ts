@@ -41,10 +41,13 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"], // Swagger UI 需要内联样式
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Swagger UI 需要
+          // Swagger UI 和 ReDoc 需要内联样式 + Google Fonts
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          // Swagger UI 和 ReDoc 需要内联脚本 + unpkg CDN
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://unpkg.com'],
           imgSrc: ["'self'", 'data:', 'blob:'],
-          fontSrc: ["'self'", 'data:'],
+          // ReDoc 需要 Google Fonts 字体文件
+          fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
           connectSrc: ["'self'"],
           // iframe 嵌入策略：生产环境仅允许 CORS 白名单，开发环境允许所有
           frameAncestors: isProduction ? ["'self'", ...(corsOrigins || [])] : ["'self'", '*'],

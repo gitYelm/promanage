@@ -58,3 +58,19 @@ export function refreshCache() {
     method: 'get',
   })
 }
+
+/** 上传配置 */
+export interface UploadConfig {
+  editorImageMaxSize: number
+  editorVideoMaxSize: number
+  avatarMaxSize: number
+  systemMaxSize: number
+}
+
+/** 获取上传配置 */
+export function getUploadConfig() {
+  return request<{ data: UploadConfig }>({
+    url: '/system/config/upload',
+    method: 'get',
+  }).then((res: any) => res.data as UploadConfig)
+}

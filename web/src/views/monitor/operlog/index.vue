@@ -360,13 +360,13 @@ onMounted(() => {
 
     <!-- Detail Dialog -->
     <Dialog v-model:open="showDetail">
-      <DialogContent class="sm:max-w-[700px]">
-        <DialogHeader>
+      <DialogContent class="sm:max-w-[700px] max-h-[90vh] flex flex-col">
+        <DialogHeader class="flex-shrink-0">
           <DialogTitle>操作日志详情</DialogTitle>
           <DialogDescription> 查看操作日志的详细信息 </DialogDescription>
         </DialogHeader>
 
-        <div v-if="currentLog" class="grid gap-4 py-4 text-sm">
+        <div v-if="currentLog" class="flex-1 overflow-y-auto grid gap-4 py-4 text-sm">
           <div class="grid grid-cols-2 gap-4">
             <div><span class="font-medium">操作模块：</span>{{ currentLog.title }}</div>
             <div><span class="font-medium">请求方式：</span>{{ currentLog.requestMethod }}</div>
@@ -380,19 +380,25 @@ onMounted(() => {
           </div>
           <div>
             <div class="font-medium mb-1">请求参数：</div>
-            <div class="bg-muted p-2 rounded text-xs break-all font-mono">
+            <div
+              class="bg-muted p-2 rounded text-xs break-all font-mono max-h-[150px] overflow-y-auto"
+            >
               {{ currentLog.operParam }}
             </div>
           </div>
           <div>
             <div class="font-medium mb-1">返回参数：</div>
-            <div class="bg-muted p-2 rounded text-xs break-all font-mono">
+            <div
+              class="bg-muted p-2 rounded text-xs break-all font-mono max-h-[150px] overflow-y-auto"
+            >
               {{ currentLog.jsonResult }}
             </div>
           </div>
           <div v-if="currentLog.status === 1">
             <div class="font-medium mb-1 text-destructive">异常信息：</div>
-            <div class="bg-destructive/10 text-destructive p-2 rounded text-xs break-all">
+            <div
+              class="bg-destructive/10 text-destructive p-2 rounded text-xs break-all max-h-[100px] overflow-y-auto"
+            >
               {{ currentLog.errorMsg }}
             </div>
           </div>

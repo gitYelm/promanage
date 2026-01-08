@@ -118,6 +118,43 @@ export class ConfigService {
   }
 
   /**
+   * 获取上传配置
+   */
+  async getUploadConfig(): Promise<{
+    editorImageMaxSize: number
+    editorVideoMaxSize: number
+    avatarMaxSize: number
+    systemMaxSize: number
+  }> {
+    const configs = await this.prisma.sysConfig.findMany({
+      where: {
+        configKey: {
+          in: [
+            'sys.upload.editor.imageMaxSize',
+            'sys.upload.editor.videoMaxSize',
+            'sys.upload.avatar.maxSize',
+            'sys.upload.system.maxSize',
+          ],
+        },
+      },
+    })
+
+    const configMap: Record<string, string> = {}
+    configs.forEach((c) => {
+      if (c.configKey) {
+        configMap[c.configKey] = c.configValue ?? ''
+      }
+    })
+
+    return {
+      editorImageMaxSize: parseInt(configMap['sys.upload.editor.imageMaxSize'] || '5', 10),
+      editorVideoMaxSize: parseInt(configMap['sys.upload.editor.videoMaxSize'] || '50', 10),
+      avatarMaxSize: parseInt(configMap['sys.upload.avatar.maxSize'] || '2', 10),
+      systemMaxSize: parseInt(configMap['sys.upload.system.maxSize'] || '2', 10),
+    }
+  }
+
+  /**
    * 获取网站公开配置（无需登录）
    */
   async getSiteConfig(): Promise<{

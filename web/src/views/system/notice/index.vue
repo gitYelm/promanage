@@ -49,9 +49,18 @@ import {
   changeNoticeStatus,
   type SysNotice,
 } from '@/api/system/notice'
+import { getUploadConfig, type UploadConfig } from '@/api/system/config'
 import { useUnsavedChanges } from '@/composables'
 
 const { toast } = useToast()
+
+// 上传配置
+const uploadConfig = ref<UploadConfig>({
+  editorImageMaxSize: 5,
+  editorVideoMaxSize: 50,
+  avatarMaxSize: 2,
+  systemMaxSize: 2,
+})
 
 // 未保存更改提示（弹窗场景，禁用路由守卫）
 const { isDirty, markClean, showLeaveDialog, confirmLeave, cancelLeave, tryLeave } =
@@ -271,6 +280,14 @@ const sanitizedPreviewContent = computed(() => {
 
 onMounted(() => {
   getList()
+  // 获取上传配置
+  getUploadConfig()
+    .then((config) => {
+      uploadConfig.value = config
+    })
+    .catch(() => {
+      // 使用默认值
+    })
 })
 </script>
 
@@ -442,7 +459,7 @@ onMounted(() => {
     <!-- Add/Edit Dialog -->
     <Dialog :open="showDialog" @update:open="(val) => !val && handleCloseDialog()">
       <DialogContent
-        class="sm:max-w-[800px]"
+        class="sm:max-w-[800px] max-h-[90vh] flex flex-col"
         @escape-key-down.prevent="handleCloseDialog"
         @pointer-down-outside.prevent="handleCloseDialog"
       >
@@ -451,47 +468,54 @@ onMounted(() => {
           <DialogDescription> 请填写公告信息 </DialogDescription>
         </DialogHeader>
 
-        <div class="grid gap-4 py-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="noticeTitle">公告标题 *</Label>
-              <Input id="noticeTitle" v-model="form.noticeTitle" placeholder="请输入公告标题" />
+        <div class="flex-1 overflow-y-auto py-4">
+          <div class="grid gap-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="grid gap-2">
+                <Label for="noticeTitle">公告标题 *</Label>
+                <Input id="noticeTitle" v-model="form.noticeTitle" placeholder="请输入公告标题" />
+              </div>
+              <div class="grid gap-2">
+                <Label for="noticeType">公告类型</Label>
+                <Select v-model="form.noticeType">
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">通知</SelectItem>
+                    <SelectItem value="2">公告</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <div class="grid gap-2">
-              <Label for="noticeType">公告类型</Label>
-              <Select v-model="form.noticeType">
+              <Label for="status">状态</Label>
+              <Select v-model="form.status">
                 <SelectTrigger>
-                  <SelectValue placeholder="选择类型" />
+                  <SelectValue placeholder="选择状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">通知</SelectItem>
-                  <SelectItem value="2">公告</SelectItem>
+                  <SelectItem
+                    v-for="opt in getStatusOptions('normalClose')"
+                    :key="opt.value"
+                    :value="opt.value"
+                  >
+                    {{ opt.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div class="grid gap-2">
-            <Label for="status">状态</Label>
-            <Select v-model="form.status">
-              <SelectTrigger>
-                <SelectValue placeholder="选择状态" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="opt in getStatusOptions('normalClose')"
-                  :key="opt.value"
-                  :value="opt.value"
-                >
-                  {{ opt.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="noticeContent">内容 *</Label>
-            <RichTextEditor v-model="form.noticeContent" placeholder="请输入公告内容..." />
+            <div class="grid gap-2">
+              <Label for="noticeContent">内容 *</Label>
+              <RichTextEditor
+                v-model="form.noticeContent"
+                placeholder="请输入公告内容..."
+                :image-max-size="uploadConfig.editorImageMaxSize"
+                :video-max-size="uploadConfig.editorVideoMaxSize"
+              />
+            </div>
           </div>
         </div>
 
@@ -531,8 +555,8 @@ onMounted(() => {
 
     <!-- Preview Dialog -->
     <Dialog v-model:open="showPreviewDialog">
-      <DialogContent class="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader class="flex-shrink-0">
           <DialogTitle>{{ previewNotice?.noticeTitle }}</DialogTitle>
           <DialogDescription>
             <Badge variant="outline" class="mr-2">{{
@@ -545,10 +569,10 @@ onMounted(() => {
           </DialogDescription>
         </DialogHeader>
         <div
-          class="py-4 prose prose-sm dark:prose-invert max-w-none"
+          class="flex-1 overflow-y-auto py-4 prose prose-sm dark:prose-invert max-w-none"
           v-html="sanitizedPreviewContent"
         />
-        <DialogFooter>
+        <DialogFooter class="flex-shrink-0">
           <Button variant="outline" @click="showPreviewDialog = false">关闭</Button>
         </DialogFooter>
       </DialogContent>

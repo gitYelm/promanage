@@ -496,13 +496,13 @@ onMounted(() => {
 
     <!-- Add/Edit Dialog -->
     <Dialog v-model:open="showDialog">
-      <DialogContent class="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader class="flex-shrink-0">
           <DialogTitle>{{ isEdit ? '修改菜单' : '新增菜单' }}</DialogTitle>
           <DialogDescription> 请填写菜单信息 </DialogDescription>
         </DialogHeader>
 
-        <div class="grid gap-4 py-4">
+        <div class="flex-1 overflow-y-auto grid gap-4 py-4">
           <div class="grid gap-2">
             <Label for="parentId">上级菜单</Label>
             <Select v-model="form.parentId">
@@ -602,7 +602,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter class="flex-shrink-0">
           <Button variant="outline" @click="showDialog = false">取消</Button>
           <Button :disabled="submitLoading" @click="handleSubmit">
             <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />

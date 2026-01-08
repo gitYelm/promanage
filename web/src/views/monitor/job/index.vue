@@ -577,13 +577,13 @@ onMounted(() => {
 
     <!-- Add/Edit Dialog -->
     <Dialog v-model:open="showDialog">
-      <DialogContent class="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader class="flex-shrink-0">
           <DialogTitle>{{ isEdit ? '修改任务' : '新增任务' }}</DialogTitle>
           <DialogDescription> 请填写定时任务信息 </DialogDescription>
         </DialogHeader>
 
-        <div class="grid gap-4 py-4">
+        <div class="flex-1 overflow-y-auto grid gap-4 py-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="grid gap-2">
               <Label for="jobName">任务名称 *</Label>
@@ -661,7 +661,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter class="flex-shrink-0">
           <Button variant="outline" @click="showDialog = false">取消</Button>
           <Button :disabled="submitLoading" @click="handleSubmit"> 确定 </Button>
         </DialogFooter>

@@ -1629,6 +1629,35 @@ async function main() {
       configType: 'Y',
       remark: 'S3访问密钥Secret',
     },
+    // 上传大小限制
+    {
+      configName: '编辑器图片大小限制',
+      configKey: 'sys.upload.editor.imageMaxSize',
+      configValue: '5',
+      configType: 'Y',
+      remark: '富文本编辑器图片上传大小限制（MB）',
+    },
+    {
+      configName: '编辑器视频大小限制',
+      configKey: 'sys.upload.editor.videoMaxSize',
+      configValue: '50',
+      configType: 'Y',
+      remark: '富文本编辑器视频上传大小限制（MB）',
+    },
+    {
+      configName: '头像大小限制',
+      configKey: 'sys.upload.avatar.maxSize',
+      configValue: '2',
+      configType: 'Y',
+      remark: '用户头像上传大小限制（MB）',
+    },
+    {
+      configName: '系统文件大小限制',
+      configKey: 'sys.upload.system.maxSize',
+      configValue: '2',
+      configType: 'Y',
+      remark: '系统文件（Logo/Favicon）上传大小限制（MB）',
+    },
     // 导出设置
     {
       configName: '导出文件保留时间',

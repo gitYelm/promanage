@@ -10,12 +10,25 @@ import { TextStyle } from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { TableCell } from '@tiptap/extension-table-cell'
+import Youtube from '@tiptap/extension-youtube'
 import { Button } from '@/components/ui/button'
 import { Toggle } from '@/components/ui/toggle'
 import { Separator } from '@/components/ui/separator'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Bold,
   Italic,
@@ -40,17 +53,33 @@ import {
   Heading3,
   Minus,
   RemoveFormatting,
+  Table as TableIcon,
+  Video,
+  Upload,
+  Loader2,
 } from 'lucide-vue-next'
+import { useToast } from '@/components/ui/toast/use-toast'
+import request from '@/utils/request'
 
-const props = defineProps<{
-  modelValue: string
-  placeholder?: string
-  minHeight?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    placeholder?: string
+    minHeight?: string
+    imageMaxSize?: number // MB
+    videoMaxSize?: number // MB
+  }>(),
+  {
+    imageMaxSize: 5,
+    videoMaxSize: 50,
+  },
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
+
+const { toast } = useToast()
 
 // 链接弹窗
 const linkUrl = ref('')
@@ -59,6 +88,19 @@ const showLinkPopover = ref(false)
 // 图片弹窗
 const imageUrl = ref('')
 const showImagePopover = ref(false)
+const imageUploading = ref(false)
+const imageFileInput = ref<HTMLInputElement>()
+
+// 视频弹窗
+const videoUrl = ref('')
+const showVideoPopover = ref(false)
+const videoUploading = ref(false)
+const videoFileInput = ref<HTMLInputElement>()
+
+// 表格弹窗
+const tableRows = ref(3)
+const tableCols = ref(3)
+const showTablePopover = ref(false)
 
 // 颜色选项
 const textColors = [
@@ -98,14 +140,26 @@ const editor = useEditor({
     }),
     Image.configure({
       HTMLAttributes: { class: 'max-w-full h-auto rounded-md' },
+      allowBase64: true,
     }),
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
-    Underline.configure(),
+    Underline,
     TextStyle,
     Color,
     Highlight.configure({ multicolor: true }),
     Placeholder.configure({
       placeholder: props.placeholder || '请输入内容...',
+    }),
+    Table.configure({
+      resizable: true,
+      HTMLAttributes: { class: 'rich-text-table' },
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
+    Youtube.configure({
+      HTMLAttributes: { class: 'w-full aspect-video rounded-md' },
+      inline: false,
     }),
   ],
   editorProps: {
@@ -144,13 +198,136 @@ function setLink() {
   linkUrl.value = ''
 }
 
-// 添加图片
+// 添加图片（URL方式）
 function addImage() {
   if (imageUrl.value) {
     editor.value?.chain().focus().setImage({ src: imageUrl.value }).run()
   }
   showImagePopover.value = false
   imageUrl.value = ''
+}
+
+// 上传图片
+async function handleImageUpload(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    toast({
+      title: '格式不支持',
+      description: '请上传 JPG、PNG、GIF、WebP 格式的图片',
+      variant: 'destructive',
+    })
+    target.value = ''
+    return
+  }
+
+  if (file.size > props.imageMaxSize * 1024 * 1024) {
+    toast({
+      title: '文件过大',
+      description: `图片大小不能超过 ${props.imageMaxSize}MB`,
+      variant: 'destructive',
+    })
+    target.value = ''
+    return
+  }
+
+  imageUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await request.post('/upload/editor/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    // 处理相对路径，添加 API 前缀
+    let imgUrl = res.data.url
+    if (imgUrl.startsWith('/')) {
+      imgUrl = import.meta.env.VITE_API_URL + imgUrl
+    }
+    showImagePopover.value = false
+    // 延迟插入图片，确保弹窗关闭
+    setTimeout(() => {
+      editor.value?.chain().focus().setImage({ src: imgUrl }).run()
+    }, 100)
+    toast({ title: '图片上传成功' })
+  } catch {
+    toast({ title: '上传失败', description: '请稍后重试', variant: 'destructive' })
+  } finally {
+    imageUploading.value = false
+    target.value = ''
+  }
+}
+
+// 添加视频（URL方式，支持 YouTube）
+function addVideo() {
+  if (videoUrl.value) {
+    // 检查是否是 YouTube 链接
+    if (videoUrl.value.includes('youtube.com') || videoUrl.value.includes('youtu.be')) {
+      editor.value?.chain().focus().setYoutubeVideo({ src: videoUrl.value }).run()
+    } else {
+      // 普通视频链接，插入 video 标签
+      const videoHtml = `<video controls class="w-full rounded-md"><source src="${videoUrl.value}" type="video/mp4"></video>`
+      editor.value?.chain().focus().insertContent(videoHtml).run()
+    }
+  }
+  showVideoPopover.value = false
+  videoUrl.value = ''
+}
+
+// 上传视频
+async function handleVideoUpload(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg']
+  if (!allowedTypes.includes(file.type)) {
+    toast({
+      title: '格式不支持',
+      description: '请上传 MP4、WebM、OGG 格式的视频',
+      variant: 'destructive',
+    })
+    target.value = ''
+    return
+  }
+
+  if (file.size > props.videoMaxSize * 1024 * 1024) {
+    toast({
+      title: '文件过大',
+      description: `视频大小不能超过 ${props.videoMaxSize}MB`,
+      variant: 'destructive',
+    })
+    target.value = ''
+    return
+  }
+
+  videoUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await request.post('/upload/editor/video', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    // 处理相对路径
+    let vidUrl = res.data.url
+    if (vidUrl.startsWith('/')) {
+      vidUrl = import.meta.env.VITE_API_URL + vidUrl
+    }
+    showVideoPopover.value = false
+    // 延迟插入视频
+    setTimeout(() => {
+      const videoHtml = `<video controls class="w-full rounded-md"><source src="${vidUrl}" type="${file.type}"></video>`
+      editor.value?.chain().focus().insertContent(videoHtml).run()
+    }, 100)
+    toast({ title: '视频上传成功' })
+  } catch {
+    toast({ title: '上传失败', description: '请稍后重试', variant: 'destructive' })
+  } finally {
+    videoUploading.value = false
+    target.value = ''
+  }
 }
 
 // 设置文字颜色
@@ -161,6 +338,16 @@ function setColor(color: string) {
 // 设置高亮颜色
 function setHighlight(color: string) {
   editor.value?.chain().focus().toggleHighlight({ color }).run()
+}
+
+// 插入表格
+function insertTable() {
+  const rows = Math.max(1, Math.min(20, tableRows.value))
+  const cols = Math.max(1, Math.min(10, tableCols.value))
+  editor.value?.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+  showTablePopover.value = false
+  tableRows.value = 3
+  tableCols.value = 3
 }
 </script>
 
@@ -382,18 +569,219 @@ function setHighlight(color: string) {
           </Button>
         </PopoverTrigger>
         <PopoverContent class="w-80">
+          <input
+            ref="imageFileInput"
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            class="hidden"
+            @change="handleImageUpload"
+          />
+          <Tabs default-value="upload" class="w-full">
+            <TabsList class="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">本地上传</TabsTrigger>
+              <TabsTrigger value="url">网络地址</TabsTrigger>
+            </TabsList>
+            <TabsContent value="upload" class="space-y-4">
+              <div class="flex flex-col items-center gap-2 py-4">
+                <Button
+                  variant="outline"
+                  :disabled="imageUploading"
+                  @click="imageFileInput?.click()"
+                >
+                  <Loader2 v-if="imageUploading" class="mr-2 h-4 w-4 animate-spin" />
+                  <Upload v-else class="mr-2 h-4 w-4" />
+                  {{ imageUploading ? '上传中...' : '选择图片' }}
+                </Button>
+                <p class="text-xs text-muted-foreground">
+                  支持 JPG、PNG、GIF、WebP，最大 {{ imageMaxSize }}MB
+                </p>
+              </div>
+            </TabsContent>
+            <TabsContent value="url" class="space-y-4">
+              <div class="space-y-2">
+                <Label>图片地址</Label>
+                <Input v-model="imageUrl" placeholder="https://" @keyup.enter="addImage" />
+              </div>
+              <div class="flex justify-end gap-2">
+                <Button size="sm" variant="outline" @click="showImagePopover = false">取消</Button>
+                <Button size="sm" @click="addImage">确定</Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </PopoverContent>
+      </Popover>
+
+      <!-- 视频 -->
+      <Popover v-model:open="showVideoPopover">
+        <PopoverTrigger as-child>
+          <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+            <Video class="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent class="w-80">
+          <input
+            ref="videoFileInput"
+            type="file"
+            accept="video/mp4,video/webm,video/ogg"
+            class="hidden"
+            @change="handleVideoUpload"
+          />
+          <Tabs default-value="upload" class="w-full">
+            <TabsList class="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">本地上传</TabsTrigger>
+              <TabsTrigger value="url">网络地址</TabsTrigger>
+            </TabsList>
+            <TabsContent value="upload" class="space-y-4">
+              <div class="flex flex-col items-center gap-2 py-4">
+                <Button
+                  variant="outline"
+                  :disabled="videoUploading"
+                  @click="videoFileInput?.click()"
+                >
+                  <Loader2 v-if="videoUploading" class="mr-2 h-4 w-4 animate-spin" />
+                  <Upload v-else class="mr-2 h-4 w-4" />
+                  {{ videoUploading ? '上传中...' : '选择视频' }}
+                </Button>
+                <p class="text-xs text-muted-foreground">
+                  支持 MP4、WebM、OGG，最大 {{ videoMaxSize }}MB
+                </p>
+              </div>
+            </TabsContent>
+            <TabsContent value="url" class="space-y-4">
+              <div class="space-y-2">
+                <Label>视频地址</Label>
+                <Input
+                  v-model="videoUrl"
+                  placeholder="https:// 或 YouTube 链接"
+                  @keyup.enter="addVideo"
+                />
+              </div>
+              <div class="flex justify-end gap-2">
+                <Button size="sm" variant="outline" @click="showVideoPopover = false">取消</Button>
+                <Button size="sm" @click="addVideo">确定</Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </PopoverContent>
+      </Popover>
+
+      <!-- 表格 -->
+      <Popover v-model:open="showTablePopover">
+        <PopoverTrigger as-child>
+          <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+            <TableIcon class="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent class="w-56">
           <div class="grid gap-4">
             <div class="space-y-2">
-              <Label>图片地址</Label>
-              <Input v-model="imageUrl" placeholder="https://" @keyup.enter="addImage" />
+              <h4 class="font-medium leading-none">插入表格</h4>
+            </div>
+            <div class="grid gap-3">
+              <div class="flex items-center gap-2">
+                <Label class="w-10">行数</Label>
+                <Input
+                  v-model.number="tableRows"
+                  type="number"
+                  min="1"
+                  max="20"
+                  class="h-8"
+                  @keyup.enter="insertTable"
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                <Label class="w-10">列数</Label>
+                <Input
+                  v-model.number="tableCols"
+                  type="number"
+                  min="1"
+                  max="10"
+                  class="h-8"
+                  @keyup.enter="insertTable"
+                />
+              </div>
             </div>
             <div class="flex justify-end gap-2">
-              <Button size="sm" variant="outline" @click="showImagePopover = false">取消</Button>
-              <Button size="sm" @click="addImage">确定</Button>
+              <Button size="sm" variant="outline" @click="showTablePopover = false">取消</Button>
+              <Button size="sm" @click="insertTable">插入</Button>
             </div>
           </div>
         </PopoverContent>
       </Popover>
+
+      <!-- 表格操作 -->
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="h-8 px-2 text-xs"
+            :disabled="!editor?.isActive('table')"
+          >
+            表格操作
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem
+            :disabled="!editor?.can().addColumnBefore()"
+            @click="editor?.chain().focus().addColumnBefore().run()"
+          >
+            左侧插入列
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            :disabled="!editor?.can().addColumnAfter()"
+            @click="editor?.chain().focus().addColumnAfter().run()"
+          >
+            右侧插入列
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            :disabled="!editor?.can().deleteColumn()"
+            @click="editor?.chain().focus().deleteColumn().run()"
+          >
+            删除列
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            :disabled="!editor?.can().addRowBefore()"
+            @click="editor?.chain().focus().addRowBefore().run()"
+          >
+            上方插入行
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            :disabled="!editor?.can().addRowAfter()"
+            @click="editor?.chain().focus().addRowAfter().run()"
+          >
+            下方插入行
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            :disabled="!editor?.can().deleteRow()"
+            @click="editor?.chain().focus().deleteRow().run()"
+          >
+            删除行
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            :disabled="!editor?.can().mergeCells()"
+            @click="editor?.chain().focus().mergeCells().run()"
+          >
+            合并单元格
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            :disabled="!editor?.can().splitCell()"
+            @click="editor?.chain().focus().splitCell().run()"
+          >
+            拆分单元格
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            :disabled="!editor?.can().deleteTable()"
+            class="text-destructive"
+            @click="editor?.chain().focus().deleteTable().run()"
+          >
+            删除表格
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <Separator orientation="vertical" class="mx-1 h-6" />
 
@@ -513,5 +901,75 @@ function setHighlight(color: string) {
 .ProseMirror mark {
   border-radius: 0.125rem;
   padding: 0.125rem 0;
+}
+
+/* 表格样式 */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0.5rem 0;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+:root.dark .ProseMirror table {
+  border-color: #374151;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 1em;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+:root.dark .ProseMirror td,
+:root.dark .ProseMirror th {
+  border-color: #374151;
+}
+
+.ProseMirror th {
+  font-weight: 600;
+  text-align: left;
+  background-color: #f3f4f6;
+}
+
+:root.dark .ProseMirror th {
+  background-color: #1f2937;
+}
+
+.ProseMirror .selectedCell::after {
+  z-index: 2;
+  position: absolute;
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.1);
+  pointer-events: none;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 0.5rem 0;
 }
 </style>
