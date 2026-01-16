@@ -2,11 +2,18 @@
 
 # ============================================================
 # RBAC Admin Pro - 统一管理入口
-# 使用上下键选择，回车确认
-# 支持命令行参数: ./admin.sh 1 (服务管理) ./admin.sh 2 (数据库管理)
+# 支持两种模式：
+#   - 交互模式：方向键选择（完整 TTY 终端）
+#   - 简单模式：数字输入（宝塔等 Web 终端）
+# 用法:
+#   ./admin.sh           自动检测模式
+#   ./admin.sh -s        强制简单模式
+#   ./admin.sh --simple  强制简单模式
+#   ./admin.sh 1         直接进入服务管理
+#   ./admin.sh 2         直接进入数据库管理
 # ============================================================
 
-set -e
+# 注意：不使用 set -e，因为某些终端环境下会导致意外退出
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS_DIR="$ROOT/scripts"
@@ -38,6 +45,30 @@ SCRIPTS=(
 # 当前选中项
 SELECTED=0
 
+# 全局变量：使用简单模式
+USE_SIMPLE_MODE=false
+
+# 检测终端是否支持交互模式
+check_interactive_support() {
+  # 宝塔服务器直接用简单模式（最可靠的检测）
+  [ -d "/www/server/panel" ] && return 1
+  
+  # 非 TTY 不支持
+  [ ! -t 0 ] && return 1
+  [ ! -t 1 ] && return 1
+  
+  # 检查 TERM 变量
+  case "$TERM" in
+    dumb|unknown|"") return 1 ;;
+  esac
+  
+  # 检测宝塔环境变量
+  [ -n "$BT_PANEL" ] && return 1
+  [ -n "$BT_TASK" ] && return 1
+  
+  return 0
+}
+
 # 隐藏光标
 hide_cursor() { printf '\033[?25l'; }
 
@@ -52,7 +83,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-# 绘制菜单
+# 交互模式菜单
 draw_menu() {
   clear
   echo ""
@@ -77,7 +108,6 @@ draw_menu() {
       echo "       ${FG_GRAY}${desc}${RESET}"
     fi
     
-    # 选项之间加空行分隔
     if [ $i -lt $((${#OPTIONS[@]} - 1)) ]; then
       echo ""
     fi
@@ -92,7 +122,6 @@ read_key() {
   local key
   IFS= read -rsn1 key
   
-  # 检测方向键（ESC 序列）
   if [ "$key" = $'\033' ]; then
     read -rsn2 key
     case "$key" in
@@ -117,40 +146,68 @@ read_key() {
   fi
 }
 
-# 主循环
-main() {
-  # 支持命令行参数直接选择
-  if [ -n "$1" ]; then
-    case "$1" in
-      1) exec "${SCRIPTS[0]}" ;;
-      2) exec "${SCRIPTS[1]}" ;;
-      -h|--help)
-        echo "用法: $0 [选项]"
-        echo ""
-        echo "选项:"
-        echo "  1          服务管理"
-        echo "  2          数据库管理"
-        echo "  -h, --help 显示帮助"
-        echo ""
-        echo "不带参数运行将进入交互式菜单"
+# 简单模式菜单（数字输入）
+draw_simple_menu() {
+  clear
+  echo ""
+  echo "  ${BOLD}${FG_CYAN}┌──────────────────────────────────────────┐${RESET}"
+  echo "  ${BOLD}${FG_CYAN}│              RBAC Admin Pro              │${RESET}"
+  echo "  ${BOLD}${FG_CYAN}├──────────────────────────────────────────┤${RESET}"
+  echo "  ${BOLD}${FG_CYAN}│${RESET}         输入数字选择，${FG_GREEN}0${RESET} 或 ${FG_GREEN}q${RESET} 退出         ${BOLD}${FG_CYAN}│${RESET}"
+  echo "  ${BOLD}${FG_CYAN}└──────────────────────────────────────────┘${RESET}"
+  echo ""
+  
+  local i=0
+  for opt in "${OPTIONS[@]}"; do
+    local name="${opt%%|*}"
+    local desc="${opt#*|}"
+    local num=$((i + 1))
+    
+    echo "  ${FG_GREEN}${num}.${RESET} ${BOLD}${name}${RESET}"
+    echo "     ${FG_GRAY}${desc}${RESET}"
+    
+    if [ $i -lt $((${#OPTIONS[@]} - 1)) ]; then
+      echo ""
+    fi
+    ((i++))
+  done
+  
+  echo ""
+  echo "  ${FG_GRAY}0. 退出${RESET}"
+  echo ""
+}
+
+# 简单模式主循环
+simple_main() {
+  while true; do
+    draw_simple_menu
+    printf "  请输入数字选择: "
+    read -r choice
+    
+    case "$choice" in
+      1)
+        clear
+        exec "${SCRIPTS[0]}"
+        ;;
+      2)
+        clear
+        exec "${SCRIPTS[1]}"
+        ;;
+      0|q|Q)
+        clear
         exit 0
         ;;
       *)
-        echo "无效选项: $1"
-        echo "运行 '$0 --help' 查看帮助"
-        exit 1
+        echo ""
+        echo "  ${FG_GRAY}无效选项，请重新输入${RESET}"
+        sleep 1
         ;;
     esac
-  fi
-
-  # 检查脚本是否存在
-  for script in "${SCRIPTS[@]}"; do
-    if [ ! -f "$script" ]; then
-      echo "错误: 脚本不存在 - $script"
-      exit 1
-    fi
   done
+}
 
+# 交互模式主循环
+interactive_main() {
   hide_cursor
   draw_menu
   
@@ -193,6 +250,65 @@ main() {
         ;;
     esac
   done
+}
+
+# 显示帮助
+show_help() {
+  echo "用法: $0 [选项]"
+  echo ""
+  echo "选项:"
+  echo "  1              服务管理"
+  echo "  2              数据库管理"
+  echo "  -s, --simple   强制使用简单模式（数字输入）"
+  echo "  -h, --help     显示帮助"
+  echo ""
+  echo "不带参数运行将自动检测终端类型选择模式"
+  echo "宝塔 Web 终端会自动使用简单模式"
+}
+
+# 主入口
+main() {
+  # 解析命令行参数
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      1)
+        exec "${SCRIPTS[0]}"
+        ;;
+      2)
+        exec "${SCRIPTS[1]}"
+        ;;
+      -s|--simple)
+        USE_SIMPLE_MODE=true
+        shift
+        ;;
+      -h|--help)
+        show_help
+        exit 0
+        ;;
+      *)
+        echo "无效选项: $1"
+        echo "运行 '$0 --help' 查看帮助"
+        exit 1
+        ;;
+    esac
+  done
+
+  # 检查脚本是否存在
+  for script in "${SCRIPTS[@]}"; do
+    if [ ! -f "$script" ]; then
+      echo "错误: 脚本不存在 - $script"
+      exit 1
+    fi
+  done
+
+  # 决定使用哪种模式
+  if [ "$USE_SIMPLE_MODE" = true ]; then
+    simple_main
+  elif check_interactive_support; then
+    interactive_main
+  else
+    simple_main
+  fi
 }
 
 main "$@"
