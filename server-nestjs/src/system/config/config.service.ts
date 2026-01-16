@@ -165,6 +165,8 @@ export class ConfigService {
     copyright: string
     icp: string
     loginPath: string
+    requestTimeout: number
+    uploadTimeout: number
   }> {
     const configs = await this.prisma.sysConfig.findMany({
       where: {
@@ -177,6 +179,8 @@ export class ConfigService {
             'sys.app.copyright',
             'sys.app.icp',
             'sys.security.loginPath',
+            'sys.request.timeout',
+            'sys.request.uploadTimeout',
           ],
         },
       },
@@ -197,6 +201,8 @@ export class ConfigService {
       copyright: configMap['sys.app.copyright'] || '© 2025 RBAC Admin Pro. All rights reserved.',
       icp: configMap['sys.app.icp'] || '',
       loginPath: configMap['sys.security.loginPath'] || '/login',
+      requestTimeout: parseInt(configMap['sys.request.timeout'] || '10', 10),
+      uploadTimeout: parseInt(configMap['sys.request.uploadTimeout'] || '30', 10),
     }
   }
 }

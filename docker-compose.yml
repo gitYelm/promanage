@@ -14,8 +14,11 @@ services:
       # 数据库由 Prisma 统一管理，不再使用 SQL 文件初始化
       # - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       # - ./db/init_data.sql:/docker-entrypoint-initdb.d/02-init_data.sql
-    ports:
-      - "5433:5432"
+      # 端口映射说明：
+      # - 生产环境：注释掉端口映射，仅容器内部访问（推荐）
+      # - 开发/调试：取消注释，允许本地工具连接（DBeaver、pgAdmin）
+      # ports:
+      #   - "5433:5432"
     networks:
       - rbac-network
     healthcheck:
@@ -34,8 +37,11 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    # 端口映射说明：
+    # - 生产环境：注释掉端口映射，仅容器内部访问（推荐）
+    # - 开发/调试：取消注释，允许本地工具连接（Redis Desktop Manager）
+    # ports:
+    #   - "6379:6379"
     networks:
       - rbac-network
     healthcheck:
@@ -55,10 +61,13 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-rbac_admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-rbac_admin}?schema=public
+      DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      DB_POOL_IDLE_TIMEOUT: ${DB_POOL_IDLE_TIMEOUT:-30000}
+      DB_POOL_CONNECTION_TIMEOUT: ${DB_POOL_CONNECTION_TIMEOUT:-5000}
       REDIS_ENABLED: ${REDIS_ENABLED:-true}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-super-secret-key-change-it-in-production}
-      JWT_EXPIRES_IN: 7d
+      # JWT 过期时间由数据库 sys_config 表的 sys.session.timeout 配置，无需环境变量
       LOG_LEVEL: info
       LOG_DIR: logs
       TZ: Asia/Shanghai
@@ -68,8 +77,11 @@ services:
       - ./server-nestjs/exports:/app/exports
       # Git 提交记录（已提交到仓库作为兜底数据，monorepo.sh 部署时会自动更新为最新）
       - ./server-nestjs/commits.json:/app/commits.json:ro
-    ports:
-      - "3000:3000"
+    # 端口映射说明：
+    # - 生产环境：注释掉此端口映射，通过前端 Nginx 反向代理访问（/api -> http://server:3000）
+    # - 开发/测试：保留端口映射，方便直接访问 Swagger 文档和移动端调试
+    # ports:
+    #   - "3000:3000"
     networks:
       - rbac-network
     depends_on:

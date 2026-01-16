@@ -9,29 +9,31 @@
 </p>
 
 <p align="center">
-  <a href="https://rbac.pynb.org/login">🌐 在线演示</a> ·
-  <a href="https://rbac.pynb.org/api-docs">📖 接口文档</a>
+  <a href="https://rbac.pynb.org/login">在线演示</a> ·
+  <a href="https://rbac.pynb.org/api-docs">接口文档</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js" alt="Vue">
   <img src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs" alt="NestJS">
-  <img src="https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma" alt="Prisma">
-  <img src="https://img.shields.io/badge/TypeScript-5.7+-3178C6?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Prisma-7.1-2D3748?logo=prisma" alt="Prisma">
+  <img src="https://img.shields.io/badge/TypeScript-5.7~5.9-3178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Node.js-18+-339933?logo=node.js" alt="Node.js">
+  <img src="https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm" alt="pnpm">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
-## ✨ 功能特性
+## 功能特性
 
 | 模块 | 功能 |
 |------|------|
 | **权限管理** | 用户管理、角色管理、菜单管理、部门管理、岗位管理 |
 | **系统功能** | 字典管理、参数配置、通知公告、定时任务 |
-| **系统监控** | 操作日志、登录日志、在线用户、服务监控、缓存监控 |
+| **系统监控** | 操作日志、登录日志、在线用户、服务监控 (CPU/内存/磁盘)、缓存监控 |
 | **安全特性** | JWT 认证、双因素认证 (TOTP)、图形验证码、Token 黑名单 |
 
-## 🛠 技术栈
+## 技术栈
 
 | 前端 | 后端 |
 |------|------|
@@ -43,36 +45,28 @@
 | Tiptap 富文本编辑器 | AWS S3 文件存储 |
 | VueUse 14 + Lucide Icons | Nodemailer 邮件服务 |
 
-## 🚀 快速开始
+## 快速开始
 
 ### 方式一：Docker 一键部署
 
 ```bash
-# 克隆项目
+# 克隆并配置
 git clone https://github.com/lyfe2025/rbac-admin-pro.git
 cd rbac-admin-pro
-
-# 配置环境变量
 cp .env.docker.example .env
 # 编辑 .env，设置 POSTGRES_PASSWORD 和 JWT_SECRET
 
-# 启动数据库和 Redis
-docker-compose up -d postgres redis
-
-# 初始化数据库（首次部署）
-./db.sh  # 选择 11 执行迁移，选择 13 导入种子数据
-
-# 启动全部服务
+# 启动服务
 docker-compose up -d --build
+
+# 首次部署：初始化数据库
+./admin.sh  # 选择「服务管理」→ 20 初始化数据库
 ```
 
 | 服务 | 地址 |
 |------|------|
 | 前端 | http://localhost:8080 |
-| 后端 API | http://localhost:3000 |
-| Swagger UI | http://localhost:3000/api-docs |
-| Redoc | http://localhost:3000/redoc |
-| PostgreSQL | localhost:5433 |
+| Swagger | http://localhost:8080/api-docs |
 
 ### 方式二：本地开发
 
@@ -82,15 +76,10 @@ docker-compose up -d --build
 # 启动数据库
 docker-compose up -d postgres redis
 
-# 安装依赖
+# 安装依赖并初始化
 pnpm install
-
-# 配置后端环境变量
 cp server-nestjs/.env.example server-nestjs/.env
-
-# 初始化数据库
-pnpm db:migrate
-pnpm db:seed
+pnpm db:migrate && pnpm db:seed
 
 # 启动开发服务器
 pnpm dev
@@ -99,38 +88,24 @@ pnpm dev
 | 服务 | 地址 |
 |------|------|
 | 前端 | http://localhost:5173 |
-| 后端 API | http://localhost:3000 |
+| 后端 | http://localhost:3000 |
 
 **默认账号：** `admin` / `admin123`
 
-## 📦 项目结构
+## 项目结构
 
 ```
 rbac-admin-pro/
-├── web/                  # 前端 Vue 3
-│   └── src/
-│       ├── api/          # API 接口
-│       ├── components/   # 组件 (ui/common/business)
-│       ├── composables/  # 组合式函数
-│       ├── views/        # 页面视图
-│       ├── stores/       # Pinia 状态
-│       ├── router/       # 路由配置
-│       ├── directive/    # Vue 指令 (权限)
-│       └── layout/       # 布局组件
-├── server-nestjs/        # 后端 NestJS
-│   ├── src/
-│   │   ├── auth/         # 认证模块
-│   │   ├── system/       # 系统管理
-│   │   ├── monitor/      # 监控模块
-│   │   └── common/       # 公共模块
-│   └── prisma/           # 数据库 Schema
-├── db/                   # SQL 脚本
+├── web/                  # 前端 Vue 3 SPA
+├── server-nestjs/        # 后端 NestJS API
 ├── docs/                 # 项目文档
-├── monorepo.sh           # 服务管理脚本
-└── db.sh                 # 数据库管理脚本
+├── scripts/              # 管理脚本
+└── docker-compose.yml    # 容器编排
 ```
 
-## 🔧 常用命令
+> 详细目录结构见 [.kiro/steering/structure.md](.kiro/steering/structure.md)
+
+## 常用命令
 
 ### pnpm workspace（推荐）
 
@@ -145,17 +120,14 @@ pnpm db:studio        # Prisma GUI
 
 ### 交互式脚本
 
-项目提供两个交互式管理脚本：
-
 ```bash
-./monorepo.sh         # 服务管理（启停、构建、Docker 部署）
-./db.sh               # 数据库管理（Prisma 迁移、备份恢复）
+./admin.sh            # 统一入口（上下键选择）
 ```
 
 <details>
-<summary><b>monorepo.sh 功能菜单</b></summary>
+<summary><b>服务管理功能</b></summary>
 
-运行 `./monorepo.sh` 会显示交互式控制台，包含前后端运行状态、PID、端口、Uptime 等信息。
+选择「服务管理」后显示交互式控制台，包含前后端运行状态、PID、端口、Uptime 等信息。
 
 **本地开发**
 | 序号 | 功能 | 说明 |
@@ -183,16 +155,18 @@ pnpm db:studio        # Prisma GUI
 | 17 | 重启指定服务 | 交互式选择 server/web/postgres/redis |
 | 18 | 查看服务状态 | `docker-compose ps` |
 | 19 | 查看服务日志 | 交互式选择服务日志 |
+| 20 | 初始化数据库 (迁移+种子) | `prisma migrate deploy && db seed` |
+| 21 | 重置数据库 (危险) | `prisma migrate reset --force` |
 
 **特性说明**
-- 支持环境变量覆盖端口：`WEB_PORT=3001 SERVER_PORT=4000 ./monorepo.sh`
+- 支持环境变量覆盖端口：`WEB_PORT=3001 SERVER_PORT=4000 ./admin.sh`
 - 自动读取 `.env` 文件中的端口配置
 - Docker 构建时自动生成 Git 提交记录 JSON（用于更新日志页面）
 
 </details>
 
 <details>
-<summary><b>db.sh 功能菜单</b></summary>
+<summary><b>数据库管理功能</b></summary>
 
 **本地开发**
 | 序号 | 功能 | 命令 |
@@ -211,17 +185,18 @@ pnpm db:studio        # Prisma GUI
 **Docker / 生产环境**
 | 序号 | 功能 | 命令 |
 |------|------|------|
-| 11 | 执行生产迁移 | `DATABASE_URL=... pnpm prisma migrate deploy` |
-| 12 | 查看迁移状态 | `DATABASE_URL=... pnpm prisma migrate status` |
-| 13 | 导入种子数据 | `DATABASE_URL=... pnpm prisma db seed` |
-| 14 | 执行 SQL 文件 | `docker exec -i rbac-postgres psql < file.sql` |
-| 15 | 备份数据库 | `docker exec rbac-postgres pg_dump > backup.sql` |
-| 16 | 恢复数据库 | `docker exec -i rbac-postgres psql < backup.sql` |
-| 17 | 连接 PostgreSQL | `docker exec -it rbac-postgres psql` |
+| 11 | 执行生产迁移 | `docker exec rbac-server npx prisma migrate deploy` |
+| 12 | 查看迁移状态 | `docker exec rbac-server npx prisma migrate status` |
+| 13 | 导入种子数据 | `docker exec rbac-server npx prisma db seed` |
+| 14 | 重置数据库 (危险) | `DROP + CREATE + migrate + seed` |
+| 15 | 执行 SQL 文件 | `docker exec -i rbac-postgres psql < file.sql` |
+| 16 | 备份数据库 | `docker exec rbac-postgres pg_dump > backup.sql` |
+| 17 | 恢复数据库 | `docker exec -i rbac-postgres psql < backup.sql` |
+| 18 | 连接 PostgreSQL | `docker exec -it rbac-postgres psql` |
 
 </details>
 
-## 🔌 MCP Server 配置
+## MCP Server 配置
 
 本项目前端使用 [shadcn-vue](https://www.shadcn-vue.com/) 组件库，支持通过 MCP 让 AI 助手更好地理解和使用组件。
 
@@ -248,16 +223,20 @@ pnpm db:studio        # Prisma GUI
 
 </details>
 
-## 📚 文档
+## 文档
 
 | 分类 | 文档 |
 |------|------|
 | **入门** | [快速开始](docs/指南/快速开始.md) · [文档中心](docs/README.md) |
-| **部署** | [宝塔Docker部署](docs/指南/宝塔Docker部署指南.md) · [Docker运维](docs/指南/Docker生产环境运维指南.md) |
+| **部署** | [宝塔Docker部署](docs/指南/宝塔Docker部署指南.md) · [Docker运维](docs/指南/Docker生产环境运维指南.md) · [持久化存储](docs/指南/Docker持久化存储方案.md) |
 | **开发** | [Prisma指南](docs/指南/Prisma使用指南.md) · [Swagger指南](docs/指南/Swagger使用指南.md) |
 | **配置** | [文件存储](docs/指南/文件存储配置指南.md) · [SMTP邮件](docs/指南/SMTP邮件配置指南.md) |
 | **脚手架** | [新项目初始化指南](docs/指南/新项目初始化指南.md) · [模块复用指南](docs/指南/模块复用指南.md) |
 
-## 📄 License
+## 贡献
+
+欢迎提交 Issue 和 PR！
+
+## License
 
 [MIT](LICENSE)

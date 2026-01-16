@@ -58,11 +58,10 @@ rbac-admin-pro/
 │   │   ├── prisma/               # Prisma 服务
 │   │   └── redis/                # Redis 服务
 │   └── prisma/
-│       ├── schema.prisma         # 数据库 Schema
+│       ├── schema.prisma         # 数据库 Schema (唯一数据源)
 │       ├── migrations/           # 迁移文件
-│       └── seed.ts               # 种子数据
+│       └── seed.ts               # 种子数据 (幂等初始化)
 │
-├── db/                           # SQL 脚本 (schema.sql, init_data.sql)
 ├── docs/                         # 项目文档 (中文)
 └── docker-compose.yml            # PostgreSQL + Redis
 ```

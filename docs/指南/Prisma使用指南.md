@@ -149,14 +149,16 @@ npx prisma studio
 # 会打开浏览器,可视化查看数据库
 ```
 
-### 方式 2: 使用 SQL 脚本(备选)
+### 方式 2: 直接执行 SQL(备选)
 
-如果你更熟悉 SQL,也可以直接执行初始化脚本。
+如果你更熟悉 SQL,可以从 Prisma 导出 SQL 后执行：
 
 ```bash
-# 在项目根目录
-psql -h localhost -U rbac_admin -d rbac_admin_pro -f db/schema.sql
-psql -h localhost -U rbac_admin -d rbac_admin_pro -f db/init_data.sql
+# 导出 schema SQL
+npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > schema.sql
+
+# 执行
+psql -h localhost -U rbac_admin -d rbac_admin_pro -f schema.sql
 ```
 
 ### 验证初始化结果

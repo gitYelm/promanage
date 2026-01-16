@@ -32,6 +32,8 @@ export const useAppStore = defineStore('app', () => {
     copyright: '© 2025 RBAC Admin Pro. All rights reserved.',
     icp: '',
     loginPath: '/login',
+    requestTimeout: 10,
+    uploadTimeout: 30,
   })
 
   const siteConfigLoaded = ref(false)

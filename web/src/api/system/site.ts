@@ -8,6 +8,8 @@ export interface SiteConfig {
   copyright: string
   icp: string
   loginPath: string
+  requestTimeout: number
+  uploadTimeout: number
 }
 
 /**

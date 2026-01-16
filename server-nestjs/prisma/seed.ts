@@ -1721,6 +1721,21 @@ async function main() {
       configType: 'Y',
       remark: '邮件发送是否使用SSL/TLS加密，true/false',
     },
+    // 请求超时设置
+    {
+      configName: '请求超时时间',
+      configKey: 'sys.request.timeout',
+      configValue: '10',
+      configType: 'Y',
+      remark: '普通请求超时时间（秒），默认10秒',
+    },
+    {
+      configName: '上传超时时间',
+      configKey: 'sys.request.uploadTimeout',
+      configValue: '30',
+      configType: 'Y',
+      remark: '文件上传请求超时时间（秒），默认30秒',
+    },
     // Git 配置（更新日志）
     {
       configName: 'GitHub 仓库地址',

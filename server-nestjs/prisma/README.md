@@ -199,15 +199,15 @@ npx prisma migrate deploy
 ```
 仅应用未执行的迁移，不会重置数据。
 
-## 与 db/ 目录的关系
+## 数据库管理说明
 
-```
-prisma/                          db/
-├── schema.prisma    ←──────→    schema.sql      (表结构)
-├── seed.ts          ←──────→    init_data.sql   (初始数据)
-└── migrations/      (Prisma专用，db/无对应)
-```
+Prisma 是本项目数据库的唯一数据源 (Single Source of Truth)：
 
-- `db/schema.sql` 和 `db/init_data.sql` 是独立的 SQL 脚本
-- 用于非 Prisma 环境（如直接用 psql 初始化）
-- 两边内容应保持一致
+- **表结构**: `schema.prisma` 定义所有模型
+- **迁移**: `migrations/` 记录变更历史
+- **种子数据**: `seed.ts` 初始化数据
+
+如需导出纯 SQL，可使用：
+```bash
+npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > schema.sql
+```

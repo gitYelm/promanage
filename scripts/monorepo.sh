@@ -2,7 +2,8 @@
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+# 脚本位于 scripts/ 目录，ROOT 指向项目根目录
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WEB_DIR="$ROOT/web"
 SERVER_DIR="$ROOT/server-nestjs"
 PID_DIR="$ROOT/.run"
@@ -401,6 +402,8 @@ check_docker() {
     printf "${FG_RED}✗ Docker 未运行${RESET}\n"
     return 1
   fi
+  # 切换到项目根目录（docker-compose.yml 所在位置）
+  cd "$ROOT"
   return 0
 }
 

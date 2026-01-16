@@ -3,8 +3,7 @@
 ## 1. 项目结构
 1. **web/**: Vue 3 + TypeScript + Vite + shadcn-vue
 2. **server-nestjs/**: NestJS + PostgreSQL + Prisma
-3. **db/**: 数据库脚本
-4. **docs/**: 项目文档
+3. **docs/**: 项目文档
 
 ## 2. 前端规范
 

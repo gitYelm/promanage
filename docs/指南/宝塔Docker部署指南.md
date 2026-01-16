@@ -48,6 +48,34 @@ docker compose version
 # Docker Compose version v2.x.x
 ```
 
+### 1.4 配置镜像加速（可选）
+
+国内服务器拉取 Docker 镜像可能较慢，建议配置镜像加速：
+
+```bash
+# 编辑 Docker 配置
+vi /etc/docker/daemon.json
+```
+
+添加以下内容：
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+```
+
+保存后重启 Docker：
+
+```bash
+systemctl restart docker
+```
+
+> 镜像加速源可能会失效，如遇问题可搜索「Docker 国内镜像源」获取最新可用地址。
+
 ## 二、上传项目代码
 
 ### 方式一：Git 拉取（推荐）
@@ -424,33 +452,9 @@ find $BACKUP_DIR -name "db_*.sql" -mtime +7 -delete
 ```bash
 # 查看详细错误
 docker compose build --no-cache
-
-# 检查网络（可能需要配置镜像加速）
 ```
 
-配置 Docker 镜像加速（如果网络慢）：
-
-```bash
-# 编辑 Docker 配置
-vi /etc/docker/daemon.json
-```
-
-```json
-{
-  "registry-mirrors": [
-    "https://docker.rainbond.cc",
-    "https://docker.1panel.live",
-    "https://hub.rat.dev"
-  ]
-}
-```
-
-> 镜像加速源可能会失效，如遇问题可搜索「Docker 国内镜像源」获取最新可用地址。
-
-```bash
-# 重启 Docker
-systemctl restart docker
-```
+如果是网络超时问题，请确认已配置镜像加速（见 1.4 节）。
 
 ### Q2: 容器启动后立即退出
 

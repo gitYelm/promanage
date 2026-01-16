@@ -16,7 +16,7 @@ pnpm Monorepo：
 - Axios 1.13 HTTP 客户端
 - VeeValidate 4.15 + Zod 3.25 表单验证
 - Lucide Vue Next 图标
-- Tiptap 3.13 富文本编辑器
+- Tiptap 3.15 富文本编辑器
 - VueUse 14 工具库
 - DOMPurify XSS 防护
 

@@ -7,15 +7,14 @@
 
 set -e
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+# 脚本位于 scripts/ 目录，ROOT 指向项目根目录
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SERVER_DIR="$ROOT/server-nestjs"
 BACKUP_DIR="$ROOT/backups"
 
 # Docker 容器名称
 POSTGRES_CONTAINER="rbac-postgres"
-
-# Docker 宿主机端口（避免与本地 PostgreSQL 5432 冲突）
-DOCKER_PG_PORT=5433
+SERVER_CONTAINER="rbac-server"
 
 # 颜色定义
 ESC="$(printf '\033')"
@@ -113,13 +112,6 @@ check_docker() {
 check_container_running() {
   local container="$1"
   docker ps --format '{{.Names}}' | grep -q "^${container}$"
-}
-
-get_docker_db_url() {
-  if [ -f "$ROOT/.env" ]; then
-    source "$ROOT/.env"
-  fi
-  echo "postgresql://${POSTGRES_USER:-rbac_admin}:${POSTGRES_PASSWORD}@localhost:${DOCKER_PG_PORT}/${POSTGRES_DB:-rbac_admin}?schema=public"
 }
 
 # ============================================================
@@ -232,19 +224,30 @@ docker_check_env() {
   return 0
 }
 
+docker_check_server() {
+  if ! check_docker; then
+    return 1
+  fi
+  
+  if ! check_container_running "$SERVER_CONTAINER"; then
+    print_error "Server 容器 ($SERVER_CONTAINER) 未运行"
+    print_info "请先执行: docker-compose up -d server"
+    return 1
+  fi
+  
+  return 0
+}
+
 cmd_docker_migrate_deploy() {
   print_warning "此命令仅应用已有的迁移文件，不会创建新迁移"
   
-  if ! docker_check_env; then
+  if ! docker_check_server; then
     return 1
   fi
   
   if confirm "确定要在生产环境执行迁移吗？"; then
-    local db_url
-    db_url=$(get_docker_db_url)
-    print_info "执行: DATABASE_URL=\"$db_url\" pnpm prisma migrate deploy"
-    cd "$SERVER_DIR"
-    DATABASE_URL="$db_url" pnpm prisma migrate deploy
+    print_info "执行: docker exec $SERVER_CONTAINER npx prisma migrate deploy"
+    docker exec "$SERVER_CONTAINER" npx prisma migrate deploy
     print_success "生产迁移执行完成"
   else
     print_info "操作已取消"
@@ -252,32 +255,72 @@ cmd_docker_migrate_deploy() {
 }
 
 cmd_docker_migrate_status() {
-  if ! docker_check_env; then
+  if ! docker_check_server; then
     return 1
   fi
   
-  local db_url
-  db_url=$(get_docker_db_url)
-  print_info "执行: DATABASE_URL=\"$db_url\" pnpm prisma migrate status"
-  cd "$SERVER_DIR"
-  DATABASE_URL="$db_url" pnpm prisma migrate status
+  print_info "执行: docker exec $SERVER_CONTAINER npx prisma migrate status"
+  docker exec "$SERVER_CONTAINER" npx prisma migrate status
 }
 
 cmd_docker_seed() {
-  if ! docker_check_env; then
+  if ! docker_check_server; then
     return 1
   fi
   
   if confirm "确定要导入种子数据吗？"; then
-    local db_url
-    db_url=$(get_docker_db_url)
-    print_info "执行: DATABASE_URL=\"$db_url\" pnpm prisma db seed"
-    cd "$SERVER_DIR"
-    DATABASE_URL="$db_url" pnpm prisma db seed
+    print_info "执行: docker exec $SERVER_CONTAINER npx prisma db seed"
+    docker exec "$SERVER_CONTAINER" npx prisma db seed
     print_success "种子数据已导入"
   else
     print_info "操作已取消"
   fi
+}
+
+cmd_docker_reset() {
+  if ! docker_check_env; then
+    return 1
+  fi
+  
+  if [ -f "$ROOT/.env" ]; then
+    source "$ROOT/.env"
+  fi
+  
+  print_warning "此操作将删除所有数据并重新初始化数据库！"
+  print_warning "包括：删除所有表、重新执行迁移、导入种子数据"
+  
+  if ! confirm "确定要重置数据库吗？"; then
+    print_info "操作已取消"
+    return 0
+  fi
+  
+  if ! confirm "再次确认：所有数据将丢失，是否继续？"; then
+    print_info "操作已取消"
+    return 0
+  fi
+  
+  local db_name="${POSTGRES_DB:-rbac_admin}"
+  local db_user="${POSTGRES_USER:-rbac_admin}"
+  
+  print_info "步骤 1/4: 断开所有连接..."
+  docker exec "$POSTGRES_CONTAINER" psql -U "$db_user" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$db_name' AND pid <> pg_backend_pid();" 2>/dev/null || true
+  
+  print_info "步骤 2/4: 删除并重建数据库..."
+  docker exec "$POSTGRES_CONTAINER" psql -U "$db_user" -d postgres -c "DROP DATABASE IF EXISTS \"$db_name\";"
+  docker exec "$POSTGRES_CONTAINER" psql -U "$db_user" -d postgres -c "CREATE DATABASE \"$db_name\" OWNER \"$db_user\";"
+  
+  if check_container_running "$SERVER_CONTAINER"; then
+    print_info "步骤 3/4: 执行迁移..."
+    docker exec "$SERVER_CONTAINER" npx prisma migrate deploy
+    
+    print_info "步骤 4/4: 导入种子数据..."
+    docker exec "$SERVER_CONTAINER" npx prisma db seed
+  else
+    print_warning "Server 容器未运行，跳过迁移和种子数据"
+    print_info "请启动 server 后手动执行: ./db.sh deploy && ./db.sh docker-seed"
+  fi
+  
+  print_success "数据库重置完成"
 }
 
 cmd_docker_exec_sql() {
@@ -428,14 +471,15 @@ print_menu() {
   printf "${FG_CYAN}10${RESET}. 验证 Schema                  ${FG_GRAY}pnpm prisma validate${RESET}\n"
   
   hr
-  printf "${FG_CYAN}[Docker / 生产环境]${RESET} ${FG_GRAY}(宿主机端口: ${DOCKER_PG_PORT})${RESET}\n"
-  printf "${FG_CYAN}11${RESET}. 执行生产迁移                 ${FG_GRAY}DATABASE_URL=<url> pnpm prisma migrate deploy${RESET}\n"
-  printf "${FG_CYAN}12${RESET}. 查看迁移状态 (Docker)        ${FG_GRAY}DATABASE_URL=<url> pnpm prisma migrate status${RESET}\n"
-  printf "${FG_CYAN}13${RESET}. 导入种子数据 (Docker)        ${FG_GRAY}DATABASE_URL=<url> pnpm prisma db seed${RESET}\n"
-  printf "${FG_CYAN}14${RESET}. 执行 SQL 文件                ${FG_GRAY}docker exec -i rbac-postgres psql < file.sql${RESET}\n"
-  printf "${FG_CYAN}15${RESET}. 备份数据库                   ${FG_GRAY}docker exec rbac-postgres pg_dump > backup.sql${RESET}\n"
-  printf "${FG_CYAN}16${RESET}. 恢复数据库                   ${FG_GRAY}docker exec -i rbac-postgres psql < backup.sql${RESET}\n"
-  printf "${FG_CYAN}17${RESET}. 连接 PostgreSQL              ${FG_GRAY}docker exec -it rbac-postgres psql${RESET}\n"
+  printf "${FG_CYAN}[Docker / 生产环境]${RESET} ${FG_GRAY}(通过容器执行)${RESET}\n"
+  printf "${FG_CYAN}11${RESET}. 执行生产迁移                 ${FG_GRAY}docker exec rbac-server npx prisma migrate deploy${RESET}\n"
+  printf "${FG_CYAN}12${RESET}. 查看迁移状态 (Docker)        ${FG_GRAY}docker exec rbac-server npx prisma migrate status${RESET}\n"
+  printf "${FG_CYAN}13${RESET}. 导入种子数据 (Docker)        ${FG_GRAY}docker exec rbac-server npx prisma db seed${RESET}\n"
+  printf "${FG_RED}14${RESET}. 重置数据库 (危险)            ${FG_GRAY}DROP + CREATE + migrate + seed${RESET}\n"
+  printf "${FG_CYAN}15${RESET}. 执行 SQL 文件                ${FG_GRAY}docker exec -i rbac-postgres psql < file.sql${RESET}\n"
+  printf "${FG_CYAN}16${RESET}. 备份数据库                   ${FG_GRAY}docker exec rbac-postgres pg_dump > backup.sql${RESET}\n"
+  printf "${FG_CYAN}17${RESET}. 恢复数据库                   ${FG_GRAY}docker exec -i rbac-postgres psql < backup.sql${RESET}\n"
+  printf "${FG_CYAN}18${RESET}. 连接 PostgreSQL              ${FG_GRAY}docker exec -it rbac-postgres psql${RESET}\n"
   
   hr
   printf "${FG_CYAN}0${RESET}.  退出\n"
@@ -458,10 +502,11 @@ run_by_id() {
     11) cmd_docker_migrate_deploy ;;
     12) cmd_docker_migrate_status ;;
     13) cmd_docker_seed ;;
-    14) cmd_docker_exec_sql ;;
-    15) cmd_docker_backup ;;
-    16) cmd_docker_restore ;;
-    17) cmd_docker_psql ;;
+    14) cmd_docker_reset ;;
+    15) cmd_docker_exec_sql ;;
+    16) cmd_docker_backup ;;
+    17) cmd_docker_restore ;;
+    18) cmd_docker_psql ;;
     0)  exit 0 ;;
     *)  print_error "无效选项: $1" ;;
   esac
@@ -498,6 +543,7 @@ print_help() {
   echo "  deploy          执行生产迁移"
   echo "  docker-status   查看迁移状态 (Docker)"
   echo "  docker-seed     导入种子数据 (Docker)"
+  echo "  docker-reset    重置数据库 (Docker)"
   echo "  docker-sql      执行 SQL 文件"
   echo "  backup          备份数据库"
   echo "  restore         恢复数据库"
@@ -532,6 +578,7 @@ main() {
       deploy)         cmd_docker_migrate_deploy ;;
       docker-status)  cmd_docker_migrate_status ;;
       docker-seed)    cmd_docker_seed ;;
+      docker-reset)   cmd_docker_reset ;;
       docker-sql)     cmd_docker_exec_sql ;;
       backup)         cmd_docker_backup ;;
       restore)        cmd_docker_restore ;;

@@ -7,12 +7,32 @@ import { ErrorCode, shouldRedirectToLogin, getErrorMessage } from '@/types/error
 
 const { toast } = useToast()
 
+// 默认超时时间（秒）
+const DEFAULT_TIMEOUT = 10
+const DEFAULT_UPLOAD_TIMEOUT = 30
+
+/**
+ * 获取请求超时时间（毫秒）
+ */
+function getTimeout(isUpload: boolean = false): number {
+  try {
+    const appStore = useAppStore()
+    if (isUpload) {
+      return (appStore.siteConfig.uploadTimeout || DEFAULT_UPLOAD_TIMEOUT) * 1000
+    }
+    return (appStore.siteConfig.requestTimeout || DEFAULT_TIMEOUT) * 1000
+  } catch {
+    // store 未初始化时使用默认值
+    return (isUpload ? DEFAULT_UPLOAD_TIMEOUT : DEFAULT_TIMEOUT) * 1000
+  }
+}
+
 // 创建 axios 实例
 const service = axios.create({
   // axios中请求配置有baseURL选项，表示请求URL公共部分
   baseURL: import.meta.env.VITE_APP_BASE_API,
-  // 超时
-  timeout: 10000,
+  // 默认超时（会在拦截器中动态设置）
+  timeout: DEFAULT_TIMEOUT * 1000,
 })
 
 // request 拦截器
@@ -25,6 +45,12 @@ service.interceptors.request.use(
 
     if (token && !isToken) {
       config.headers['Authorization'] = 'Bearer ' + token
+    }
+
+    // 动态设置超时时间
+    const isUpload = config.headers?.['Content-Type'] === 'multipart/form-data'
+    if (!config.timeout || config.timeout === DEFAULT_TIMEOUT * 1000) {
+      config.timeout = getTimeout(isUpload)
     }
 
     // 可以在这里添加其他通用 header，如 tenant-id 等
