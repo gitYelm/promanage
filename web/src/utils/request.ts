@@ -149,10 +149,12 @@ service.interceptors.response.use(
         const appStore = useAppStore()
         const loginPath = appStore.siteConfig.loginPath || '/login'
 
+        // 使用后端返回的具体错误信息，如果没有则使用默认消息
+        title = '认证失败'
+        message = errorMessage || '登录状态已过期，请重新登录'
+
         // 只有用户已成功登录过（使用中过期）才弹窗提示
         if (userStore.isLoggedIn) {
-          title = '登录状态已过期'
-          message = '为保障账户安全，请重新登录'
           toast({
             title,
             description: message,
