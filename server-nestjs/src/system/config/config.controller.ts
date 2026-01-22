@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { ConfigService } from './config.service'
 import { QueryConfigDto } from './dto/query-config.dto'
 import { CreateConfigDto } from './dto/create-config.dto'
@@ -61,6 +62,7 @@ export class ConfigController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ApiBearerAuth('JWT-auth')
   @RequirePermission('system:config:add')
+  @Log('参数配置', BusinessType.INSERT)
   @Post()
   @ApiOperation({ summary: '新增参数配置' })
   create(@Body() dto: CreateConfigDto) {
@@ -70,6 +72,7 @@ export class ConfigController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ApiBearerAuth('JWT-auth')
   @RequirePermission('system:config:edit')
+  @Log('参数配置', BusinessType.UPDATE)
   @Put(':configId')
   @ApiOperation({ summary: '修改参数配置' })
   update(@Param('configId') configId: string, @Body() dto: UpdateConfigDto) {
@@ -79,6 +82,7 @@ export class ConfigController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ApiBearerAuth('JWT-auth')
   @RequirePermission('system:config:remove')
+  @Log('参数配置', BusinessType.DELETE)
   @Delete()
   @ApiOperation({ summary: '删除参数配置' })
   remove(@Query('ids') ids: string) {
@@ -89,6 +93,7 @@ export class ConfigController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ApiBearerAuth('JWT-auth')
   @RequirePermission('system:config:edit')
+  @Log('参数配置', BusinessType.CLEAN)
   @Get('refreshCache')
   @ApiOperation({ summary: '刷新参数缓存' })
   refresh() {

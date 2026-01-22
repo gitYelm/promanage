@@ -215,6 +215,11 @@ export interface SysOperLog {
   status: number
   errorMsg: string
   operTime: string
+  browser?: string
+  os?: string
+  costTime?: number
+  operUserId?: string
+  userAgent?: string
 }
 
 // 14. 登录日志 sys_login_log

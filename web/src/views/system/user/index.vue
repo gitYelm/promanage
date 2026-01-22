@@ -29,6 +29,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
+import PasswordInput from '@/components/common/PasswordInput.vue'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -949,12 +950,7 @@ onMounted(async () => {
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
             <Label for="newPassword">新密码</Label>
-            <Input
-              id="newPassword"
-              v-model="newPassword"
-              type="password"
-              placeholder="请输入新密码"
-            />
+            <PasswordInput v-model="newPassword" placeholder="请输入新密码" />
           </div>
         </div>
         <AlertDialogFooter>

@@ -76,6 +76,7 @@ export class UserController {
   }
 
   @Put('profile')
+  @Log('个人中心', BusinessType.UPDATE)
   @ApiOperation({ summary: '更新个人信息' })
   @ApiResponse({ status: 200, description: '更新成功' })
   async updateProfile(
@@ -94,6 +95,7 @@ export class UserController {
   }
 
   @Put('profile/updatePwd')
+  @Log('个人中心', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改个人密码' })
   @ApiResponse({ status: 200, description: '修改成功' })
   async updatePassword(
@@ -133,6 +135,7 @@ export class UserController {
 
   @Put('resetPwd')
   @RequirePermission('system:user:resetPwd')
+  @Log('用户管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '重置用户密码' })
   @ApiResponse({ status: 200, description: '重置成功' })
   resetPassword(@Body() body: { userId: string; password: string }) {
@@ -141,6 +144,7 @@ export class UserController {
 
   @Put('changeStatus')
   @RequirePermission('system:user:edit')
+  @Log('用户管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改用户状态' })
   @ApiResponse({ status: 200, description: '修改成功' })
   changeStatus(@Body() body: { userId: string; status: string }) {

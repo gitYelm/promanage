@@ -23,7 +23,7 @@ export class OperlogService {
         where,
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
-        orderBy: { operId: 'asc' },
+        orderBy: { operTime: 'desc' },
       }),
     ])
     return { total, rows }

@@ -13,6 +13,7 @@ import { ErrorCode } from '../common/enums'
 import { JwtAuthGuard } from './jwt-auth.guard'
 import { SecurityConfigService } from './security-config.service'
 import { IpUtil } from '../common/utils/ip.util'
+import { Log, BusinessType } from '../common/decorators/log.decorator'
 
 @ApiTags('认证')
 @Controller('auth')
@@ -190,6 +191,8 @@ export class AuthController {
     return {
       globalEnabled: true,
       userEnabled: enabled,
+      // 注意：secret 只在设置时返回一次，用户需要立即保存
+      // 这是 2FA 设置流程的必要步骤
       secret,
       qrCode,
     }
@@ -198,6 +201,7 @@ export class AuthController {
   @Post('twoFactor/enable')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Log('两步验证', BusinessType.UPDATE)
   @ApiOperation({ summary: '启用两步验证' })
   @ApiBody({ type: SetupTwoFactorDto })
   @ApiResponse({ status: 200, description: '启用成功' })
@@ -217,6 +221,7 @@ export class AuthController {
   @Post('twoFactor/disable')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Log('两步验证', BusinessType.UPDATE)
   @ApiOperation({ summary: '禁用两步验证' })
   @ApiResponse({ status: 200, description: '禁用成功' })
   async disableTwoFactor(@Req() req: Request) {
@@ -247,6 +252,7 @@ export class AuthController {
   @Delete('locked/:username')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Log('账户管理', BusinessType.OTHER)
   @ApiOperation({ summary: '解锁账户' })
   @ApiResponse({ status: 200, description: '解锁成功' })
   unlockAccount(@Param('username') username: string): { msg: string } {

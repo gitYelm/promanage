@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import type { Response } from 'express'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { CurrentUser } from '../decorators/current-user.decorator'
+import { Log, BusinessType } from '../decorators/log.decorator'
 import { ExportTaskService } from './export-task.service'
 import { CreateExportTaskDto } from './dto/create-export-task.dto'
 import { QueryExportTaskDto } from './dto/query-export-task.dto'
@@ -15,6 +16,7 @@ export class ExportTaskController {
   constructor(private readonly exportTaskService: ExportTaskService) {}
 
   @Post('task')
+  @Log('导出任务', BusinessType.INSERT)
   @ApiOperation({ summary: '创建导出任务' })
   create(@Body() dto: CreateExportTaskDto, @CurrentUser('username') username: string) {
     return this.exportTaskService.createTask(dto, username)
@@ -55,6 +57,7 @@ export class ExportTaskController {
   }
 
   @Delete('task/:taskId')
+  @Log('导出任务', BusinessType.DELETE)
   @ApiOperation({ summary: '删除导出任务' })
   remove(@Param('taskId') taskId: string, @CurrentUser('username') username: string) {
     return this.exportTaskService.remove(taskId, username)

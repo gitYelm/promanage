@@ -14,6 +14,7 @@ import { QueryDeptDto } from './dto/query-dept.dto'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 
 @ApiTags('部门管理')
 @ApiBearerAuth('JWT-auth')
@@ -24,6 +25,7 @@ export class DeptController {
 
   @Post()
   @RequirePermission('system:dept:add')
+  @Log('部门管理', BusinessType.INSERT)
   @ApiOperation({ summary: '新增部门' })
   @ApiBody({ type: CreateDeptDto })
   @ApiResponse({ status: 201, description: '创建成功' })
@@ -50,6 +52,7 @@ export class DeptController {
 
   @Put('changeStatus')
   @RequirePermission('system:dept:edit')
+  @Log('部门管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改部门状态' })
   @ApiBody({
     schema: {
@@ -72,6 +75,7 @@ export class DeptController {
 
   @Put(':deptId')
   @RequirePermission('system:dept:edit')
+  @Log('部门管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改部门' })
   @ApiParam({ name: 'deptId', description: '部门ID' })
   @ApiBody({ type: UpdateDeptDto })
@@ -82,6 +86,7 @@ export class DeptController {
 
   @Delete(':deptId')
   @RequirePermission('system:dept:remove')
+  @Log('部门管理', BusinessType.DELETE)
   @ApiOperation({ summary: '删除部门' })
   @ApiParam({ name: 'deptId', description: '部门ID' })
   @ApiResponse({ status: 200, description: '删除成功' })

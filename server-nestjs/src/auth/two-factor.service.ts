@@ -83,19 +83,27 @@ export class TwoFactorService {
   }
 
   /**
-   * 获取用户的 2FA 状态
+   * 获取用户的 2FA 状态（仅返回启用状态，不返回密钥）
    */
-  async getUserTwoFactorStatus(
-    userId: string,
-  ): Promise<{ enabled: boolean; secret: string | null }> {
+  async getUserTwoFactorStatus(userId: string): Promise<{ enabled: boolean }> {
     const user = await this.prisma.sysUser.findUnique({
       where: { userId: BigInt(userId) },
-      select: { twoFactorEnabled: true, twoFactorSecret: true },
+      select: { twoFactorEnabled: true },
     })
     return {
       enabled: user?.twoFactorEnabled ?? false,
-      secret: user?.twoFactorSecret ?? null,
     }
+  }
+
+  /**
+   * 获取用户的 2FA 密钥（仅内部使用，不暴露给外部）
+   */
+  async getUserTwoFactorSecret(userId: string): Promise<string | null> {
+    const user = await this.prisma.sysUser.findUnique({
+      where: { userId: BigInt(userId) },
+      select: { twoFactorSecret: true },
+    })
+    return user?.twoFactorSecret ?? null
   }
 
   /**

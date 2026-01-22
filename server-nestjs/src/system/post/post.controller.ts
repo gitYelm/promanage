@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { PostService } from './post.service'
 import { QueryPostDto } from './dto/query-post.dto'
 import { CreatePostDto } from './dto/create-post.dto'
@@ -24,6 +25,7 @@ export class PostController {
 
   @Post()
   @RequirePermission('system:post:add')
+  @Log('岗位管理', BusinessType.INSERT)
   @ApiOperation({ summary: '新增岗位' })
   create(@Body() dto: CreatePostDto) {
     return this.postService.create(dto)
@@ -31,6 +33,7 @@ export class PostController {
 
   @Put('changeStatus')
   @RequirePermission('system:post:edit')
+  @Log('岗位管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改岗位状态' })
   changeStatus(@Body() body: { postId: string; status: string }) {
     return this.postService.changeStatus(body.postId, body.status)
@@ -45,6 +48,7 @@ export class PostController {
 
   @Put(':postId')
   @RequirePermission('system:post:edit')
+  @Log('岗位管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改岗位' })
   update(@Param('postId') postId: string, @Body() dto: UpdatePostDto) {
     return this.postService.update(postId, dto)
@@ -52,6 +56,7 @@ export class PostController {
 
   @Delete()
   @RequirePermission('system:post:remove')
+  @Log('岗位管理', BusinessType.DELETE)
   @ApiOperation({ summary: '删除岗位' })
   remove(@Query('ids') ids: string) {
     const postIds = ids ? ids.split(',') : []

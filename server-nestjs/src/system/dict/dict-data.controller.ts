@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { DictDataService } from './dict-data.service'
 import { QueryDictDataDto } from './dto/query-dict-data.dto'
 import { CreateDictDataDto } from './dto/create-dict-data.dto'
@@ -24,6 +25,7 @@ export class DictDataController {
 
   @Post()
   @RequirePermission('system:dict:add')
+  @Log('字典数据', BusinessType.INSERT)
   @ApiOperation({ summary: '新增字典数据' })
   create(@Body() dto: CreateDictDataDto) {
     return this.service.create(dto)
@@ -31,6 +33,7 @@ export class DictDataController {
 
   @Put('changeStatus')
   @RequirePermission('system:dict:edit')
+  @Log('字典数据', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改字典数据状态' })
   changeStatus(@Body() body: { dictCode: string; status: string }) {
     return this.service.changeStatus(body.dictCode, body.status)
@@ -45,6 +48,7 @@ export class DictDataController {
 
   @Put(':dictCode')
   @RequirePermission('system:dict:edit')
+  @Log('字典数据', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改字典数据' })
   update(@Param('dictCode') dictCode: string, @Body() dto: UpdateDictDataDto) {
     return this.service.update(dictCode, dto)
@@ -52,6 +56,7 @@ export class DictDataController {
 
   @Delete()
   @RequirePermission('system:dict:remove')
+  @Log('字典数据', BusinessType.DELETE)
   @ApiOperation({ summary: '删除字典数据' })
   remove(@Query('ids') ids: string) {
     const dictCodes = ids ? ids.split(',') : []

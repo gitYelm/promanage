@@ -231,8 +231,8 @@ export class AuthService {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, '验证已过期，请重新登录')
     }
 
-    // 获取用户的 2FA 密钥
-    const { secret } = await this.twoFactorService.getUserTwoFactorStatus(tempData.userId)
+    // 获取用户的 2FA 密钥（内部方法）
+    const secret = await this.twoFactorService.getUserTwoFactorSecret(tempData.userId)
     if (!secret) {
       throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, '两步验证未配置')
     }

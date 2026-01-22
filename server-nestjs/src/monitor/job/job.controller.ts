@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { JobService } from './job.service'
 import { QueryJobDto } from './dto/query-job.dto'
 import { CreateJobDto } from './dto/create-job.dto'
@@ -43,6 +44,7 @@ export class JobController {
 
   @Delete('log/clean')
   @RequirePermission('monitor:job:remove')
+  @Log('定时任务', BusinessType.CLEAN)
   @ApiOperation({ summary: '清空任务日志' })
   cleanLogs() {
     return this.service.cleanJobLogs()
@@ -50,6 +52,7 @@ export class JobController {
 
   @Post('run')
   @RequirePermission('monitor:job:changeStatus')
+  @Log('定时任务', BusinessType.OTHER)
   @ApiOperation({ summary: '立即执行一次任务' })
   run(@Body() body: { jobId: string }) {
     return this.service.run(body.jobId)
@@ -57,6 +60,7 @@ export class JobController {
 
   @Put('changeStatus')
   @RequirePermission('monitor:job:changeStatus')
+  @Log('定时任务', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改任务状态' })
   changeStatus(@Body() body: { jobId: string; status: string }) {
     return this.service.changeStatus(body.jobId, body.status)
@@ -71,6 +75,7 @@ export class JobController {
 
   @Post()
   @RequirePermission('monitor:job:add')
+  @Log('定时任务', BusinessType.INSERT)
   @ApiOperation({ summary: '新增定时任务' })
   create(@Body() dto: CreateJobDto) {
     return this.service.create(dto)
@@ -78,6 +83,7 @@ export class JobController {
 
   @Put(':jobId')
   @RequirePermission('monitor:job:edit')
+  @Log('定时任务', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改定时任务' })
   update(@Param('jobId') jobId: string, @Body() dto: UpdateJobDto) {
     return this.service.update(jobId, dto)
@@ -85,6 +91,7 @@ export class JobController {
 
   @Delete()
   @RequirePermission('monitor:job:remove')
+  @Log('定时任务', BusinessType.DELETE)
   @ApiOperation({ summary: '删除定时任务' })
   remove(@Query('ids') ids: string) {
     const jobIds = ids ? ids.split(',') : []

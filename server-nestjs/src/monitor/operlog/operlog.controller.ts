@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { OperlogService } from './operlog.service'
 import { QueryOperLogDto } from './dto/query-operlog.dto'
 
@@ -22,6 +23,7 @@ export class OperlogController {
 
   @Delete()
   @RequirePermission('monitor:operlog:remove')
+  @Log('操作日志', BusinessType.DELETE)
   @ApiOperation({ summary: '删除操作日志' })
   remove(@Query('ids') ids: string) {
     const operIds = ids ? ids.split(',') : []
@@ -30,6 +32,7 @@ export class OperlogController {
 
   @Get('clean')
   @RequirePermission('monitor:operlog:remove')
+  @Log('操作日志', BusinessType.CLEAN)
   @ApiOperation({ summary: '清空操作日志' })
   clean() {
     return this.service.clean()

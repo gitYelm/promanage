@@ -276,7 +276,7 @@ model SysOperLog {
   operId        BigInt    @id @default(autoincrement()) @map("oper_id")
   /// 模块标题
   title         String?   @default("") @db.VarChar(50)
-  /// 业务类型（0其它 1新增 2修改 3删除）
+  /// 业务类型（0其它 1新增 2修改 3删除 4授权 5导出 6导入 7强退 8清空）
   businessType  Int?      @default(0) @map("business_type")
   /// 方法名称
   method        String?   @default("") @db.VarChar(100)
@@ -284,6 +284,8 @@ model SysOperLog {
   requestMethod String?   @default("") @map("request_method") @db.VarChar(10)
   /// 操作类别（0其它 1后台用户 2手机端用户）
   operatorType  Int?      @default(0) @map("operator_type")
+  /// 操作人员ID
+  operUserId    BigInt?   @map("oper_user_id")
   /// 操作人员
   operName      String?   @default("") @map("oper_name") @db.VarChar(50)
   /// 部门名称
@@ -304,11 +306,20 @@ model SysOperLog {
   errorMsg      String?   @default("") @map("error_msg")
   /// 操作时间
   operTime      DateTime? @default(now()) @map("oper_time") @db.Timestamp(6)
+  /// 操作耗时（毫秒）
+  costTime      Int?      @default(0) @map("cost_time")
+  /// 用户代理
+  userAgent     String?   @default("") @map("user_agent") @db.VarChar(500)
+  /// 浏览器类型
+  browser       String?   @default("") @db.VarChar(50)
+  /// 操作系统
+  os            String?   @default("") @db.VarChar(50)
 
   @@index([operTime])
   @@index([operName])
   @@index([businessType])
   @@index([status])
+  @@index([operUserId])
   @@map("sys_oper_log")
 }
 

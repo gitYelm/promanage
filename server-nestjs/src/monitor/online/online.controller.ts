@@ -4,6 +4,7 @@ import { OnlineService } from './online.service'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { QueryOnlineDto } from './dto/query-online.dto'
 import { TokenBlacklistService } from '../../auth/token-blacklist.service'
 
@@ -26,6 +27,7 @@ export class OnlineController {
 
   @Delete(':token')
   @RequirePermission('monitor:online:forceLogout')
+  @Log('在线用户', BusinessType.FORCE)
   @ApiOperation({ summary: '强制下线用户' })
   async remove(@Param('token') token: string) {
     // 将 token 加入黑名单，使其立即失效

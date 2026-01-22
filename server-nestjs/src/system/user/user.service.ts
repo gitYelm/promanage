@@ -90,9 +90,9 @@ export class UserService {
         .map((p) => p as string) // 类型断言
     }
 
-    // 移除密码等敏感信息
+    // 移除密码和两步验证密钥等敏感信息
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userInfo } = user
+    const { password, twoFactorSecret, ...userInfo } = user
 
     return {
       user: userInfo,
@@ -194,8 +194,9 @@ export class UserService {
     const roleList = user.roles.map((ur) => ur.role)
     const postList = user.posts.map((up) => up.post)
 
+    // 移除密码和两步验证密钥等敏感信息
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, roles, posts, ...userInfo } = user
+    const { password, twoFactorSecret, roles, posts, ...userInfo } = user
 
     return {
       user: userInfo,
@@ -349,7 +350,11 @@ export class UserService {
     await this.userStatusService.markUserInvalid(userId)
 
     this.logger.log(`用户删除成功: ${result.userName} (ID: ${userId})`, 'UserService')
-    return result
+
+    // 排除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safeResult } = result
+    return safeResult
   }
 
   /**
@@ -367,7 +372,11 @@ export class UserService {
     })
 
     this.logger.warn(`密码重置成功: ${result.userName} (ID: ${userId})`, 'UserService')
-    return result
+
+    // 排除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: p, ...safeResult } = result
+    return safeResult
   }
 
   /**
@@ -392,7 +401,11 @@ export class UserService {
       `用户状态修改成功: ${result.userName} (ID: ${userId}, 状态: ${status})`,
       'UserService',
     )
-    return result
+
+    // 排除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safeResult } = result
+    return safeResult
   }
 
   /**

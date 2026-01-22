@@ -14,6 +14,7 @@ import { QueryRoleDto } from './dto/query-role.dto'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 
 @ApiTags('角色管理')
 @ApiBearerAuth('JWT-auth')
@@ -24,6 +25,7 @@ export class RoleController {
 
   @Post()
   @RequirePermission('system:role:add')
+  @Log('角色管理', BusinessType.INSERT)
   @ApiOperation({ summary: '新增角色' })
   @ApiBody({ type: CreateRoleDto })
   @ApiResponse({ status: 201, description: '创建成功' })
@@ -41,6 +43,7 @@ export class RoleController {
 
   @Put('changeStatus')
   @RequirePermission('system:role:edit')
+  @Log('角色管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改角色状态' })
   @ApiResponse({ status: 200, description: '修改成功' })
   changeStatus(@Body() body: { roleId: string; status: string }) {
@@ -58,6 +61,7 @@ export class RoleController {
 
   @Put(':roleId')
   @RequirePermission('system:role:edit')
+  @Log('角色管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改角色' })
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiBody({ type: UpdateRoleDto })
@@ -68,6 +72,7 @@ export class RoleController {
 
   @Delete(':roleId')
   @RequirePermission('system:role:remove')
+  @Log('角色管理', BusinessType.DELETE)
   @ApiOperation({ summary: '删除角色' })
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiResponse({ status: 200, description: '删除成功' })

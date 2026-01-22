@@ -1436,16 +1436,9 @@ async function main() {
     },
     {
       dictType: 'sys_oper_type',
-      dictLabel: '生成代码',
+      dictLabel: '清空',
       dictValue: '8',
       dictSort: 8,
-      isDefault: 'N',
-    },
-    {
-      dictType: 'sys_oper_type',
-      dictLabel: '清空数据',
-      dictValue: '9',
-      dictSort: 9,
       isDefault: 'N',
     },
     // 通用状态
@@ -1839,69 +1832,9 @@ async function main() {
 
   // 11.1 任务日志样例（已移除示例任务）
 
-  // 12. 登录日志样例
-  const loginLogExist = await prisma.sysLoginLog.count()
-  if (loginLogExist === 0) {
-    await prisma.sysLoginLog.createMany({
-      data: [
-        {
-          userName: 'admin',
-          ipaddr: '127.0.0.1',
-          browser: 'Chrome',
-          os: 'macOS',
-          status: '0',
-          msg: '登录成功',
-        },
-        {
-          userName: 'user',
-          ipaddr: '127.0.0.1',
-          browser: 'Chrome',
-          os: 'macOS',
-          status: '1',
-          msg: '密码错误',
-        },
-      ],
-      skipDuplicates: true,
-    })
-  }
+  // 12. 登录日志 - 无初始数据，由实际登录行为产生
 
-  // 13. 操作日志样例
-  const operLogCount = await prisma.sysOperLog.count()
-  if (operLogCount === 0) {
-    await prisma.sysOperLog.createMany({
-      data: [
-        {
-          title: '部门管理',
-          businessType: 1,
-          method: 'DeptController.create',
-          requestMethod: 'POST',
-          operName: 'admin',
-          deptName: '总公司',
-          operUrl: '/system/dept',
-          operIp: '127.0.0.1',
-          operLocation: '内网',
-          operParam: '{"deptName":"技术部"}',
-          jsonResult: '{"code":200}',
-          status: 0,
-        },
-        {
-          title: '岗位管理',
-          businessType: 3,
-          method: 'PostController.remove',
-          requestMethod: 'DELETE',
-          operName: 'admin',
-          deptName: '总公司',
-          operUrl: '/system/post',
-          operIp: '127.0.0.1',
-          operLocation: '内网',
-          operParam: '{"ids":"1,2"}',
-          jsonResult: '{"code":200}',
-          status: 0,
-        },
-      ],
-      skipDuplicates: true,
-    })
-  }
+  // 13. 操作日志 - 无初始数据，由实际操作行为产生
 
   console.log('Seeding finished.')
 }

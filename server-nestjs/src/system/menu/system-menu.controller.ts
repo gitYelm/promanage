@@ -14,6 +14,7 @@ import { QueryMenuDto } from './dto/query-menu.dto'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 
 @ApiTags('菜单管理')
 @ApiBearerAuth('JWT-auth')
@@ -24,6 +25,7 @@ export class SystemMenuController {
 
   @Post()
   @RequirePermission('system:menu:add')
+  @Log('菜单管理', BusinessType.INSERT)
   @ApiOperation({ summary: '新增菜单' })
   @ApiBody({ type: CreateMenuDto })
   @ApiResponse({ status: 201, description: '创建成功' })
@@ -60,6 +62,7 @@ export class SystemMenuController {
 
   @Put('changeStatus')
   @RequirePermission('system:menu:edit')
+  @Log('菜单管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改菜单状态' })
   changeStatus(@Body() body: { menuId: string; status: string }) {
     return this.menuService.changeStatus(body.menuId, body.status)
@@ -76,6 +79,7 @@ export class SystemMenuController {
 
   @Put(':menuId')
   @RequirePermission('system:menu:edit')
+  @Log('菜单管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改菜单' })
   @ApiParam({ name: 'menuId', description: '菜单ID' })
   @ApiBody({ type: UpdateMenuDto })
@@ -86,6 +90,7 @@ export class SystemMenuController {
 
   @Delete(':menuId')
   @RequirePermission('system:menu:remove')
+  @Log('菜单管理', BusinessType.DELETE)
   @ApiOperation({ summary: '删除菜单' })
   @ApiParam({ name: 'menuId', description: '菜单ID' })
   @ApiResponse({ status: 200, description: '删除成功' })

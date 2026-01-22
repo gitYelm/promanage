@@ -58,7 +58,7 @@ const queryParams = reactive({
   pageSize: 20,
   title: '',
   operName: '',
-  businessType: undefined,
+  businessType: ALL_OPTION_VALUE as string,
   status: ALL_OPTION_VALUE as string,
 })
 
@@ -87,6 +87,7 @@ async function getList() {
   try {
     const res = await listOperLog({
       ...queryParams,
+      businessType: toQueryValue(queryParams.businessType),
       status: toQueryValue(queryParams.status),
     })
     logList.value = res.rows
@@ -109,7 +110,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.title = ''
   queryParams.operName = ''
-  queryParams.businessType = undefined
+  queryParams.businessType = ALL_OPTION_VALUE
   queryParams.status = ALL_OPTION_VALUE
   handleQuery()
 }
@@ -165,6 +166,11 @@ function getBusinessTypeLabel(type: number) {
     1: '新增',
     2: '修改',
     3: '删除',
+    4: '授权',
+    5: '导出',
+    6: '导入',
+    7: '强退',
+    8: '清空',
   }
   return map[type] || '未知'
 }
@@ -233,9 +239,16 @@ onMounted(() => {
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem :value="ALL_OPTION_VALUE">全部</SelectItem>
+            <SelectItem value="0">其它</SelectItem>
             <SelectItem value="1">新增</SelectItem>
             <SelectItem value="2">修改</SelectItem>
             <SelectItem value="3">删除</SelectItem>
+            <SelectItem value="4">授权</SelectItem>
+            <SelectItem value="5">导出</SelectItem>
+            <SelectItem value="6">导入</SelectItem>
+            <SelectItem value="7">强退</SelectItem>
+            <SelectItem value="8">清空</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -378,6 +391,19 @@ onMounted(() => {
             </div>
             <div><span class="font-medium">操作方法：</span>{{ currentLog.method }}</div>
           </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><span class="font-medium">浏览器：</span>{{ currentLog.browser || '-' }}</div>
+            <div><span class="font-medium">操作系统：</span>{{ currentLog.os || '-' }}</div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="font-medium">操作耗时：</span>
+              {{ currentLog.costTime !== undefined ? `${currentLog.costTime}ms` : '-' }}
+            </div>
+            <div>
+              <span class="font-medium">操作时间：</span>{{ formatDate(currentLog.operTime) }}
+            </div>
+          </div>
           <div>
             <div class="font-medium mb-1">请求参数：</div>
             <div
@@ -392,6 +418,12 @@ onMounted(() => {
               class="bg-muted p-2 rounded text-xs break-all font-mono max-h-[150px] overflow-y-auto"
             >
               {{ currentLog.jsonResult }}
+            </div>
+          </div>
+          <div v-if="currentLog.userAgent">
+            <div class="font-medium mb-1">User-Agent：</div>
+            <div class="bg-muted p-2 rounded text-xs break-all max-h-[80px] overflow-y-auto">
+              {{ currentLog.userAgent }}
             </div>
           </div>
           <div v-if="currentLog.status === 1">

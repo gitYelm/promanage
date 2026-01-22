@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { DictService } from './dict.service'
 import { QueryDictTypeDto } from './dto/query-dict-type.dto'
 import { CreateDictTypeDto } from './dto/create-dict-type.dto'
@@ -24,6 +25,7 @@ export class DictController {
 
   @Post()
   @RequirePermission('system:dict:add')
+  @Log('字典类型', BusinessType.INSERT)
   @ApiOperation({ summary: '新增字典类型' })
   create(@Body() dto: CreateDictTypeDto) {
     return this.dictService.createType(dto)
@@ -31,6 +33,7 @@ export class DictController {
 
   @Put('changeStatus')
   @RequirePermission('system:dict:edit')
+  @Log('字典类型', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改字典类型状态' })
   changeStatus(@Body() body: { dictId: string; status: string }) {
     return this.dictService.changeTypeStatus(body.dictId, body.status)
@@ -45,6 +48,7 @@ export class DictController {
 
   @Put(':dictId')
   @RequirePermission('system:dict:edit')
+  @Log('字典类型', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改字典类型' })
   update(@Param('dictId') dictId: string, @Body() dto: UpdateDictTypeDto) {
     return this.dictService.updateType(dictId, dto)
@@ -52,6 +56,7 @@ export class DictController {
 
   @Delete()
   @RequirePermission('system:dict:remove')
+  @Log('字典类型', BusinessType.DELETE)
   @ApiOperation({ summary: '删除字典类型' })
   remove(@Query('ids') ids: string) {
     const dictIds = ids ? ids.split(',') : []

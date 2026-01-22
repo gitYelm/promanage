@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
+import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { LogininforService } from './logininfor.service'
 import { QueryLogininforDto } from './dto/query-logininfor.dto'
 
@@ -22,6 +23,7 @@ export class LogininforController {
 
   @Delete()
   @RequirePermission('monitor:logininfor:remove')
+  @Log('登录日志', BusinessType.DELETE)
   @ApiOperation({ summary: '删除登录日志' })
   remove(@Query('ids') ids: string) {
     const infoIds = ids ? ids.split(',') : []
@@ -30,6 +32,7 @@ export class LogininforController {
 
   @Get('clean')
   @RequirePermission('monitor:logininfor:remove')
+  @Log('登录日志', BusinessType.CLEAN)
   @ApiOperation({ summary: '清空登录日志' })
   clean() {
     return this.service.clean()
