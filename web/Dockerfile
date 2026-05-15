@@ -3,10 +3,10 @@
 # ============================================================================
 
 # ==================== 构建阶段 ====================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # 启用 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.31.0 --activate
 
 # 设置工作目录
 WORKDIR /app

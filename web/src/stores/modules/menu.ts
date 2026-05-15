@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { h, ref } from 'vue'
 import { getRouters } from '@/api/login'
 import router from '@/router'
-import type { RouteRecordRaw } from 'vue-router'
+import { RouterView, type RouteRecordRaw, type RouteComponent } from 'vue-router'
 
 export interface MenuItem {
   name: string
@@ -21,11 +21,11 @@ export interface MenuItem {
 }
 
 // 匹配 views 里面所有的 .vue 文件
-const modules = import.meta.glob('../../views/**/*.vue')
+const modules = import.meta.glob<{ default: RouteComponent }>('../../views/**/*.vue')
 
 // 加载视图组件
-function loadView(view: string) {
-  let res
+function loadView(view: string): RouteComponent | undefined {
+  let res: RouteComponent | undefined
   for (const path in modules) {
     const parts = path.split('views/')
     if (parts.length < 2) continue
@@ -42,11 +42,11 @@ function loadView(view: string) {
 // 转换菜单为路由
 function filterAsyncRouter(asyncRouterMap: MenuItem[]): RouteRecordRaw[] {
   return asyncRouterMap.map((route) => {
-    const routeRecord: any = {
+    const routeRecord = {
       path: route.path,
       name: route.name,
       meta: route.meta,
-    }
+    } as Partial<RouteRecordRaw>
 
     // 处理 redirect
     if (route.redirect) {
@@ -57,6 +57,8 @@ function filterAsyncRouter(asyncRouterMap: MenuItem[]): RouteRecordRaw[] {
     if (route.component) {
       if (route.component === 'Layout') {
         routeRecord.component = () => import('@/layout/index.vue')
+      } else if (route.component === 'ParentView') {
+        routeRecord.component = { render: () => h(RouterView) }
       } else {
         routeRecord.component = loadView(route.component)
       }
@@ -143,7 +145,7 @@ export const useMenuStore = defineStore('menu', () => {
 
       return menuList.value
     } catch (error) {
-      console.error('获取菜单失败:', error)
+      void error
       return []
     } finally {
       loading.value = false

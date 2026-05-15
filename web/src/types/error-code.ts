@@ -85,6 +85,15 @@ export const ErrorCode = {
   JOB_NOT_FOUND: 90004,
   JOB_NAME_EXISTS: 90005,
   JOB_IS_RUNNING: 90006,
+
+  // ==================== Bug 反馈 (10xxxx) ====================
+  BUG_NOT_FOUND: 100001,
+  BUG_STATUS_DENIED: 100002,
+  BUG_PROJECT_NOT_FOUND: 100003,
+  BUG_PROJECT_EXISTS: 100004,
+  BUG_ATTACHMENT_TYPE_DENIED: 100005,
+  BUG_ATTACHMENT_SIZE_EXCEEDED: 100006,
+  BUG_ATTACHMENT_INVALID_CONTENT: 100007,
 } as const
 
 export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode]
@@ -176,6 +185,15 @@ export const ErrorCodeMessage: Record<ErrorCodeType, string> = {
   [ErrorCode.JOB_NOT_FOUND]: '定时任务不存在',
   [ErrorCode.JOB_NAME_EXISTS]: '定时任务名称已存在',
   [ErrorCode.JOB_IS_RUNNING]: '定时任务正在运行',
+
+  // Bug 反馈
+  [ErrorCode.BUG_NOT_FOUND]: 'Bug 不存在',
+  [ErrorCode.BUG_STATUS_DENIED]: 'Bug 状态不允许操作',
+  [ErrorCode.BUG_PROJECT_NOT_FOUND]: 'Bug 项目不存在',
+  [ErrorCode.BUG_PROJECT_EXISTS]: 'Bug 项目已存在',
+  [ErrorCode.BUG_ATTACHMENT_TYPE_DENIED]: 'Bug 附件类型不支持',
+  [ErrorCode.BUG_ATTACHMENT_SIZE_EXCEEDED]: 'Bug 附件大小超限',
+  [ErrorCode.BUG_ATTACHMENT_INVALID_CONTENT]: 'Bug 附件内容不安全',
 }
 
 /**

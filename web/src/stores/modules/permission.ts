@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { h, ref } from 'vue'
 import router from '@/router'
-import type { RouteRecordRaw } from 'vue-router'
+import { RouterView, type RouteRecordRaw } from 'vue-router'
 import { getRouters } from '@/api/login'
 
 /** 后端返回的路由数据结构 */
@@ -48,6 +48,8 @@ function transformRoutes(routes: RouteData[]): RouteRecordRaw[] {
     let component: RouteRecordRaw['component'] | undefined
     if (route.component === 'Layout') {
       component = () => import('@/layout/index.vue')
+    } else if (route.component === 'ParentView') {
+      component = { render: () => h(RouterView) }
     } else if (route.component) {
       component = loadView(route.component)
     }

@@ -1,0 +1,28 @@
+# OrbStack 本地部署专用后端镜像：从 monorepo 根目录构建，严格使用 pnpm-lock.yaml
+FROM node:22-alpine
+
+RUN apk add --no-cache python3 make g++ tzdata && \
+    corepack enable && corepack prepare pnpm@10.31.0 --activate
+
+ENV TZ=Asia/Shanghai
+WORKDIR /app
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY server-nestjs/package.json ./server-nestjs/package.json
+COPY server-nestjs/prisma ./server-nestjs/prisma
+COPY server-nestjs/prisma.config.ts ./server-nestjs/prisma.config.ts
+
+RUN DATABASE_URL="postgresql://temp:temp@localhost:5432/temp" \
+    pnpm install --frozen-lockfile --filter server-nestjs...
+
+COPY server-nestjs ./server-nestjs
+
+WORKDIR /app/server-nestjs
+
+RUN DATABASE_URL="postgresql://temp:temp@localhost:5432/temp" pnpm prisma generate
+RUN pnpm build
+
+RUN chmod +x docker-entrypoint.sh
+
+EXPOSE 3000
+ENTRYPOINT ["./docker-entrypoint.sh"]

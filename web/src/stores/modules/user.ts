@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { login, logout, getInfo, type LoginData } from '@/api/login'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { useMenuStore } from './menu'
+import { useWorkspaceStore } from './workspace'
 
 interface RoleInfo {
   roleId: string
@@ -94,7 +95,9 @@ export const useUserStore = defineStore('user', {
 
       // 清空菜单缓存
       const menuStore = useMenuStore()
+      const workspaceStore = useWorkspaceStore()
       menuStore.clearMenus()
+      workspaceStore.clearConfig()
     },
   },
 })

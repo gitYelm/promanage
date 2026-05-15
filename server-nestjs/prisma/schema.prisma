@@ -93,6 +93,15 @@ model SysUser {
   dept             SysDept?      @relation(fields: [deptId], references: [deptId])
   posts            SysUserPost[]
   roles            SysUserRole[]
+  bugOwnedProjects    BugProject[]       @relation("BugProjectOwner")
+  bugModuleDefaults   BugProjectModule[] @relation("BugModuleDefaultAssignee")
+  bugProjectMembers   BugProjectMember[]
+  submittedBugTickets BugTicket[]        @relation("BugSubmitter")
+  assignedBugTickets  BugTicket[]        @relation("BugAssignee")
+  verifiedBugTickets  BugTicket[]        @relation("BugVerifier")
+  bugComments         BugComment[]
+  bugAttachments      BugAttachment[]
+  bugHistories        BugHistory[]
 
   @@unique([userName, delFlag])
   @@index([deptId])
@@ -559,3 +568,297 @@ model SysExportTask {
   @@index([createTime])
   @@map("sys_export_task")
 }
+/// Bug 项目表
+model BugProject {
+  /// 项目ID
+  projectId     BigInt              @id @default(autoincrement()) @map("project_id")
+  /// 项目名称
+  projectName   String              @map("project_name") @db.VarChar(100)
+  /// 项目标识，用于生成 Bug 编号
+  projectKey    String              @map("project_key") @db.VarChar(30)
+  /// 项目负责人ID
+  ownerId       BigInt?             @map("owner_id")
+  /// 项目描述
+  description   String?             @default("") @db.VarChar(500)
+  /// 状态（0正常 1停用）
+  status        String?             @default("0") @db.Char(1)
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag       String?             @default("0") @map("del_flag") @db.Char(1)
+  /// 创建者
+  createBy      String?             @default("") @map("create_by") @db.VarChar(64)
+  /// 创建时间
+  createTime    DateTime?           @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新者
+  updateBy      String?             @default("") @map("update_by") @db.VarChar(64)
+  /// 更新时间
+  updateTime    DateTime?           @updatedAt @map("update_time") @db.Timestamp(6)
+  owner         SysUser?            @relation("BugProjectOwner", fields: [ownerId], references: [userId])
+  modules       BugProjectModule[]
+  versions      BugProjectVersion[]
+  members       BugProjectMember[]
+  tickets       BugTicket[]
+
+  @@unique([projectKey, delFlag])
+  @@index([ownerId])
+  @@index([status, delFlag])
+  @@map("bug_project")
+}
+
+/// Bug 项目模块表
+model BugProjectModule {
+  /// 模块ID
+  moduleId         BigInt      @id @default(autoincrement()) @map("module_id")
+  /// 所属项目ID
+  projectId        BigInt      @map("project_id")
+  /// 模块名称
+  moduleName       String      @map("module_name") @db.VarChar(100)
+  /// 默认负责人ID
+  defaultAssigneeId BigInt?    @map("default_assignee_id")
+  /// 排序
+  orderNum         Int?        @default(0) @map("order_num")
+  /// 状态（0正常 1停用）
+  status           String?     @default("0") @db.Char(1)
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag          String?     @default("0") @map("del_flag") @db.Char(1)
+  /// 创建时间
+  createTime       DateTime?   @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新时间
+  updateTime       DateTime?   @updatedAt @map("update_time") @db.Timestamp(6)
+  project          BugProject  @relation(fields: [projectId], references: [projectId])
+  defaultAssignee  SysUser?    @relation("BugModuleDefaultAssignee", fields: [defaultAssigneeId], references: [userId])
+  tickets          BugTicket[]
+
+  @@unique([projectId, moduleName, delFlag])
+  @@index([projectId, status, delFlag])
+  @@index([defaultAssigneeId])
+  @@map("bug_project_module")
+}
+
+/// Bug 项目版本表
+model BugProjectVersion {
+  /// 版本ID
+  versionId   BigInt      @id @default(autoincrement()) @map("version_id")
+  /// 所属项目ID
+  projectId   BigInt      @map("project_id")
+  /// 版本号
+  versionNo   String      @map("version_no") @db.VarChar(50)
+  /// 版本名称
+  versionName String?     @default("") @map("version_name") @db.VarChar(100)
+  /// 发布时间
+  releaseDate DateTime?   @map("release_date") @db.Timestamp(6)
+  /// 状态（planning/testing/released/archived）
+  status      String?     @default("planning") @db.VarChar(20)
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag     String?     @default("0") @map("del_flag") @db.Char(1)
+  /// 创建时间
+  createTime  DateTime?   @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新时间
+  updateTime  DateTime?   @updatedAt @map("update_time") @db.Timestamp(6)
+  project     BugProject  @relation(fields: [projectId], references: [projectId])
+  tickets     BugTicket[]
+
+  @@unique([projectId, versionNo, delFlag])
+  @@index([projectId, status, delFlag])
+  @@map("bug_project_version")
+}
+
+/// Bug 项目成员表
+model BugProjectMember {
+  /// 成员ID
+  memberId   BigInt     @id @default(autoincrement()) @map("member_id")
+  /// 所属项目ID
+  projectId  BigInt     @map("project_id")
+  /// 用户ID
+  userId     BigInt     @map("user_id")
+  /// 项目内角色（owner/product/developer/tester/viewer）
+  memberRole String     @map("member_role") @db.VarChar(30)
+  /// 是否默认负责人
+  isDefault  Boolean?   @default(false) @map("is_default")
+  /// 状态（0正常 1停用）
+  status     String?    @default("0") @db.Char(1)
+  /// 创建时间
+  createTime DateTime?  @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新时间
+  updateTime DateTime?  @updatedAt @map("update_time") @db.Timestamp(6)
+  project    BugProject @relation(fields: [projectId], references: [projectId])
+  user       SysUser    @relation(fields: [userId], references: [userId])
+
+  @@unique([projectId, userId, memberRole])
+  @@index([projectId, status])
+  @@index([userId])
+  @@map("bug_project_member")
+}
+
+/// Bug 工单表
+model BugTicket {
+  /// Bug ID
+  ticketId        BigInt          @id @default(autoincrement()) @map("ticket_id")
+  /// Bug 编号
+  ticketNo        String          @unique @map("ticket_no") @db.VarChar(50)
+  /// 标题
+  title           String          @db.VarChar(200)
+  /// 所属项目ID
+  projectId       BigInt          @map("project_id")
+  /// 所属模块ID
+  moduleId        BigInt?         @map("module_id")
+  /// 发现版本ID
+  versionId       BigInt?         @map("version_id")
+  /// 问题类型
+  type            String          @db.VarChar(30)
+  /// 严重程度
+  severity        String          @db.VarChar(30)
+  /// 优先级
+  priority        String          @db.VarChar(30)
+  /// 当前状态
+  status          String          @default("pending_confirm") @db.VarChar(30)
+  /// 问题描述
+  description     String
+  /// 复现步骤
+  reproduceSteps  String          @map("reproduce_steps")
+  /// 期望结果
+  expectedResult  String          @map("expected_result")
+  /// 实际结果
+  actualResult    String          @map("actual_result")
+  /// 运行环境
+  environment     String?         @default("") @db.VarChar(50)
+  /// 设备信息
+  deviceInfo      String?         @default("") @map("device_info") @db.VarChar(500)
+  /// 提交人ID
+  submitterId     BigInt          @map("submitter_id")
+  /// 当前负责人ID
+  assigneeId      BigInt?         @map("assignee_id")
+  /// 验证人ID
+  verifierId      BigInt?         @map("verifier_id")
+  /// 预计完成时间
+  dueTime         DateTime?       @map("due_time") @db.Timestamp(6)
+  /// 修复说明
+  fixNote         String?         @map("fix_note")
+  /// 验证说明
+  verifyNote      String?         @map("verify_note")
+  /// 重复关联 Bug ID
+  duplicateOfId   BigInt?         @map("duplicate_of_id")
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag         String?         @default("0") @map("del_flag") @db.Char(1)
+  /// 创建者
+  createBy        String?         @default("") @map("create_by") @db.VarChar(64)
+  /// 创建时间
+  createTime      DateTime?       @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新者
+  updateBy        String?         @default("") @map("update_by") @db.VarChar(64)
+  /// 更新时间
+  updateTime      DateTime?       @updatedAt @map("update_time") @db.Timestamp(6)
+  project         BugProject      @relation(fields: [projectId], references: [projectId])
+  module          BugProjectModule? @relation(fields: [moduleId], references: [moduleId])
+  version         BugProjectVersion? @relation(fields: [versionId], references: [versionId])
+  submitter       SysUser         @relation("BugSubmitter", fields: [submitterId], references: [userId])
+  assignee        SysUser?        @relation("BugAssignee", fields: [assigneeId], references: [userId])
+  verifier        SysUser?        @relation("BugVerifier", fields: [verifierId], references: [userId])
+  duplicateOf     BugTicket?      @relation("BugDuplicate", fields: [duplicateOfId], references: [ticketId])
+  duplicates      BugTicket[]     @relation("BugDuplicate")
+  comments        BugComment[]
+  attachments     BugAttachment[]
+  histories       BugHistory[]
+
+  @@index([projectId, status, delFlag])
+  @@index([moduleId])
+  @@index([versionId])
+  @@index([submitterId])
+  @@index([assigneeId])
+  @@index([verifierId])
+  @@index([priority, severity])
+  @@index([createTime])
+  @@map("bug_ticket")
+}
+
+/// Bug 评论表
+model BugComment {
+  /// 评论ID
+  commentId  BigInt    @id @default(autoincrement()) @map("comment_id")
+  /// Bug ID
+  ticketId   BigInt    @map("ticket_id")
+  /// 评论人ID
+  userId     BigInt    @map("user_id")
+  /// 评论内容
+  content    String
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag    String?   @default("0") @map("del_flag") @db.Char(1)
+  /// 创建时间
+  createTime DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  ticket     BugTicket @relation(fields: [ticketId], references: [ticketId])
+  user       SysUser   @relation(fields: [userId], references: [userId])
+  attachments BugAttachment[]
+
+  @@index([ticketId, delFlag])
+  @@index([userId])
+  @@map("bug_comment")
+}
+
+/// Bug 附件表
+model BugAttachment {
+  /// 附件ID
+  attachmentId BigInt    @id @default(autoincrement()) @map("attachment_id")
+  /// Bug ID
+  ticketId     BigInt?   @map("ticket_id")
+  /// 评论ID
+  commentId    BigInt?   @map("comment_id")
+  /// 上传人ID
+  uploaderId   BigInt    @map("uploader_id")
+  /// 文件名称
+  fileName     String    @map("file_name") @db.VarChar(255)
+  /// 原始文件名称
+  originalName String    @map("original_name") @db.VarChar(255)
+  /// 文件地址
+  fileUrl      String    @map("file_url") @db.VarChar(500)
+  /// 文件类型
+  fileType     String    @map("file_type") @db.VarChar(100)
+  /// 文件大小
+  fileSize     BigInt    @map("file_size")
+  /// 附件分类（image/annotated_image/log/video/file）
+  attachmentType String  @default("file") @map("attachment_type") @db.VarChar(30)
+  /// 原图附件ID
+  originalAttachmentId BigInt? @map("original_attachment_id")
+  originalAttachment BugAttachment? @relation("BugAttachmentOriginal", fields: [originalAttachmentId], references: [attachmentId])
+  annotatedAttachments BugAttachment[] @relation("BugAttachmentOriginal")
+  /// 标注元数据 JSON
+  annotationData String? @map("annotation_data")
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag      String?  @default("0") @map("del_flag") @db.Char(1)
+  /// 创建时间
+  createTime   DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  ticket       BugTicket? @relation(fields: [ticketId], references: [ticketId])
+  comment      BugComment? @relation(fields: [commentId], references: [commentId])
+  uploader     SysUser   @relation(fields: [uploaderId], references: [userId])
+
+  @@index([ticketId, delFlag])
+  @@index([commentId])
+  @@index([uploaderId])
+  @@index([originalAttachmentId])
+  @@map("bug_attachment")
+}
+
+/// Bug 操作历史表
+model BugHistory {
+  /// 历史ID
+  historyId   BigInt    @id @default(autoincrement()) @map("history_id")
+  /// Bug ID
+  ticketId    BigInt    @map("ticket_id")
+  /// 操作人ID
+  operatorId  BigInt    @map("operator_id")
+  /// 操作类型
+  action      String    @db.VarChar(50)
+  /// 原值
+  fromValue   String?   @map("from_value") @db.VarChar(500)
+  /// 新值
+  toValue     String?   @map("to_value") @db.VarChar(500)
+  /// 操作说明
+  remark      String?   @db.VarChar(1000)
+  /// 创建时间
+  createTime  DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  ticket      BugTicket @relation(fields: [ticketId], references: [ticketId])
+  operator    SysUser   @relation(fields: [operatorId], references: [userId])
+
+  @@index([ticketId, createTime])
+  @@index([operatorId])
+  @@map("bug_history")
+}
+

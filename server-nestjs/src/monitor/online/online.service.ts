@@ -15,6 +15,17 @@ export interface OnlineUser {
   ttl?: number
 }
 
+export interface OnlineUserRow {
+  tokenId: string
+  userName: string
+  ipaddr: string
+  loginLocation: string
+  browser: string
+  os: string
+  loginTime: string
+  onlineDuration: number
+}
+
 const ONLINE_KEY_PREFIX = 'online:user:'
 const ONLINE_SET_KEY = 'online:users'
 /** 默认会话超时时间（秒），实际由调用方传入 ttl */
@@ -38,7 +49,8 @@ export class OnlineService {
 
   async add(user: OnlineUser) {
     const client = this.redis.getClient()
-    const key = ONLINE_KEY_PREFIX + user.token
+    const key = this.redis.toStorageKey(ONLINE_KEY_PREFIX + user.token)
+    const setKey = this.redis.toStorageKey(ONLINE_SET_KEY)
     const { ttl, ...userData } = user
     const data = JSON.stringify({
       ...userData,
@@ -50,7 +62,7 @@ export class OnlineService {
 
     // 存储用户信息（带过期时间），并添加到在线用户集合
     await client.setex(key, expireSeconds, data)
-    await client.sadd(ONLINE_SET_KEY, user.token)
+    await client.sadd(setKey, user.token)
 
     this.logger.debug(
       `用户上线: ${user.userName} (IP: ${user.ipaddr}, TTL: ${expireSeconds}s)`,
@@ -60,7 +72,8 @@ export class OnlineService {
 
   async remove(token: string) {
     const client = this.redis.getClient()
-    const key = ONLINE_KEY_PREFIX + token
+    const key = this.redis.toStorageKey(ONLINE_KEY_PREFIX + token)
+    const setKey = this.redis.toStorageKey(ONLINE_SET_KEY)
 
     // 获取用户信息用于日志
     const data = await client.get(key)
@@ -72,15 +85,58 @@ export class OnlineService {
     // 删除用户信息和集合中的记录
     const multi = client.multi()
     multi.del(key)
-    multi.srem(ONLINE_SET_KEY, token)
+    multi.srem(setKey, token)
     await multi.exec()
   }
 
-  async list(query?: QueryOnlineDto): Promise<{ total: number; rows: any[] }> {
+  /**
+   * 获取指定账号当前全部在线 Token。
+   * 用于实现“禁止多点登录”时，新登录踢掉旧会话。
+   */
+  async getTokensByUserName(userName: string): Promise<string[]> {
     const client = this.redis.getClient()
+    const setKey = this.redis.toStorageKey(ONLINE_SET_KEY)
+    const tokens = await client.smembers(setKey)
+    if (!tokens.length) return []
+
+    const matchedTokens: string[] = []
+    const invalidTokens: string[] = []
+    const pipeline = client.pipeline()
+    for (const token of tokens) {
+      pipeline.get(this.redis.toStorageKey(ONLINE_KEY_PREFIX + token))
+    }
+    const results = await pipeline.exec()
+
+    if (results) {
+      for (let i = 0; i < results.length; i++) {
+        const [, data] = results[i]
+        if (!data) {
+          invalidTokens.push(tokens[i])
+          continue
+        }
+        const user = JSON.parse(data as string) as OnlineUser
+        if (user.userName === userName) matchedTokens.push(tokens[i])
+      }
+    }
+
+    // 顺手清理已过期但仍残留在集合里的 token，避免在线列表膨胀。
+    if (invalidTokens.length > 0) {
+      const multi = client.multi()
+      for (const token of invalidTokens) {
+        multi.srem(setKey, token)
+      }
+      await multi.exec()
+    }
+
+    return matchedTokens
+  }
+
+  async list(query?: QueryOnlineDto): Promise<{ total: number; rows: OnlineUserRow[] }> {
+    const client = this.redis.getClient()
+    const setKey = this.redis.toStorageKey(ONLINE_SET_KEY)
 
     // 获取所有在线用户 token
-    const tokens = await client.smembers(ONLINE_SET_KEY)
+    const tokens = await client.smembers(setKey)
     if (!tokens.length) {
       return { total: 0, rows: [] }
     }
@@ -88,7 +144,7 @@ export class OnlineService {
     // 批量获取用户信息
     const pipeline = client.pipeline()
     for (const token of tokens) {
-      pipeline.get(ONLINE_KEY_PREFIX + token)
+      pipeline.get(this.redis.toStorageKey(ONLINE_KEY_PREFIX + token))
     }
     const results = await pipeline.exec()
 
@@ -112,7 +168,7 @@ export class OnlineService {
     if (invalidTokens.length > 0) {
       const multi = client.multi()
       for (const token of invalidTokens) {
-        multi.srem(ONLINE_SET_KEY, token)
+        multi.srem(setKey, token)
       }
       await multi.exec()
     }

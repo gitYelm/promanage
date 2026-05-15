@@ -8,6 +8,8 @@ type MultiCmd = {
   value?: string
 }
 
+type MultiExecResult = Array<[null, string | number]>
+
 class InMemoryRedisClient {
   private kv = new Map<string, { value: string; expiresAt?: number }>()
   private sets = new Map<string, Set<string>>()
@@ -103,17 +105,11 @@ class InMemoryRedisClient {
     return Promise.resolve(this.kv.size)
   }
 
-  flushdb() {
-    this.kv.clear()
-    this.sets.clear()
-    return Promise.resolve('OK')
-  }
-
   scanStream(opts: { match: string; count: number }) {
     const allKeys = Array.from(this.kv.keys())
     const pattern = new RegExp('^' + opts.match.replace('*', '.*') + '$')
     const keys = allKeys.filter((k) => pattern.test(k))
-    const listeners: Record<string, Array<(arg: any) => void>> = {
+    const listeners: Record<string, Array<(arg?: string[]) => void>> = {
       data: [],
       end: [],
     }
@@ -123,7 +119,7 @@ class InMemoryRedisClient {
       listeners.end.forEach((fn) => fn(undefined))
     }, 0)
     return {
-      on: (evt: 'data' | 'end', fn: (arg: any) => void) => {
+      on: (evt: 'data' | 'end', fn: (arg?: string[]) => void) => {
         listeners[evt].push(fn)
       },
     }
@@ -134,7 +130,7 @@ class InMemoryRedisClient {
     sadd: (key: string, value: string) => InMemoryRedisClient
     del: (key: string) => InMemoryRedisClient
     srem: (key: string, value: string) => InMemoryRedisClient
-    exec: () => Promise<any[]>
+    exec: () => Promise<MultiExecResult>
   } {
     const cmds: MultiCmd[] = []
     return {
@@ -203,9 +199,11 @@ export class RedisService implements OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name)
   private client: Redis | InMemoryRedisClient
   private isRealRedis: boolean
+  private readonly keyPrefix: string
 
   constructor(private configService: ConfigService) {
     const redisEnabled = configService.get<string>('REDIS_ENABLED', 'false')
+    this.keyPrefix = configService.get<string>('REDIS_KEY_PREFIX', '')
     this.isRealRedis = redisEnabled.toLowerCase() === 'true'
 
     if (this.isRealRedis) {
@@ -244,6 +242,23 @@ export class RedisService implements OnModuleDestroy {
     return this.client
   }
 
+  /** 获取业务 key 前缀，用于监控扫描共享 Redis 中的当前项目 key */
+  getKeyPrefix(): string {
+    return this.keyPrefix
+  }
+
+  /** 转换为真实 Redis 存储 key，统一加项目前缀 */
+  toStorageKey(key: string): string {
+    if (!this.keyPrefix || key.startsWith(this.keyPrefix)) return key
+    return `${this.keyPrefix}${key}`
+  }
+
+  /** 转换为业务逻辑 key，统一去掉项目前缀 */
+  toLogicalKey(key: string): string {
+    if (!this.keyPrefix || !key.startsWith(this.keyPrefix)) return key
+    return key.slice(this.keyPrefix.length)
+  }
+
   /** 是否使用真实 Redis */
   isUsingRealRedis(): boolean {
     return this.isRealRedis
@@ -253,22 +268,27 @@ export class RedisService implements OnModuleDestroy {
 
   /** 获取值 */
   get(key: string): Promise<string | null> {
-    return this.client.get(key)
+    return this.client.get(this.withPrefix(key))
   }
 
   /** 设置值（带过期时间，单位秒） */
   setex(key: string, ttl: number, value: string): Promise<string> {
-    return this.client.setex(key, ttl, value)
+    return this.client.setex(this.withPrefix(key), ttl, value)
   }
 
   /** 检查 key 是否存在 */
   exists(key: string): Promise<number> {
-    return this.client.exists(key)
+    return this.client.exists(this.withPrefix(key))
   }
 
   /** 删除 key */
   del(key: string): void {
-    void this.client.del(key)
+    void this.client.del(this.withPrefix(key))
+  }
+
+  /** 为业务 key 增加项目前缀，避免共享 Redis 中 key 互相污染 */
+  private withPrefix(key: string): string {
+    return this.toStorageKey(key)
   }
 
   onModuleDestroy() {

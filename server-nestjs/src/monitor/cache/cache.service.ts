@@ -57,7 +57,10 @@ export class CacheService {
 
   async clearCacheName(cacheName: string) {
     const client = this.redis.getClient()
-    const iter = client.scanStream({ match: `${cacheName}:*`, count: 100 })
+    const iter = client.scanStream({
+      match: this.redis.toStorageKey(`${cacheName}:*`),
+      count: 100,
+    })
     const keys: string[] = []
     return new Promise<void>((resolve) => {
       iter.on('data', (ks: string[]) => keys.push(...ks))
@@ -72,18 +75,35 @@ export class CacheService {
 
   async clearCacheAll() {
     const client = this.redis.getClient()
-    await client.flushdb()
+    const iter = client.scanStream({
+      match: this.redis.toStorageKey('*'),
+      count: 100,
+    })
+    const keys: string[] = []
+    return new Promise<void>((resolve) => {
+      iter.on('data', (ks: string[]) => keys.push(...ks))
+      iter.on('end', () => {
+        if (keys.length) {
+          for (const k of keys) void client.del(k)
+        }
+        resolve()
+      })
+    })
   }
 
   async listCacheName() {
     const client = this.redis.getClient()
-    const iter = client.scanStream({ match: '*', count: 100 })
+    const iter = client.scanStream({
+      match: this.redis.toStorageKey('*'),
+      count: 100,
+    })
     const names = new Set<string>()
     return new Promise<{ cacheName: string; remark: string }[]>((resolve) => {
       iter.on('data', (ks: string[]) => {
         ks.forEach((k) => {
-          const idx = k.indexOf(':')
-          if (idx > 0) names.add(k.substring(0, idx))
+          const logicalKey = this.redis.toLogicalKey(k)
+          const idx = logicalKey.indexOf(':')
+          if (idx > 0) names.add(logicalKey.substring(0, idx))
         })
       })
       iter.on('end', () => {
@@ -94,17 +114,20 @@ export class CacheService {
 
   async listCacheKey(cacheName: string) {
     const client = this.redis.getClient()
-    const iter = client.scanStream({ match: `${cacheName}:*`, count: 100 })
+    const iter = client.scanStream({
+      match: this.redis.toStorageKey(`${cacheName}:*`),
+      count: 100,
+    })
     const keys: string[] = []
     return new Promise<string[]>((resolve) => {
-      iter.on('data', (ks: string[]) => keys.push(...ks))
+      iter.on('data', (ks: string[]) => keys.push(...ks.map((k) => this.redis.toLogicalKey(k))))
       iter.on('end', () => resolve(keys))
     })
   }
 
   async getCacheValue(cacheName: string, cacheKey: string) {
     const client = this.redis.getClient()
-    const key = `${cacheName}:${cacheKey}`
+    const key = this.redis.toStorageKey(`${cacheName}:${cacheKey}`)
     const value = await client.get(key)
     return { cacheName, cacheKey, cacheValue: value, remark: '' }
   }

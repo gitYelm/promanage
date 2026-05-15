@@ -48,7 +48,7 @@ service.interceptors.request.use(
     }
 
     // 动态设置超时时间
-    const isUpload = config.headers?.['Content-Type'] === 'multipart/form-data'
+    const isUpload = config.data instanceof FormData || config.headers?.['Content-Type'] === 'multipart/form-data'
     if (!config.timeout || config.timeout === DEFAULT_TIMEOUT * 1000) {
       config.timeout = getTimeout(isUpload)
     }

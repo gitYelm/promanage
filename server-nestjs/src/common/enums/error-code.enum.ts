@@ -162,6 +162,22 @@ export enum ErrorCode {
   JOB_NAME_EXISTS = 90005,
   /** 定时任务正在运行 */
   JOB_IS_RUNNING = 90006,
+
+  // ==================== Bug 反馈 (10xxxx) ====================
+  /** Bug 不存在 */
+  BUG_NOT_FOUND = 100001,
+  /** Bug 状态不允许操作 */
+  BUG_STATUS_DENIED = 100002,
+  /** Bug 项目不存在 */
+  BUG_PROJECT_NOT_FOUND = 100003,
+  /** Bug 项目已存在 */
+  BUG_PROJECT_EXISTS = 100004,
+  /** Bug 附件类型不支持 */
+  BUG_ATTACHMENT_TYPE_DENIED = 100005,
+  /** Bug 附件大小超限 */
+  BUG_ATTACHMENT_SIZE_EXCEEDED = 100006,
+  /** Bug 附件内容不安全 */
+  BUG_ATTACHMENT_INVALID_CONTENT = 100007,
 }
 
 /**
@@ -252,4 +268,13 @@ export const ErrorCodeMessage: Record<ErrorCode, string> = {
   [ErrorCode.JOB_NOT_FOUND]: '定时任务不存在',
   [ErrorCode.JOB_NAME_EXISTS]: '定时任务名称已存在',
   [ErrorCode.JOB_IS_RUNNING]: '定时任务正在运行',
+
+  // Bug 反馈
+  [ErrorCode.BUG_NOT_FOUND]: 'Bug 不存在',
+  [ErrorCode.BUG_STATUS_DENIED]: 'Bug 状态不允许操作',
+  [ErrorCode.BUG_PROJECT_NOT_FOUND]: 'Bug 项目不存在',
+  [ErrorCode.BUG_PROJECT_EXISTS]: 'Bug 项目已存在',
+  [ErrorCode.BUG_ATTACHMENT_TYPE_DENIED]: 'Bug 附件类型不支持',
+  [ErrorCode.BUG_ATTACHMENT_SIZE_EXCEEDED]: 'Bug 附件大小超限',
+  [ErrorCode.BUG_ATTACHMENT_INVALID_CONTENT]: 'Bug 附件内容不安全',
 }

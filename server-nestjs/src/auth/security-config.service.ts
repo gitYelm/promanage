@@ -7,6 +7,7 @@ export interface SecurityConfig {
   maxRetry: number // 最大登录失败次数
   lockTime: number // 锁定时长（分钟）
   sessionTimeout: number // 会话超时（分钟）
+  allowMultiDevice: boolean // 是否允许同账号多端同时在线
 }
 
 @Injectable()
@@ -27,7 +28,12 @@ export class SecurityConfigService {
     const configs = await this.prisma.sysConfig.findMany({
       where: {
         configKey: {
-          in: ['sys.login.maxRetry', 'sys.login.lockTime', 'sys.session.timeout'],
+          in: [
+            'sys.login.maxRetry',
+            'sys.login.lockTime',
+            'sys.session.timeout',
+            'sys.login.allowMultiDevice',
+          ],
         },
       },
     })
@@ -43,7 +49,16 @@ export class SecurityConfigService {
       maxRetry: parseInt(configMap['sys.login.maxRetry'] || '5', 10),
       lockTime: parseInt(configMap['sys.login.lockTime'] || '10', 10),
       sessionTimeout: parseInt(configMap['sys.session.timeout'] || '30', 10),
+      allowMultiDevice: configMap['sys.login.allowMultiDevice'] !== 'false',
     }
+  }
+
+  /**
+   * 是否允许同账号多端同时在线。
+   */
+  async isMultiDeviceLoginAllowed(): Promise<boolean> {
+    const config = await this.getSecurityConfig()
+    return config.allowMultiDevice
   }
 
   /**
@@ -152,6 +167,7 @@ export class SecurityConfigService {
     Array<{ username: string; lockUntil: number; remainingSeconds: number }>
   > {
     const client = this.redis.getClient()
+    const storagePrefix = this.redis.toStorageKey(this.ACCOUNT_LOCK_PREFIX)
     const lockedAccounts: Array<{
       username: string
       lockUntil: number
@@ -160,7 +176,7 @@ export class SecurityConfigService {
 
     // 扫描所有锁定的 key
     const stream = client.scanStream({
-      match: `${this.ACCOUNT_LOCK_PREFIX}*`,
+      match: `${storagePrefix}*`,
       count: 100,
     })
 
@@ -176,7 +192,7 @@ export class SecurityConfigService {
         // 在 end 事件中处理所有 keys
         const processKeys = async () => {
           for (const key of allKeys) {
-            const username = key.replace(this.ACCOUNT_LOCK_PREFIX, '')
+            const username = this.redis.toLogicalKey(key).replace(this.ACCOUNT_LOCK_PREFIX, '')
             const value = await client.get(key)
             if (value) {
               const lockUntil = parseInt(value, 10)

@@ -1,0 +1,52 @@
+---
+description: Vue 3 + NestJS + Prisma + Vite 技术栈开发规范
+globs:
+  - "web/src/**/*.{ts,vue}"
+  - "server-nestjs/src/**/*.ts"
+  - "server-nestjs/prisma/schema.prisma"
+alwaysApply: true
+---
+
+# Vue 3 + NestJS + Prisma + Vite 技术栈开发规范
+
+最后更新时间：2026-05-14
+
+## 官方文档来源
+
+- Vue 3 官方文档：`<script setup>` 是在 SFC 中使用 Composition API 的编译期语法糖，支持使用纯 TypeScript 声明 props 和 emits。
+- NestJS 官方文档：Controller 负责路由入口，Provider/Service 负责业务逻辑；入参应通过 DTO + ValidationPipe 校验；文件上传基于 Multer 的 multipart/form-data，并需校验类型与大小。
+- Prisma 官方文档：关系应在 Prisma schema 中显式建模，关联表需要有清晰 relation、索引和约束；迁移文件作为数据库结构变更记录。
+- Vite 官方文档：仅 `VITE_` 前缀变量暴露给前端，服务端敏感配置不得写入前端环境变量。
+
+## 前端 Vue 规范
+
+1. 页面与组件统一使用 `<script setup lang="ts">`。
+2. 新页面放在 `web/src/views/{domain}/`，页面私有组件放在 `components/` 子目录。
+3. API 封装放在 `web/src/api/{domain}/`，类型尽量与后端 DTO/返回字段保持一致。
+4. 权限按钮使用 `v-hasPermi`，不要只做前端隐藏，后端接口必须同时加 `@RequirePermission`。
+5. 表单和列表复杂逻辑优先抽到 composable、constants 或子组件，避免单个 `.vue` 文件超过 500 行。
+6. 使用 shadcn-vue 现有组件时遵循项目问题总结：Checkbox/Switch 使用 `model-value` / `update:model-value`，不要误用旧事件名。
+
+## 后端 NestJS 规范
+
+1. Controller 只做路由、权限、Swagger 和 DTO 绑定；业务逻辑放 Service。
+2. Controller 必须加 `@ApiTags`、`@ApiBearerAuth`、`@ApiOperation`，受保护接口必须加 `JwtAuthGuard` 和 `PermissionGuard`。
+3. DTO 必须使用 class-validator，并写中文 JSDoc/Swagger 描述。
+4. Service 必须注入并使用 `LoggerService` 记录关键业务操作。
+5. 新业务异常优先使用 `BusinessException` 和 `ErrorCode`，禁止在 Service 中直接 `throw new Error()`。
+6. 文件上传必须限制 MIME、大小，图片/视频还要做魔数或等效内容校验。
+
+## Prisma / 数据库规范
+
+1. `server-nestjs/prisma/schema.prisma` 是唯一模型来源。
+2. 表名沿用项目风格，业务表使用 snake_case，Prisma Model 使用 PascalCase。
+3. 时间字段使用 `DateTime @db.Timestamp(6)`，遵循 UTC 存储、本地显示。
+4. 删除默认优先逻辑删除，字段名沿用 `del_flag`，值为 `0` 存在、`2` 删除。
+5. 多项目数据必须有项目级关联和索引，查询时在服务层做数据范围过滤。
+6. 种子数据必须幂等，菜单、角色、字典重复执行不能产生重复记录。
+
+## Vite / 环境变量规范
+
+1. 前端只读取 `VITE_` 前缀变量。
+2. 数据库、Redis、JWT、对象存储密钥等敏感信息只能在后端 `.env` 或服务器环境变量中维护。
+3. 不要把服务端连接串写入 `web/.env`。

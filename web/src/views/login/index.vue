@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,13 +18,16 @@ import {
 } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/modules/user'
 import { useAppStore } from '@/stores/modules/app'
+import { useWorkspaceStore } from '@/stores/modules/workspace'
 import { getCaptchaImage, verifyTwoFactor, type CaptchaResult, type LoginResult } from '@/api/login'
 import { setToken } from '@/utils/auth'
 
 const router = useRouter()
+const route = useRoute()
 const { toast } = useToast()
 const userStore = useUserStore()
 const appStore = useAppStore()
+const workspaceStore = useWorkspaceStore()
 
 // 网站配置
 const siteName = computed(() => appStore.siteConfig.name || 'RBAC Admin Pro')
@@ -64,6 +67,16 @@ const features = [
   { icon: Settings, title: '系统配置', desc: '灵活的字典、参数和通知管理' },
   { icon: BarChart3, title: '系统监控', desc: '操作日志、登录日志、在线用户' },
 ]
+
+const getLoginRedirectPath = () => {
+  const redirect = route.query.redirect
+  return typeof redirect === 'string' && redirect.startsWith('/') ? redirect : workspaceStore.defaultPath
+}
+
+const redirectAfterLogin = async () => {
+  await workspaceStore.fetchConfig(true)
+  router.push(getLoginRedirectPath())
+}
 
 // 获取验证码
 const loadCaptcha = async () => {
@@ -135,7 +148,7 @@ const handleLogin = async () => {
       userStore.$patch({ token: result.token })
       await userStore.getInfo()
       toast({ title: '登录成功', description: '欢迎回来，' + username.value })
-      router.push('/')
+      await redirectAfterLogin()
     }
   } catch (error) {
     const message = error instanceof Error && error.message ? error.message : '用户名或密码错误'
@@ -167,7 +180,7 @@ const handleTwoFactorVerify = async () => {
     userStore.$patch({ token: response.data.token })
     await userStore.getInfo()
     toast({ title: '登录成功', description: '欢迎回来，' + username.value })
-    router.push('/')
+    await redirectAfterLogin()
   } catch (error) {
     const message = error instanceof Error && error.message ? error.message : '验证码错误'
     toast({ title: '验证失败', description: message, variant: 'destructive' })

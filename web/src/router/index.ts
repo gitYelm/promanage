@@ -74,10 +74,59 @@ const router = createRouter({
           meta: { title: '系统设置', icon: 'settings-2', roles: ['admin'] },
         },
         {
+          path: 'system/workspace-config',
+          name: 'WorkspaceConfig',
+          component: () => import('@/views/system/workspace/index.vue'),
+          meta: { title: '工作台配置', icon: 'layout-dashboard' },
+        },
+        {
           path: 'system/notice',
           name: 'Notice',
           component: () => import('@/views/system/notice/index.vue'),
           meta: { title: '通知公告', icon: 'bell' },
+        },
+        // Bug Module
+        {
+          path: 'bug/tickets',
+          name: 'BugTickets',
+          component: () => import('@/views/bug/tickets/index.vue'),
+          meta: { title: 'Bug 列表', icon: 'bug' },
+        },
+        {
+          path: 'bug/my',
+          name: 'MyBugTickets',
+          component: () => import('@/views/bug/tickets/index.vue'),
+          meta: { title: '我的 Bug', icon: 'user-check' },
+        },
+        {
+          path: 'bug/create',
+          name: 'BugCreate',
+          component: () => import('@/views/bug/tickets/create.vue'),
+          meta: { title: '提交 Bug', icon: 'plus-square' },
+        },
+        {
+          path: 'bug/projects',
+          name: 'BugProjects',
+          component: () => import('@/views/bug/projects/index.vue'),
+          meta: { title: '项目管理', icon: 'folder-kanban' },
+        },
+        {
+          path: 'bug/modules',
+          name: 'BugModules',
+          component: () => import('@/views/bug/modules/index.vue'),
+          meta: { title: '模块管理', icon: 'blocks' },
+        },
+        {
+          path: 'bug/versions',
+          name: 'BugVersions',
+          component: () => import('@/views/bug/versions/index.vue'),
+          meta: { title: '版本管理', icon: 'git-branch' },
+        },
+        {
+          path: 'bug/statistics',
+          name: 'BugStatistics',
+          component: () => import('@/views/bug/statistics/index.vue'),
+          meta: { title: 'Bug 看板', icon: 'bar-chart-3' },
         },
         // Monitor Module
         {

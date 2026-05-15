@@ -37,3 +37,6 @@ server-nestjs/dist
 .env.local
 .env.*.local
 .run/*
+
+# Local browser automation artifacts
+.playwright-cli/

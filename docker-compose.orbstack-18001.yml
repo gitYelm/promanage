@@ -1,0 +1,29 @@
+# OrbStack 本地部署覆盖配置
+# 使用方式：
+# docker compose -p bug-feedback-18001 -f docker-compose.yml -f docker-compose.orbstack-18001.yml up -d --build
+
+services:
+  postgres:
+    container_name: bug-feedback-18001-postgres
+
+  redis:
+    container_name: bug-feedback-18001-redis
+
+  server:
+    container_name: bug-feedback-18001-server
+    build:
+      context: .
+      dockerfile: server-nestjs/Dockerfile.orbstack
+    volumes:
+      - server_logs:/app/server-nestjs/logs
+      - ./server-nestjs/uploads:/app/server-nestjs/uploads
+      - ./server-nestjs/exports:/app/server-nestjs/exports
+      - ./server-nestjs/commits.json:/app/server-nestjs/commits.json:ro
+
+  web:
+    container_name: bug-feedback-18001-web
+    build:
+      context: .
+      dockerfile: web/Dockerfile.orbstack
+    ports: !override
+      - "18001:80"

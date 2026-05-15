@@ -27,8 +27,9 @@ async function clearUserStatusCache() {
 
   try {
     // 清除所有用户状态缓存
-    const invalidKeys = await redis.keys('auth:invalid_users:*')
-    const validKeys = await redis.keys('auth:valid_users:*')
+    const keyPrefix = process.env.REDIS_KEY_PREFIX || ''
+    const invalidKeys = await redis.keys(`${keyPrefix}auth:invalid_users:*`)
+    const validKeys = await redis.keys(`${keyPrefix}auth:valid_users:*`)
     const allKeys = [...invalidKeys, ...validKeys]
 
     if (allKeys.length > 0) {
@@ -1835,6 +1836,219 @@ async function main() {
   // 12. 登录日志 - 无初始数据，由实际登录行为产生
 
   // 13. 操作日志 - 无初始数据，由实际操作行为产生
+
+
+  // 8. 初始化 Bug 反馈系统菜单、角色、字典和演示项目
+  const bugRoles = [
+    { roleKey: 'bug_project_owner', roleName: 'Bug 项目负责人', roleSort: 20, remark: '管理项目内 Bug、成员、分派和统计' },
+    { roleKey: 'bug_product_owner', roleName: 'Bug 产品负责人', roleSort: 21, remark: '确认 Bug 有效性并分派处理' },
+    { roleKey: 'bug_developer', roleName: 'Bug 开发人员', roleSort: 22, remark: '处理分派给自己的 Bug' },
+    { roleKey: 'bug_tester', roleName: 'Bug 测试人员', roleSort: 23, remark: '提交、验证和关闭 Bug' },
+    { roleKey: 'bug_submitter', roleName: 'Bug 提交人', roleSort: 24, remark: '提交并跟踪本人 Bug' },
+  ]
+  const ensuredBugRoles = [] as Array<{ roleKey: string; roleId: bigint }>
+  for (const role of bugRoles) {
+    const ensured = await ensureRole({ ...role, status: '0', dataScope: '2' })
+    ensuredBugRoles.push({ roleKey: role.roleKey, roleId: ensured.roleId })
+  }
+
+  const bugDir = await ensureMenu({
+    menuName: 'Bug 管理',
+    path: '/bug',
+    component: 'Layout',
+    orderNum: 4,
+    menuType: 'M',
+    visible: '0',
+    status: '0',
+    icon: 'bug',
+    isFrame: 1,
+    parentId: null,
+  })
+  const bugTicketMenu = await ensureMenu({
+    menuName: 'Bug 列表',
+    parentId: bugDir.menuId,
+    path: 'tickets',
+    component: 'bug/tickets/index',
+    orderNum: 1,
+    menuType: 'C',
+    visible: '0',
+    status: '0',
+    perms: 'bug:ticket:list',
+    icon: 'list-checks',
+    isFrame: 1,
+  })
+  const bugMyMenu = await ensureMenu({
+    menuName: '我的 Bug',
+    parentId: bugDir.menuId,
+    path: 'my',
+    component: 'bug/tickets/index',
+    orderNum: 2,
+    menuType: 'C',
+    visible: '0',
+    status: '0',
+    perms: 'bug:ticket:my',
+    icon: 'user-check',
+    isFrame: 1,
+  })
+  const bugCreateMenu = await ensureMenu({
+    menuName: '提交 Bug',
+    parentId: bugDir.menuId,
+    path: 'create',
+    component: 'bug/tickets/create',
+    orderNum: 3,
+    menuType: 'C',
+    visible: '0',
+    status: '0',
+    perms: 'bug:ticket:add',
+    icon: 'plus-square',
+    isFrame: 1,
+  })
+  const bugStatisticsMenu = await ensureMenu({
+    menuName: 'Bug 看板',
+    parentId: bugDir.menuId,
+    path: 'statistics',
+    component: 'bug/statistics/index',
+    orderNum: 4,
+    menuType: 'C',
+    visible: '0',
+    status: '0',
+    perms: 'bug:statistics:view',
+    icon: 'bar-chart-3',
+    isFrame: 1,
+  })
+  const bugProjectMenu = await ensureMenu({
+    menuName: '项目管理',
+    parentId: bugDir.menuId,
+    path: 'projects',
+    component: 'bug/projects/index',
+    orderNum: 5,
+    menuType: 'C',
+    visible: '0',
+    status: '0',
+    perms: 'bug:project:list',
+    icon: 'folder-kanban',
+    isFrame: 1,
+  })
+  const bugModuleMenu = await ensureMenu({
+    menuName: '模块管理',
+    parentId: bugDir.menuId,
+    path: 'modules',
+    component: 'bug/modules/index',
+    orderNum: 6,
+    menuType: 'C',
+    visible: '0',
+    status: '0',
+    perms: 'bug:module:list',
+    icon: 'blocks',
+    isFrame: 1,
+  })
+  const bugVersionMenu = await ensureMenu({
+    menuName: '版本管理',
+    parentId: bugDir.menuId,
+    path: 'versions',
+    component: 'bug/versions/index',
+    orderNum: 7,
+    menuType: 'C',
+    visible: '0',
+    status: '0',
+    perms: 'bug:version:list',
+    icon: 'git-branch',
+    isFrame: 1,
+  })
+
+  const ticketButtons = [
+    ['Bug 详情', 'bug:ticket:query'],
+    ['Bug 编辑', 'bug:ticket:edit'],
+    ['Bug 删除', 'bug:ticket:remove'],
+    ['Bug 指派', 'bug:ticket:assign'],
+    ['状态变更', 'bug:ticket:changeStatus'],
+    ['Bug 确认', 'bug:ticket:confirm'],
+    ['Bug 驳回', 'bug:ticket:reject'],
+    ['开始修复', 'bug:ticket:startFix'],
+    ['提交验证', 'bug:ticket:submitVerify'],
+    ['验证 Bug', 'bug:ticket:verify'],
+    ['关闭 Bug', 'bug:ticket:close'],
+    ['重新打开', 'bug:ticket:reopen'],
+    ['评论列表', 'bug:comment:list'],
+    ['新增评论', 'bug:comment:add'],
+    ['删除评论', 'bug:comment:remove'],
+    ['附件列表', 'bug:attachment:list'],
+    ['上传附件', 'bug:attachment:upload'],
+    ['下载附件', 'bug:attachment:download'],
+    ['预览附件', 'bug:attachment:preview'],
+    ['删除附件', 'bug:attachment:remove'],
+  ]
+  for (const [menuName, perms] of ticketButtons) {
+    await ensureButton({ menuName, parentId: bugTicketMenu.menuId, perms, orderNum: 1 })
+  }
+  await ensureButton({ menuName: '我的 Bug 查询', parentId: bugMyMenu.menuId, perms: 'bug:ticket:my', orderNum: 1 })
+  await ensureButton({ menuName: '提交 Bug', parentId: bugCreateMenu.menuId, perms: 'bug:ticket:add', orderNum: 1 })
+  await ensureButton({ menuName: '统计导出', parentId: bugStatisticsMenu.menuId, perms: 'bug:statistics:export', orderNum: 1 })
+  for (const [parent, prefix] of [
+    [bugProjectMenu, 'bug:project'],
+    [bugModuleMenu, 'bug:module'],
+    [bugVersionMenu, 'bug:version'],
+  ] as const) {
+    for (const [name, action] of [['查询', 'query'], ['新增', 'add'], ['修改', 'edit'], ['删除', 'remove']]) {
+      await ensureButton({ menuName: `${parent.menuName}${name}`, parentId: parent.menuId, perms: `${prefix}:${action}`, orderNum: 1 })
+    }
+  }
+  await ensureButton({ menuName: '项目成员', parentId: bugProjectMenu.menuId, perms: 'bug:project:member', orderNum: 5 })
+
+  const bugDictTypes = [
+    ['Bug 状态', 'bug_status'],
+    ['Bug 类型', 'bug_type'],
+    ['Bug 严重程度', 'bug_severity'],
+    ['Bug 优先级', 'bug_priority'],
+    ['Bug 环境', 'bug_environment'],
+    ['Bug 项目角色', 'bug_member_role'],
+    ['Bug 版本状态', 'bug_version_status'],
+  ]
+  for (const [dictName, dictType] of bugDictTypes) {
+    const exists = await prisma.sysDictType.findFirst({ where: { dictType } })
+    if (!exists) await prisma.sysDictType.create({ data: { dictName, dictType, status: '0' } })
+  }
+  const bugDictData = [
+    ['bug_status', '待确认', 'pending_confirm', 1], ['bug_status', '已确认', 'confirmed', 2], ['bug_status', '已分配', 'assigned', 3], ['bug_status', '修复中', 'fixing', 4], ['bug_status', '待验证', 'pending_verify', 5], ['bug_status', '已关闭', 'closed', 6], ['bug_status', '已驳回', 'rejected', 7], ['bug_status', '无法复现', 'cannot_reproduce', 8], ['bug_status', '重复问题', 'duplicate', 9], ['bug_status', '暂不处理', 'suspended', 10], ['bug_status', '重新打开', 'reopened', 11],
+    ['bug_type', '功能异常', 'function', 1], ['bug_type', '界面问题', 'ui', 2], ['bug_type', '性能问题', 'performance', 3], ['bug_type', '兼容问题', 'compatibility', 4], ['bug_type', '安全问题', 'security', 5],
+    ['bug_severity', '致命', 'blocker', 1], ['bug_severity', '严重', 'critical', 2], ['bug_severity', '一般', 'major', 3], ['bug_severity', '轻微', 'minor', 4],
+    ['bug_priority', '紧急', 'urgent', 1], ['bug_priority', '高', 'high', 2], ['bug_priority', '中', 'medium', 3], ['bug_priority', '低', 'low', 4],
+    ['bug_environment', '生产', 'production', 1], ['bug_environment', '预发', 'staging', 2], ['bug_environment', '测试', 'testing', 3], ['bug_environment', '本地', 'local', 4],
+    ['bug_member_role', '项目负责人', 'owner', 1], ['bug_member_role', '产品负责人', 'product', 2], ['bug_member_role', '开发人员', 'developer', 3], ['bug_member_role', '测试人员', 'tester', 4], ['bug_member_role', '观察者', 'viewer', 5],
+    ['bug_version_status', '规划中', 'planning', 1], ['bug_version_status', '测试中', 'testing', 2], ['bug_version_status', '已发布', 'released', 3], ['bug_version_status', '已归档', 'archived', 4],
+  ]
+  for (const [dictType, dictLabel, dictValue, dictSort] of bugDictData) {
+    const exists = await prisma.sysDictData.findFirst({ where: { dictType: String(dictType), dictValue: String(dictValue) } })
+    if (!exists) await prisma.sysDictData.create({ data: { dictType: String(dictType), dictLabel: String(dictLabel), dictValue: String(dictValue), dictSort: Number(dictSort), status: '0', isDefault: 'N' } })
+  }
+
+  const allBugMenus = await prisma.sysMenu.findMany({ where: { OR: [{ menuId: bugDir.menuId }, { parentId: bugDir.menuId }, { parentId: { in: [bugTicketMenu.menuId, bugMyMenu.menuId, bugCreateMenu.menuId, bugStatisticsMenu.menuId, bugProjectMenu.menuId, bugModuleMenu.menuId, bugVersionMenu.menuId] } }] }, select: { menuId: true } })
+  await prisma.sysRoleMenu.createMany({ data: allBugMenus.map((m) => ({ roleId: adminRole.roleId, menuId: m.menuId })), skipDuplicates: true })
+  for (const role of ensuredBugRoles) {
+    await prisma.sysRoleMenu.createMany({ data: allBugMenus.map((m) => ({ roleId: role.roleId, menuId: m.menuId })), skipDuplicates: true })
+  }
+
+  const demoProject = await prisma.bugProject.upsert({
+    where: { projectKey_delFlag: { projectKey: 'ADMIN', delFlag: '0' } },
+    update: { projectName: '后台管理系统', status: '0' },
+    create: { projectName: '后台管理系统', projectKey: 'ADMIN', ownerId: adminUser.userId, description: 'Bug 反馈系统默认演示项目' },
+  })
+  await prisma.bugProjectModule.upsert({
+    where: { projectId_moduleName_delFlag: { projectId: demoProject.projectId, moduleName: 'Bug 管理', delFlag: '0' } },
+    update: { status: '0' },
+    create: { projectId: demoProject.projectId, moduleName: 'Bug 管理', defaultAssigneeId: adminUser.userId, orderNum: 1 },
+  })
+  await prisma.bugProjectVersion.upsert({
+    where: { projectId_versionNo_delFlag: { projectId: demoProject.projectId, versionNo: 'v1.0.0', delFlag: '0' } },
+    update: { status: 'testing' },
+    create: { projectId: demoProject.projectId, versionNo: 'v1.0.0', versionName: '初始版本', status: 'testing' },
+  })
+  await prisma.bugProjectMember.upsert({
+    where: { projectId_userId_memberRole: { projectId: demoProject.projectId, userId: adminUser.userId, memberRole: 'owner' } },
+    update: { status: '0' },
+    create: { projectId: demoProject.projectId, userId: adminUser.userId, memberRole: 'owner', isDefault: true },
+  })
+  console.log('Initialized bug feedback menus, roles, dicts and demo project')
 
   console.log('Seeding finished.')
 }

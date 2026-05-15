@@ -21,6 +21,10 @@ else
   echo "✅ 数据库已有数据，跳过种子数据导入"
 fi
 
+echo "🧩 补齐 Bug 团队角色、演示账号和工作台配置..."
+node scripts/ensure-bug-team-roles.mjs
+node scripts/ensure-workspace-config.mjs
+
 echo "🎉 数据库准备完成，启动应用..."
 
 # 启动应用

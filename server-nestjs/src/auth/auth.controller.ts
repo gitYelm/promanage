@@ -75,13 +75,11 @@ export class AuthController {
     const userAgent = req.headers['user-agent'] || ''
     const { browser, os } = this.parseUserAgent(userAgent)
 
-    // 注册在线用户
     if (res.token) {
-      await this.onlineService.add({
+      await this.registerOnlineUser({
         token: res.token,
         userName: loginDto.username,
         ipaddr: IpUtil.getClientIp(req),
-        loginTime: new Date(),
         browser,
         os,
       })
@@ -153,17 +151,42 @@ export class AuthController {
       username: string
     }
 
-    // 注册在线用户
-    await this.onlineService.add({
+    await this.registerOnlineUser({
       token: res.token,
       userName: tokenPayload.username,
       ipaddr: IpUtil.getClientIp(req),
-      loginTime: new Date(),
       browser,
       os,
     })
 
     return res
+  }
+
+  private async registerOnlineUser(user: {
+    token: string
+    userName: string
+    ipaddr: string
+    browser: string
+    os: string
+  }) {
+    const allowMultiDevice = await this.securityConfigService.isMultiDeviceLoginAllowed()
+
+    if (!allowMultiDevice) {
+      // 关闭多点登录时，先让同账号旧 Token 失效，再登记新会话。
+      const oldTokens = await this.onlineService.getTokensByUserName(user.userName)
+      for (const token of oldTokens) {
+        if (token === user.token) continue
+        await this.tokenBlacklist.add(token)
+        await this.onlineService.remove(token)
+      }
+    }
+
+    const ttl = await this.securityConfigService.getSessionTimeoutSeconds()
+    await this.onlineService.add({
+      ...user,
+      loginTime: new Date(),
+      ttl,
+    })
   }
 
   @Get('twoFactor/setup')

@@ -126,3 +126,8 @@ export function importUserExcel(file: File, updateSupport = false) {
     headers: { 'Content-Type': 'multipart/form-data' },
   }).then((res: any) => res.data)
 }
+
+
+export function listUserOptions(keyword = '') {
+  return listUser({ pageNum: 1, pageSize: 100, userName: keyword }).then((res) => res.rows)
+}

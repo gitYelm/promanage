@@ -2,11 +2,11 @@
 # RBAC Admin Pro - 后端 Dockerfile
 # ============================================================================
 
-FROM node:20-alpine
+FROM node:22-alpine
 
 # 安装必要的构建工具和 pnpm
 RUN apk add --no-cache python3 make g++ tzdata && \
-    corepack enable && corepack prepare pnpm@latest --activate
+    corepack enable && corepack prepare pnpm@10.31.0 --activate
 
 # 设置时区
 ENV TZ=Asia/Shanghai

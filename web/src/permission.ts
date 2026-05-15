@@ -2,6 +2,7 @@ import router, { getLoginPath } from './router'
 import { useUserStore } from './stores/modules/user'
 import { useMenuStore } from './stores/modules/menu'
 import { useAppStore } from './stores/modules/app'
+import { useWorkspaceStore } from './stores/modules/workspace'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -47,6 +48,13 @@ router.beforeEach(async (to, _from, next) => {
         // 已有角色信息，确保菜单和路由已加载
         // fetchMenus 内部会检查路由是否真正注册到 Vue Router
         const menuStore = useMenuStore()
+        const workspaceStore = useWorkspaceStore()
+        await workspaceStore.fetchConfig()
+        const dashboardTarget = workspaceStore.resolveDashboardTarget(to.path)
+        if (dashboardTarget !== to.path) {
+          next({ path: dashboardTarget, query: to.query, replace: true })
+          return
+        }
         const prevMenuLength = menuStore.menuList.length
         try {
           await menuStore.fetchMenus()
@@ -84,10 +92,14 @@ router.beforeEach(async (to, _from, next) => {
 
           // 获取动态菜单
           const menuStore = useMenuStore()
+          const workspaceStore = useWorkspaceStore()
+          await workspaceStore.fetchConfig()
           await menuStore.fetchMenus()
 
+          const nextPath = to.path === '/' ? workspaceStore.defaultPath : workspaceStore.resolveDashboardTarget(to.path)
+
           // 路由已动态添加，需要用 path 重新导航让新路由生效
-          next({ path: to.path, query: to.query, replace: true })
+          next({ path: nextPath, query: to.query, replace: true })
         } catch {
           await userStore.logout()
           next(`${loginPath}?redirect=${to.path}`)
@@ -100,8 +112,8 @@ router.beforeEach(async (to, _from, next) => {
     if (to.path === loginPath) {
       next()
     } else {
-      // 未登录且访问非登录页，显示 404（不暴露真实登录入口）
-      next({ name: 'NotFound', replace: true })
+      // 未登录访问系统入口或受保护页面时跳转登录页，并保留原目标用于登录后回跳。
+      next({ path: loginPath, query: { redirect: to.fullPath }, replace: true })
       NProgress.done()
     }
   }

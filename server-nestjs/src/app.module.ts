@@ -24,6 +24,8 @@ import { MailModule } from './common/mail/mail.module'
 import { ExcelModule } from './common/excel/excel.module'
 import { ExportTaskModule } from './common/export/export-task.module'
 import { ChangelogModule } from './system/changelog/changelog.module'
+import { BugModule } from './bug/bug.module'
+import { WorkspaceConfigModule } from './system/workspace/workspace-config.module'
 
 @Module({
   imports: [
@@ -54,6 +56,8 @@ import { ChangelogModule } from './system/changelog/changelog.module'
     ExcelModule,
     ExportTaskModule,
     ChangelogModule,
+    WorkspaceConfigModule,
+    BugModule,
   ],
   controllers: [AppController],
   providers: [
