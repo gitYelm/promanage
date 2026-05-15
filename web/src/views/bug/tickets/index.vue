@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,7 +16,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { formatDate } from '@/utils/format'
 import { addBugComment, bugProjectOptions, bugUserOptions, getBugTicket, listBugModules, listBugTickets, runBugAction, updateBugTicket } from '@/api/bug'
-import { dispatchBugPendingCountRefresh } from '../shared/bug-events'
+import { BUG_LIST_STALE_EVENT, BUG_TICKET_OPEN_EVENT, dispatchBugPendingCountRefresh, type BugTicketOpenEventDetail } from '../shared/bug-events'
 import type { BugActionOption, BugModule, BugProject, BugTicket, BugUserRef } from '@/api/bug/types'
 import { ALL_OPTION_VALUE, BUG_ACTION_LABELS, BUG_ENVIRONMENT_OPTIONS, BUG_PRIORITY_OPTIONS, BUG_SEVERITY_OPTIONS, BUG_STATUS_OPTIONS, BUG_TYPE_OPTIONS, actionLabel, normalizeAll, optionLabel } from '../shared/bug-options'
 import AttachmentList from './components/AttachmentList.vue'
@@ -35,6 +36,7 @@ const showDetail = ref(false)
 const showAction = ref(false)
 const currentAction = ref<BugActionOption | null>(null)
 const editOpen = ref(false)
+const listStale = ref(false)
 const isMyPage = computed(() => route.path === '/bug/my')
 const query = reactive({ pageNum: 1, pageSize: 20, keyword: '', projectId: ALL_OPTION_VALUE, moduleId: ALL_OPTION_VALUE, status: ALL_OPTION_VALUE, severity: ALL_OPTION_VALUE, priority: ALL_OPTION_VALUE, assigneeId: ALL_OPTION_VALUE, submitterId: ALL_OPTION_VALUE, beginTime: '', endTime: '' })
 const actionForm = reactive({ remark: '', assigneeId: '', dueTime: '', duplicateOfId: '' })
@@ -47,6 +49,7 @@ async function getList() {
     const res = await listBugTickets({ ...query, projectId: normalizeAll(query.projectId), moduleId: normalizeAll(query.moduleId), status: normalizeAll(query.status), severity: normalizeAll(query.severity), priority: normalizeAll(query.priority), assigneeId: normalizeAll(query.assigneeId), submitterId: normalizeAll(query.submitterId), beginTime: query.beginTime ? new Date(query.beginTime).toISOString() : undefined, endTime: query.endTime ? new Date(query.endTime).toISOString() : undefined, mine: isMyPage.value ? 'true' : undefined })
     rows.value = res.rows
     total.value = res.total
+    listStale.value = false
   } finally {
     loading.value = false
   }
@@ -70,8 +73,9 @@ function resetQuery() {
   getList()
 }
 
-async function openDetail(row: BugTicket) {
-  detail.value = await getBugTicket(row.ticketId)
+async function openDetail(row: BugTicket | string) {
+  const ticketId = typeof row === 'string' ? row : row.ticketId
+  detail.value = await getBugTicket(ticketId)
   showDetail.value = true
 }
 
@@ -133,12 +137,30 @@ async function comment() {
   detail.value = await getBugTicket(detail.value.ticketId)
 }
 
+
+function handleListStale() {
+  listStale.value = true
+}
+
+function handleTicketOpen(event: Event) {
+  const detailEvent = event as CustomEvent<BugTicketOpenEventDetail>
+  if (detailEvent.detail?.ticketId) void openDetail(detailEvent.detail.ticketId)
+}
+
 watch(() => route.path, () => getList())
 
 onMounted(async () => {
   projects.value = await bugProjectOptions()
   users.value = await bugUserOptions()
+  window.addEventListener(BUG_LIST_STALE_EVENT, handleListStale)
+  window.addEventListener(BUG_TICKET_OPEN_EVENT, handleTicketOpen)
   getList()
+  if (typeof route.query.ticketId === 'string') void openDetail(route.query.ticketId)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener(BUG_LIST_STALE_EVENT, handleListStale)
+  window.removeEventListener(BUG_TICKET_OPEN_EVENT, handleTicketOpen)
 })
 </script>
 
@@ -151,6 +173,13 @@ onMounted(async () => {
         <Button v-hasPermi="['bug:ticket:add']" as-child><router-link to="/bug/create">提交 Bug</router-link></Button>
       </div>
     </div>
+    <Alert v-if="listStale" class="border-primary/30 bg-primary/5">
+      <AlertTitle>有新的 Bug 动态</AlertTitle>
+      <AlertDescription class="flex items-center justify-between gap-3">
+        <span>收到新的 Bug 通知，点击刷新列表查看最新内容。</span>
+        <Button size="sm" @click="getList">刷新列表</Button>
+      </AlertDescription>
+    </Alert>
     <div class="flex flex-wrap gap-3 rounded-lg border bg-background p-4">
       <Input v-model="query.keyword" placeholder="标题/编号" class="w-48" @keyup.enter="getList" />
       <Select v-model="query.projectId" @update:model-value="loadModules"><SelectTrigger class="w-44"><SelectValue placeholder="项目" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select>

@@ -13,6 +13,7 @@ import { RoleModule } from './system/role/role.module'
 import { DictModule } from './system/dict/dict.module'
 import { SysConfigModule } from './system/config/config.module'
 import { NoticeModule } from './system/notice/notice.module'
+import { NotificationModule } from './system/notification/notification.module'
 import { OperationLogInterceptor } from './common/interceptors/operation-log.interceptor'
 import { PermissionGuard } from './common/guards/permission.guard'
 import { PostModule } from './system/post/post.module'
@@ -49,6 +50,7 @@ import { WorkspaceConfigModule } from './system/workspace/workspace-config.modul
     DictModule,
     SysConfigModule,
     NoticeModule,
+    NotificationModule,
     MonitorModule,
     PostModule,
     UploadModule,

@@ -77,6 +77,7 @@ export const ErrorCode = {
   CONFIG_KEY_EXISTS: 80002,
   CANNOT_DELETE_BUILTIN_CONFIG: 80003,
   NOTICE_NOT_FOUND: 80004,
+  NOTIFICATION_NOT_FOUND: 80005,
 
   // ==================== 监控日志 (9xxxx) ====================
   OPER_LOG_NOT_FOUND: 90001,
@@ -177,6 +178,7 @@ export const ErrorCodeMessage: Record<ErrorCodeType, string> = {
   [ErrorCode.CONFIG_KEY_EXISTS]: '参数键名已存在',
   [ErrorCode.CANNOT_DELETE_BUILTIN_CONFIG]: '系统内置参数,不能删除',
   [ErrorCode.NOTICE_NOT_FOUND]: '通知公告不存在',
+  [ErrorCode.NOTIFICATION_NOT_FOUND]: '站内通知不存在',
 
   // 监控日志
   [ErrorCode.OPER_LOG_NOT_FOUND]: '操作日志不存在',

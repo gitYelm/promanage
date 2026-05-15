@@ -85,6 +85,12 @@ const router = createRouter({
           component: () => import('@/views/system/notice/index.vue'),
           meta: { title: '通知公告', icon: 'bell' },
         },
+        {
+          path: 'system/notification',
+          name: 'Notification',
+          component: () => import('@/views/system/notification/index.vue'),
+          meta: { title: '站内通知', icon: 'bell-ring', perms: ['system:notification:list'] },
+        },
         // Bug Module
         {
           path: 'bug/tickets',

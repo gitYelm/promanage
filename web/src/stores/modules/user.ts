@@ -3,6 +3,7 @@ import { login, logout, getInfo, type LoginData } from '@/api/login'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { useMenuStore } from './menu'
 import { useWorkspaceStore } from './workspace'
+import { useNotificationStore } from './notification'
 
 interface RoleInfo {
   roleId: string
@@ -96,6 +97,8 @@ export const useUserStore = defineStore('user', {
       // 清空菜单缓存
       const menuStore = useMenuStore()
       const workspaceStore = useWorkspaceStore()
+      const notificationStore = useNotificationStore()
+      notificationStore.disconnectStream()
       menuStore.clearMenus()
       workspaceStore.clearConfig()
     },

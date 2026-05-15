@@ -102,6 +102,8 @@ model SysUser {
   bugComments         BugComment[]
   bugAttachments      BugAttachment[]
   bugHistories        BugHistory[]
+  receivedNotifications SysUserNotification[] @relation("NotificationRecipient")
+  actedNotifications    SysUserNotification[] @relation("NotificationActor")
 
   @@unique([userName, delFlag])
   @@index([deptId])
@@ -437,6 +439,40 @@ model SysLoginLog {
   @@index([userName])
   @@index([status])
   @@map("sys_login_log")
+}
+
+model SysUserNotification {
+  /// 通知ID
+  notificationId   BigInt    @id @default(autoincrement()) @map("notification_id")
+  /// 接收用户ID
+  recipientId      BigInt    @map("recipient_id")
+  /// 触发用户ID
+  actorId          BigInt?   @map("actor_id")
+  /// 通知类型
+  notificationType String    @map("notification_type") @db.VarChar(50)
+  /// 业务类型
+  businessType     String    @map("business_type") @db.VarChar(50)
+  /// 业务ID
+  businessId       BigInt?   @map("business_id")
+  /// 通知标题
+  title            String    @db.VarChar(200)
+  /// 通知内容
+  content          String?   @db.VarChar(1000)
+  /// 扩展载荷
+  payload          Json?
+  /// 已读时间
+  readTime         DateTime? @map("read_time") @db.Timestamp(6)
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag          String?   @default("0") @map("del_flag") @db.Char(1)
+  /// 创建时间
+  createTime       DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  recipient        SysUser   @relation("NotificationRecipient", fields: [recipientId], references: [userId])
+  actor            SysUser?  @relation("NotificationActor", fields: [actorId], references: [userId])
+
+  @@index([recipientId, readTime, createTime])
+  @@index([businessType, businessId])
+  @@index([notificationType])
+  @@map("sys_user_notification")
 }
 
 /// 通知公告表

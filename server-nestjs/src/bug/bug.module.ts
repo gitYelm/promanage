@@ -12,9 +12,11 @@ import { BugAttachmentController } from './ticket/bug-attachment.controller'
 import { BugAttachmentService } from './ticket/bug-attachment.service'
 import { BugStatisticsService } from './ticket/bug-statistics.service'
 import { BugStatisticsExportProvider } from './ticket/bug-statistics-export.provider'
+import { NotificationModule } from '../system/notification/notification.module'
+import { BugNotificationService } from './bug-notification.service'
 
 @Module({
-  imports: [PrismaModule, LoggerModule, UploadModule],
+  imports: [PrismaModule, LoggerModule, UploadModule, NotificationModule],
   controllers: [BugProjectController, BugTicketController, BugAttachmentController],
   providers: [
     BugAccessService,
@@ -24,6 +26,7 @@ import { BugStatisticsExportProvider } from './ticket/bug-statistics-export.prov
     BugAttachmentService,
     BugStatisticsService,
     BugStatisticsExportProvider,
+    BugNotificationService,
   ],
 })
 export class BugModule {}

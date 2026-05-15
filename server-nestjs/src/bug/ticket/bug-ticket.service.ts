@@ -8,6 +8,7 @@ import { BUG_ACTION, BUG_PENDING_STATUSES, BUG_STATUS, type BugAction } from '..
 import { getBugTransition, getBugTransitions } from '../constants/bug-workflow.config'
 import { buildBugNo } from '../utils/bug-number.util'
 import { BugAccessService, type RequestUserLike } from '../bug-access.service'
+import { BugNotificationService } from '../bug-notification.service'
 import {
   BugActionDto,
   CreateBugCommentDto,
@@ -22,6 +23,7 @@ export class BugTicketService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly access: BugAccessService,
+    private readonly bugNotification: BugNotificationService,
   ) {}
 
   async list(query: QueryBugTicketDto, user: RequestUserLike) {
@@ -85,6 +87,7 @@ export class BugTicketService {
     await this.bindAttachments(ticket.ticketId, dto.attachmentIds, BigInt(user.userId))
     await this.addHistory(ticket.ticketId, BigInt(user.userId), BUG_ACTION.CREATE, '', ticket.status)
     this.logger.log(`创建 Bug: ${ticket.ticketNo}`, 'BugTicketService')
+    await this.bugNotification.notifyCreated(ticket, user)
     return this.detail(String(ticket.ticketId), user)
   }
 
@@ -132,6 +135,7 @@ export class BugTicketService {
 
     const updated = await this.prisma.bugTicket.update({ where: { ticketId: ticket.ticketId }, data })
     await this.addHistory(ticket.ticketId, BigInt(user.userId), action, ticket.status, updated.status, dto.remark)
+    await this.bugNotification.notifyAction(ticket, updated, action, user, dto.remark)
     return this.detail(ticketId, user)
   }
 
@@ -142,6 +146,7 @@ export class BugTicketService {
     })
     await this.bindAttachments(BigInt(ticketId), dto.attachmentIds, BigInt(user.userId), comment.commentId)
     await this.addHistory(BigInt(ticketId), BigInt(user.userId), BUG_ACTION.COMMENT, '', '', dto.content)
+    await this.bugNotification.notifyComment(BigInt(ticketId), user, dto.content)
     return comment
   }
 

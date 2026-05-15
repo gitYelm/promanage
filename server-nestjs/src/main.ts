@@ -134,6 +134,7 @@ async function bootstrap() {
     .addTag('字典数据', '字典数据管理')
     .addTag('参数配置', '系统参数配置')
     .addTag('通知公告', '系统通知公告')
+    .addTag('站内通知', '用户站内实时通知')
     .addTag('操作日志', '操作日志记录')
     .addTag('登录日志', '登录日志记录')
     .addTag('在线用户', '在线用户管理')
