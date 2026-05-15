@@ -85,6 +85,7 @@ import UserDetailDialog from '@/components/business/UserDetailDialog.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import ExportButton from '@/components/common/ExportButton.vue'
 import ExportDialog from '@/components/common/ExportDialog.vue'
@@ -636,6 +637,7 @@ onMounted(async () => {
         <p class="text-sm text-muted-foreground">管理系统用户、分配角色和部门</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button variant="outline" size="sm" @click="handleImport">
           <FileUp class="h-4 w-4 sm:mr-2" />
           <span class="hidden sm:inline">导入</span>

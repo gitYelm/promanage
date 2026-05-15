@@ -46,6 +46,7 @@ import {
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
@@ -587,6 +588,7 @@ onMounted(() => {
         <p class="text-muted-foreground">管理系统角色及其权限分配</p>
       </div>
       <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button @click="handleAdd">
           <Plus class="mr-2 h-4 w-4" />
           新增角色

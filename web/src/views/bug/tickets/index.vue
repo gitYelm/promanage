@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/toast/use-toast'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { formatDate } from '@/utils/format'
 import { addBugComment, bugProjectOptions, bugUserOptions, getBugTicket, listBugModules, listBugTickets, runBugAction, updateBugTicket } from '@/api/bug'
 import { dispatchBugPendingCountRefresh } from '../shared/bug-events'
@@ -145,7 +146,10 @@ onMounted(async () => {
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between">
       <div><h2 class="text-2xl font-bold">{{ isMyPage ? '我的 Bug' : 'Bug 列表' }}</h2><p class="text-muted-foreground">跟踪 Bug 确认、分派、修复和验证闭环。</p></div>
-      <Button v-hasPermi="['bug:ticket:add']" as-child><router-link to="/bug/create">提交 Bug</router-link></Button>
+      <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
+        <Button v-hasPermi="['bug:ticket:add']" as-child><router-link to="/bug/create">提交 Bug</router-link></Button>
+      </div>
     </div>
     <div class="flex flex-wrap gap-3 rounded-lg border bg-background p-4">
       <Input v-model="query.keyword" placeholder="标题/编号" class="w-48" @keyup.enter="getList" />

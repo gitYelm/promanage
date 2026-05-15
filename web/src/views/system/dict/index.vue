@@ -6,6 +6,7 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { formatDate } from '@/utils/format'
 import {
   getStatusOptionsWithAll,
@@ -350,10 +351,13 @@ onMounted(() => {
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">字典管理</h2>
         <p class="text-muted-foreground">管理系统字典类型和字典数据</p>
       </div>
-      <Button @click="handleAddType">
-        <Plus class="mr-2 h-4 w-4" />
-        新增字典
-      </Button>
+      <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getTypeList" />
+        <Button @click="handleAddType">
+          <Plus class="mr-2 h-4 w-4" />
+          新增字典
+        </Button>
+      </div>
     </div>
 
     <!-- Filters -->

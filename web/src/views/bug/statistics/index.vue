@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import ExportDialog from '@/components/common/ExportDialog.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { bugStatistics } from '@/api/bug'
 import type { BugStatisticsResult } from '@/api/bug/types'
 import { BUG_SEVERITY_OPTIONS, BUG_STATUS_OPTIONS, optionLabel } from '../shared/bug-options'
 
 const exportOpen = ref(false)
+const loading = ref(false)
 const data = ref<BugStatisticsResult>({ total: 0, byStatus: [], bySeverity: [], byProject: [], byAssignee: [] })
 const statusRows = computed(() => data.value.byStatus.map((item) => ({ label: optionLabel(BUG_STATUS_OPTIONS, item.status), count: item._count.status })))
 const severityRows = computed(() => data.value.bySeverity.map((item) => ({ label: optionLabel(BUG_SEVERITY_OPTIONS, item.severity), count: item._count.severity })))
@@ -19,8 +21,17 @@ function percent(count: number) {
   return data.value.total ? Math.round((count / data.value.total) * 100) : 0
 }
 
+async function loadStatistics() {
+  loading.value = true
+  try {
+    data.value = await bugStatistics()
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(async () => {
-  data.value = await bugStatistics()
+  await loadStatistics()
 })
 </script>
 
@@ -28,7 +39,10 @@ onMounted(async () => {
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold">Bug 看板</h2>
-      <Button v-hasPermi="['bug:statistics:export']" variant="outline" @click="exportOpen = true">导出统计</Button>
+      <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="loadStatistics" />
+        <Button v-hasPermi="['bug:statistics:export']" variant="outline" @click="exportOpen = true">导出统计</Button>
+      </div>
     </div>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
       <Card><CardHeader><CardTitle>总 Bug 数</CardTitle></CardHeader><CardContent class="text-3xl font-bold">{{ data.total }}</CardContent></Card>

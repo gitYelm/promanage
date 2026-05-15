@@ -33,6 +33,7 @@ import { Plus, Edit, Trash2, RefreshCw, Search, RotateCw } from 'lucide-vue-next
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import LeaveConfirmDialog from '@/components/common/LeaveConfirmDialog.vue'
 import { formatDate } from '@/utils/format'
@@ -217,6 +218,7 @@ onMounted(() => {
         <p class="text-muted-foreground">管理系统全局配置参数</p>
       </div>
       <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button variant="outline" @click="handleRefreshCache">
           <RotateCw class="mr-2 h-4 w-4" />
           刷新缓存

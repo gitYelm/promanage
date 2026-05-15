@@ -57,6 +57,7 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { listMenu, delMenu, addMenu, updateMenu, changeMenuStatus } from '@/api/system/menu'
 import type { SysMenu } from '@/api/system/types'
 import {
@@ -336,6 +337,7 @@ onMounted(() => {
         <p class="text-muted-foreground">管理系统菜单、路由及按钮权限</p>
       </div>
       <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button variant="outline" size="sm" @click="toggleExpandAll">
           <Maximize2 v-if="!expandedAll" class="mr-2 h-4 w-4" />
           <Minimize2 v-else class="mr-2 h-4 w-4" />

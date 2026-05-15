@@ -32,6 +32,7 @@ import {
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import {
   addWorkspaceConfig,
@@ -203,7 +204,10 @@ onMounted(async () => {
         <h2 class="text-2xl font-bold tracking-tight">工作台配置</h2>
         <p class="text-muted-foreground">配置不同角色登录首页、仪表盘替代页面和默认展开菜单。</p>
       </div>
-      <Button v-hasPermi="['system:workspace:add']" @click="handleAdd"><Plus class="mr-2 h-4 w-4" />新增</Button>
+      <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
+        <Button v-hasPermi="['system:workspace:add']" @click="handleAdd"><Plus class="mr-2 h-4 w-4" />新增</Button>
+      </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">

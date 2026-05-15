@@ -7,12 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { addBugModule, bugProjectOptions, bugUserOptions, deleteBugModules, listBugModules, updateBugModule } from '@/api/bug'
 import type { BugModule, BugProject, BugUserRef } from '@/api/bug/types'
 import { ALL_OPTION_VALUE, NONE_OPTION_VALUE, normalizeAll, normalizeOptional } from '../shared/bug-options'
 
 const { toast } = useToast()
+const loading = ref(false)
 const rows = ref<BugModule[]>([])
 const projects = ref<BugProject[]>([])
 const users = ref<BugUserRef[]>([])
@@ -23,9 +25,14 @@ const form = reactive<Partial<BugModule>>({ projectId: '', moduleName: '', defau
 const canSave = computed(() => Boolean(form.projectId && form.moduleName))
 
 async function getList() {
-  const res = await listBugModules({ ...query, projectId: normalizeAll(query.projectId) })
-  rows.value = res.rows
-  total.value = res.total
+  loading.value = true
+  try {
+    const res = await listBugModules({ ...query, projectId: normalizeAll(query.projectId) })
+    rows.value = res.rows
+    total.value = res.total
+  } finally {
+    loading.value = false
+  }
 }
 
 function add() {
@@ -70,7 +77,10 @@ onMounted(async () => {
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold">模块管理</h2>
-      <Button v-hasPermi="['bug:module:add']" @click="add">新增模块</Button>
+      <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
+        <Button v-hasPermi="['bug:module:add']" @click="add">新增模块</Button>
+      </div>
     </div>
     <div class="flex gap-2">
       <Select v-model="query.projectId"><SelectTrigger class="w-48"><SelectValue placeholder="全部项目" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select>

@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast/use-toast'
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import {
   addBugProject,
   bugUserOptions,
@@ -23,6 +24,7 @@ import type { BugMember, BugProject, BugUserRef } from '@/api/bug/types'
 import { BUG_MEMBER_ROLE_OPTIONS, NONE_OPTION_VALUE, normalizeOptional, optionLabel } from '../shared/bug-options'
 
 const { toast } = useToast()
+const loading = ref(false)
 const rows = ref<BugProject[]>([])
 const users = ref<BugUserRef[]>([])
 const members = ref<BugMember[]>([])
@@ -37,9 +39,14 @@ const canSave = computed(() => Boolean(form.projectName && form.projectKey))
 const canSaveMember = computed(() => Boolean(currentProject.value && memberForm.userId && memberForm.memberRole))
 
 async function getList() {
-  const res = await listBugProjects(query)
-  rows.value = res.rows
-  total.value = res.total
+  loading.value = true
+  try {
+    const res = await listBugProjects(query)
+    rows.value = res.rows
+    total.value = res.total
+  } finally {
+    loading.value = false
+  }
 }
 
 function add() {
@@ -103,7 +110,10 @@ onMounted(async () => {
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold">项目管理</h2>
-      <Button v-hasPermi="['bug:project:add']" @click="add">新增项目</Button>
+      <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
+        <Button v-hasPermi="['bug:project:add']" @click="add">新增项目</Button>
+      </div>
     </div>
     <div class="flex gap-2"><Input v-model="query.keyword" class="w-60" placeholder="项目名称/标识" @keyup.enter="getList" /><Button @click="getList">搜索</Button></div>
     <div class="rounded-md border">

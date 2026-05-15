@@ -44,6 +44,7 @@ import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 
 const { toast } = useToast()
 
@@ -166,6 +167,7 @@ onMounted(() => {
         <p class="text-muted-foreground">记录系统登录日志信息</p>
       </div>
       <div class="flex items-center gap-2">
+        <DataRefreshButton :loading="loading" @refresh="getList" />
         <AlertDialog v-model:open="showCleanDialog">
           <Button variant="destructive" @click="showCleanDialog = true">
             <Trash2 class="mr-2 h-4 w-4" />
