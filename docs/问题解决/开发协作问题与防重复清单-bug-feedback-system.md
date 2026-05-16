@@ -1,6 +1,6 @@
 # 开发协作问题与防重复清单 - bug-feedback-system
 
-最后更新时间：2026-05-14
+最后更新时间：2026-05-15
 
 ## 当前项目事实
 
@@ -17,8 +17,8 @@
 - 后台登录后提交 Bug
 - 支持截图、日志、录屏附件
 - 截图需要在线标注：画框、箭头、线条、编号、文字
-- 第一版不做通知
-- 流程完整：待确认 → 已确认 → 已分配 → 修复中 → 待验证 → 已关闭
+- 第一版启用站内通知，但只通知下一步处理人；tester 提交后通知 reviewer/负责人，不通知 developer
+- 流程完整：tester 提交 → reviewer 确认/驳回 → reviewer 分派 developer → developer 修复 → tester 验证/关闭
 
 ## 防重复规则
 
@@ -160,17 +160,21 @@
 
 ### 现象
 
-- Bug 可以不指派负责人；所有有权限看到该 Bug 的团队成员都应能开始修复和提交验证。
-- 所有状态操作说明均为选填，不能因为未填说明阻塞状态流转。
-- 列表页需要直接展示常用状态快捷操作，不能只在详情弹窗里操作。
+- 已确认新逻辑：tester 提交 Bug 后先进入 reviewer/负责人审核池，developer 在分派前不应看到也不应收到通知。
+- 旧规则“Bug 可以不指派负责人、开发可直接开始修复”已废弃，避免绕过审核与分派。
+- 所有状态操作说明当前仍为选填，不能因为未填说明阻塞状态流转；但修复/验证说明业务上建议填写。
+- 列表页需要直接展示服务端计算出的常用状态快捷操作，不能只在详情弹窗里操作。
 - “我的 Bug”菜单右侧需要显示当前待处理 Bug 数量。
 
 ### 防重复规则
 
 - 状态流转仍必须集中在 `server-nestjs/src/bug/constants/bug-workflow.config.ts` 和 `BugTicketService.action`，页面不得直接写状态字段。
-- `start_fix` 和 `submit_verify` 不应强制当前用户是负责人；未指派负责人时也能操作。
-- `remarkRequired` 不应再用于强制操作说明必填；前端弹窗统一显示“操作说明（选填）”。
-- Bug 列表行应携带 `availableActions`，列表快捷按钮复用服务端计算出的可用动作。
+- `start_fix` 只能从 `assigned` 进入 `fixing`，`submit_verify` 只能由被分派的开发人员执行。
+- `confirmed` / `reopened` 必须先由 reviewer/项目负责人/产品负责人执行 `assign`，再通知指定 developer 处理。
+- tester 提交 Bug 的 `notifyCreated` 只通知 owner/product/reviewer，禁止通知 developer、模块默认负责人或项目全部成员。
+- Bug 数据范围必须区分角色：reviewer/owner/product 可看项目审核池；developer 只能看分派给自己或自己参与评论的 Bug；tester/submitter 看本人相关。
+- Bug 列表、详情、统计、项目驾驶舱都必须复用服务端数据范围，不能只在列表页过滤。
+- Bug 列表行应携带按当前用户和当前工单计算的 `availableActions`，列表快捷按钮复用服务端结果。
 - 快捷操作组件应独立维护，避免把列表页继续堆成长文件。
 - “我的 Bug”待处理数量通过后端 `pending-count` 接口获取；提交或状态变更后通过前端事件刷新徽标。
 - 标记重复不要让用户手动填写重复 Bug ID；必须提供编号/标题搜索选择器，并在确认前校验已选择原 Bug。
@@ -192,6 +196,84 @@
 - `web/src/views/bug/tickets/components/DuplicateBugSelector.vue`
 - `web/src/components/DynamicMenu.vue`
 - `web/src/views/bug/shared/bug-events.ts`
+
+## 表格/列表刷新按钮规范迁移说明
+
+页面级“刷新当前数据”已经沉淀为全局项目开发规范，不再作为单次防重复章节维护。
+
+正式规范路径：`docs/开发规范/前端页面交互与视觉规范.md#3-页面级刷新按钮规范`
+
+以后新增或改造表格、列表、看板和统计数据页时，按上述开发规范执行；本问题解决文档只保留具体问题现象、根因和排障经验。
+
+## Prisma P2022 与数据库漂移防重复规则
+
+### 现象
+
+- Bug 列表、项目选项、项目管理相关接口返回 500。
+- 后端错误码为 `PrismaClientKnownRequestError P2022`。
+- 报错 SQL 位置可能出现在 `this.prisma.bugTicket.findMany()`、`this.prisma.bugProject.findMany()` 等查询。
+- PostgreSQL 原始错误可能为：
+  - `column bug_ticket.requirement_id does not exist`
+  - `column bug_project.project_stage does not exist`
+
+### 根因
+
+1. `server-nestjs/prisma/schema.prisma` 已包含项目管理字段/表，例如 `BugProject.projectStage`、`BugTicket.requirementId`、`ProjectIteration`、`ProjectMilestone`、`ProjectRequirement`。
+2. Prisma Client 会按当前 schema 查询 `bug_project.project_stage`、`bug_ticket.requirement_id` 等真实数据库列。
+3. 当前数据库真实表结构没有完整同步 `20260515000100_add_project_management` 迁移，导致 Prisma 查询时报 P2022。
+4. 这属于数据库迁移未执行、执行到一半，或 `_prisma_migrations` 记录与真实表结构不一致的数据库漂移问题；如果连续出现不同缺列，说明不是单个字段问题，而是整段迁移未完整落地。
+
+### 错误决策链路
+
+- 不能通过删除 `ticketInclude()` 里的 `requirement`、`iteration`、`milestone` 临时绕过。
+- 不能通过删除 `BugProject` 查询里的项目阶段、计划时间、风险字段临时绕过。
+- 不能通过移除 DTO 查询字段绕过。
+- 不能只改前端列表字段隐藏问题。
+- 正确方向是补齐数据库表结构，并确保后续环境迁移一致。
+
+### 防重复规则
+
+- Prisma schema 新增字段后，必须同时提交对应迁移文件。
+- 遇到 P2022 优先检查数据库真实表结构，而不是先改业务查询。
+- 对已存在环境的补丁迁移必须使用幂等 SQL，例如 `ADD COLUMN IF NOT EXISTS`、`CREATE INDEX IF NOT EXISTS`。
+- 外键约束补丁必须先判断约束是否存在，避免重复执行失败。
+- 未经用户明确同意，不主动执行数据库迁移或数据变更命令。
+
+### 写入前检查
+
+- 检查 `server-nestjs/prisma/schema.prisma` 中模型字段和 `@map` 数据库列名。
+- 检查 `server-nestjs/prisma/migrations/*/migration.sql` 是否已经包含对应列。
+- 如需确认数据库现状，先只读查询 `information_schema.columns` 和 `_prisma_migrations`。
+
+### 写入后验收
+
+- 新增迁移后，提醒用户手动执行迁移命令。
+- 迁移执行后，确认 `bug_project` 至少包含：
+  - `project_stage`
+  - `planned_start_time`
+  - `planned_end_time`
+  - `progress`
+  - `risk_level`
+- 确认 `bug_ticket` 至少包含：
+  - `requirement_id`
+  - `iteration_id`
+  - `milestone_id`
+- 确认存在项目管理表：
+  - `project_iteration`
+  - `project_milestone`
+  - `project_requirement`
+  - `project_activity`
+- 再访问 Bug 列表和项目选项接口，确认不再出现 P2022。
+
+### 相关文件路径
+
+- `server-nestjs/prisma/schema.prisma`
+- `server-nestjs/prisma/migrations/20260515000100_add_project_management/migration.sql`
+- `server-nestjs/prisma/migrations/20260516000100_fix_bug_ticket_project_links/migration.sql`
+- `server-nestjs/prisma/migrations/20260516000200_fix_project_management_schema_drift/migration.sql`
+- `server-nestjs/src/bug/project/bug-project.service.ts`
+- `server-nestjs/src/bug/ticket/bug-ticket.service.ts`
+
 ## 环境与发布边界防重复规则
 
 ### 现象
