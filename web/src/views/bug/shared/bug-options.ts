@@ -54,6 +54,7 @@ export const BUG_ENVIRONMENT_OPTIONS = [
 export const BUG_MEMBER_ROLE_OPTIONS = [
   { label: '项目负责人', value: 'owner' },
   { label: '产品负责人', value: 'product' },
+  { label: '审核人员', value: 'reviewer' },
   { label: '开发人员', value: 'developer' },
   { label: '测试人员', value: 'tester' },
   { label: '观察者', value: 'viewer' },

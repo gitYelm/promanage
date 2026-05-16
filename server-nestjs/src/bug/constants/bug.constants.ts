@@ -36,6 +36,7 @@ export const BUG_ACTION = {
 export const BUG_MEMBER_ROLE = {
   OWNER: 'owner',
   PRODUCT: 'product',
+  REVIEWER: 'reviewer',
   DEVELOPER: 'developer',
   TESTER: 'tester',
   VIEWER: 'viewer',

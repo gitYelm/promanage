@@ -15,6 +15,14 @@ export interface BugProject {
   projectKey: string
   ownerId?: string
   description?: string
+  projectStage?: string
+  plannedStartTime?: string
+  plannedEndTime?: string
+  actualStartTime?: string
+  actualEndTime?: string
+  progress?: number
+  riskLevel?: string
+  riskNote?: string
   status?: string
   owner?: BugUserRef
 }
@@ -69,6 +77,9 @@ export interface BugTicket {
   projectId: string
   moduleId?: string
   versionId?: string
+  requirementId?: string
+  iterationId?: string
+  milestoneId?: string
   type: string
   severity: string
   priority: string
@@ -90,12 +101,16 @@ export interface BugTicket {
   project?: BugProject
   module?: BugModule
   version?: BugVersion
+  requirement?: { requirementId: string; requirementNo: string; title: string; status?: string }
+  iteration?: { iterationId: string; iterationName: string; status?: string }
+  milestone?: { milestoneId: string; milestoneName: string; status?: string }
   submitter?: BugUserRef
   assignee?: BugUserRef
   verifier?: BugUserRef
   attachments?: BugAttachment[]
   comments?: Array<{ commentId: string; content: string; user?: BugUserRef; createTime?: string }>
   histories?: Array<{ historyId: string; action: string; fromValue?: string; toValue?: string; remark?: string; createTime?: string; operator?: BugUserRef }>
+  canEdit?: boolean
   availableActions?: BugActionOption[]
 }
 

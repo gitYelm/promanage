@@ -22,6 +22,9 @@ export interface BugTicketQuery {
   priority?: string
   assigneeId?: string
   submitterId?: string
+  requirementId?: string
+  iterationId?: string
+  milestoneId?: string
   beginTime?: string
   endTime?: string
   mine?: string
@@ -33,6 +36,9 @@ export interface BugTicketForm {
   projectId?: string
   moduleId?: string
   versionId?: string
+  requirementId?: string
+  iterationId?: string
+  milestoneId?: string
   type?: string
   severity?: string
   priority?: string
@@ -51,6 +57,14 @@ export interface BugProjectForm {
   projectKey?: string
   ownerId?: string
   description?: string
+  projectStage?: string
+  plannedStartTime?: string
+  plannedEndTime?: string
+  actualStartTime?: string
+  actualEndTime?: string
+  progress?: number
+  riskLevel?: string
+  riskNote?: string
   status?: string
 }
 
@@ -195,8 +209,8 @@ export function deleteBugMember(memberId: string) {
   return request({ url: `/bug/projects/members/${memberId}`, method: 'delete' })
 }
 
-export function bugUserOptions(keyword = ''): Promise<BugUserRef[]> {
-  return request({ url: '/bug/users/options', method: 'get', params: { keyword } }).then(
+export function bugUserOptions(keyword = '', params: Record<string, unknown> = {}): Promise<BugUserRef[]> {
+  return request({ url: '/bug/users/options', method: 'get', params: { ...params, keyword } }).then(
     unwrap<BugUserRef[]>,
   )
 }

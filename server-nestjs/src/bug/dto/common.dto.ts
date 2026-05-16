@@ -20,3 +20,17 @@ export class BugKeywordDto extends BugPageDto {
   @IsString()
   keyword?: string
 }
+
+export class BugUserOptionQueryDto extends BugKeywordDto {
+  /** 项目ID */
+  @ApiPropertyOptional({ description: '项目ID' })
+  @IsOptional()
+  @IsString()
+  projectId?: string
+
+  /** 项目内角色 */
+  @ApiPropertyOptional({ description: '项目内角色，例如 developer/reviewer/tester' })
+  @IsOptional()
+  @IsString()
+  memberRole?: string
+}

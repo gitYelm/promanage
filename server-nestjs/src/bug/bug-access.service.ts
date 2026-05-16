@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { BusinessException } from '../common/exceptions/business.exception'
 import { PrismaService } from '../prisma/prisma.service'
+import { BUG_ACTION, BUG_MEMBER_ROLE, BUG_STATUS, type BugAction } from './constants/bug.constants'
 
 export interface RequestUserLike {
   userId: string
@@ -69,31 +70,61 @@ export class BugAccessService {
     return [...new Set(members.map((item) => item.projectId))]
   }
 
+  async getReviewerProjectIds(userId: string): Promise<bigint[]> {
+    if (await this.isAdmin(userId)) return this.getVisibleProjectIds(userId)
+
+    const [memberProjects, ownedProjects] = await Promise.all([
+      this.prisma.bugProjectMember.findMany({
+        where: {
+          userId: BigInt(userId),
+          memberRole: { in: [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER] },
+          status: '0',
+        },
+        select: { projectId: true },
+      }),
+      this.prisma.bugProject.findMany({
+        where: { ownerId: BigInt(userId), delFlag: '0', status: '0' },
+        select: { projectId: true },
+      }),
+    ])
+    return [...new Set([...memberProjects, ...ownedProjects].map((item) => item.projectId))]
+  }
+
   async buildTicketWhere(userId: string, mine?: boolean): Promise<Prisma.BugTicketWhereInput> {
     if (await this.isAdmin(userId)) return { delFlag: '0' }
+
+    const personalWhere: Prisma.BugTicketWhereInput[] = [
+      { submitterId: BigInt(userId) },
+      { assigneeId: BigInt(userId) },
+      { verifierId: BigInt(userId) },
+      { comments: { some: { userId: BigInt(userId), delFlag: '0' } } },
+    ]
 
     if (mine) {
       return {
         delFlag: '0',
-        OR: [
-          { submitterId: BigInt(userId) },
-          { assigneeId: BigInt(userId) },
-          { verifierId: BigInt(userId) },
-          { comments: { some: { userId: BigInt(userId), delFlag: '0' } } },
-        ],
+        OR: personalWhere,
       }
     }
 
-    const projectIds = await this.getVisibleProjectIds(userId)
+    const projectIds = await this.getReviewerProjectIds(userId)
+    const testerProjectIds = await this.getTesterProjectIds(userId)
     return {
       delFlag: '0',
       OR: [
         { projectId: { in: projectIds } },
-        { submitterId: BigInt(userId) },
-        { assigneeId: BigInt(userId) },
-        { verifierId: BigInt(userId) },
+        { projectId: { in: testerProjectIds }, status: BUG_STATUS.PENDING_VERIFY },
+        ...personalWhere,
       ],
     }
+  }
+
+  private async getTesterProjectIds(userId: string): Promise<bigint[]> {
+    const members = await this.prisma.bugProjectMember.findMany({
+      where: { userId: BigInt(userId), memberRole: BUG_MEMBER_ROLE.TESTER, status: '0' },
+      select: { projectId: true },
+    })
+    return [...new Set(members.map((item) => item.projectId))]
   }
 
   async assertTicketVisible(userId: string, ticketId: string): Promise<void> {
@@ -109,18 +140,52 @@ export class BugAccessService {
     userId: string,
     permissions: string[],
     ticket: BugTicketActorInfo,
+    action: BugAction,
   ): Promise<void> {
-    void ticket
-    if (permissions.some((permission) => this.isDeveloperAction(permission))) return
     const userPermissions = await this.getUserPermissions(userId)
     if (userPermissions.includes('*:*:*')) return
     if (!permissions.some((permission) => this.matchPermission(userPermissions, permission))) {
       throw BusinessException.forbidden(`没有操作权限，需要: ${permissions.join(' 或 ')}`)
     }
-    if (permissions.includes('bug:ticket:reopen')) {
-      const isParticipant = await this.isTicketParticipant(userId, ticket)
-      if (!isParticipant) throw BusinessException.forbidden('无权重新打开该 Bug')
+    if (this.isReviewerAction(action)) {
+      await this.assertProjectReviewer(userId, ticket.projectId)
+      return
     }
+    if (this.isDeveloperAction(action)) {
+      this.assertAssignedDeveloper(userId, ticket)
+      return
+    }
+    if (this.isVerifyAction(action)) {
+      await this.assertTicketVerifier(userId, ticket)
+      return
+    }
+    if (action === BUG_ACTION.REOPEN) {
+      await this.assertCanReopen(userId, ticket)
+      return
+    }
+    if (action === BUG_ACTION.CLOSE) {
+      if (ticket.status === BUG_STATUS.SUSPENDED) await this.assertProjectReviewer(userId, ticket.projectId)
+      else await this.assertTicketVerifier(userId, ticket)
+    }
+  }
+
+  async canTicketAction(
+    userId: string,
+    permissions: string[],
+    ticket: BugTicketActorInfo,
+    action: BugAction,
+  ): Promise<boolean> {
+    try {
+      await this.assertTicketActionAllowed(userId, permissions, ticket, action)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async isProjectReviewer(userId: string, projectId: bigint) {
+    if (await this.isAdmin(userId)) return true
+    return this.hasProjectRole(userId, projectId, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER])
   }
 
   async assertCanRemoveAttachment(userId: string, attachment: { uploaderId: bigint; ticketId: bigint | null }) {
@@ -136,16 +201,28 @@ export class BugAccessService {
     if (!isOwner) throw BusinessException.forbidden('只能删除本人上传或负责项目内的附件')
   }
 
-  private async isTicketParticipant(userId: string, ticket: BugTicketActorInfo) {
+  private async assertProjectReviewer(userId: string, projectId: bigint) {
+    if (await this.isProjectReviewer(userId, projectId)) return
+    throw BusinessException.forbidden('只有审核人员可以确认、驳回或分派 Bug')
+  }
+
+  private assertAssignedDeveloper(userId: string, ticket: BugTicketActorInfo) {
+    if (ticket.assigneeId === BigInt(userId)) return
+    throw BusinessException.forbidden('只有被分派的开发人员可以修复该 Bug')
+  }
+
+  private async assertTicketVerifier(userId: string, ticket: BugTicketActorInfo) {
     const userIdBigInt = BigInt(userId)
-    if (
-      ticket.submitterId === userIdBigInt ||
-      ticket.assigneeId === userIdBigInt ||
-      ticket.verifierId === userIdBigInt
-    ) {
-      return true
-    }
-    return this.isActiveProjectMember(userId, ticket.projectId, ['owner', 'product', 'tester'])
+    if (ticket.verifierId === userIdBigInt) return
+    if (await this.hasProjectRole(userId, ticket.projectId, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER, BUG_MEMBER_ROLE.TESTER])) return
+    throw BusinessException.forbidden('只有测试人员或审核人员可以验证该 Bug')
+  }
+
+  private async assertCanReopen(userId: string, ticket: BugTicketActorInfo) {
+    const userIdBigInt = BigInt(userId)
+    if (ticket.submitterId === userIdBigInt || ticket.verifierId === userIdBigInt) return
+    if (await this.hasProjectRole(userId, ticket.projectId, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER, BUG_MEMBER_ROLE.TESTER])) return
+    throw BusinessException.forbidden('只有提交人、测试人员或审核人员可以重新打开该 Bug')
   }
 
   private async isActiveProjectMember(userId: string, projectId: bigint, roles: string[]) {
@@ -156,8 +233,38 @@ export class BugAccessService {
     return Boolean(member)
   }
 
-  private isDeveloperAction(permission: string) {
-    return permission === 'bug:ticket:startFix' || permission === 'bug:ticket:submitVerify'
+  private async hasProjectRole(userId: string, projectId: bigint, roles: string[]) {
+    const [member, project] = await Promise.all([
+      this.isActiveProjectMember(userId, projectId, roles),
+      roles.includes(BUG_MEMBER_ROLE.OWNER)
+        ? this.prisma.bugProject.findFirst({
+            where: { projectId, ownerId: BigInt(userId), delFlag: '0', status: '0' },
+            select: { projectId: true },
+          })
+        : null,
+    ])
+    return member || Boolean(project)
+  }
+
+  private isReviewerAction(action: BugAction) {
+    const reviewerActions: readonly BugAction[] = [
+      BUG_ACTION.CONFIRM,
+      BUG_ACTION.REJECT,
+      BUG_ACTION.CANNOT_REPRODUCE,
+      BUG_ACTION.DUPLICATE,
+      BUG_ACTION.SUSPEND,
+      BUG_ACTION.RESTORE,
+      BUG_ACTION.ASSIGN,
+    ]
+    return reviewerActions.includes(action)
+  }
+
+  private isDeveloperAction(action: BugAction) {
+    return action === BUG_ACTION.START_FIX || action === BUG_ACTION.SUBMIT_VERIFY
+  }
+
+  private isVerifyAction(action: BugAction) {
+    return action === BUG_ACTION.VERIFY_PASS || action === BUG_ACTION.VERIFY_FAIL
   }
 
   private matchPermission(userPermissions: string[], required: string): boolean {

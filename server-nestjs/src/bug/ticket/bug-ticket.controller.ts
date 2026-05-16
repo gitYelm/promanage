@@ -65,7 +65,7 @@ export class BugTicketController {
   }
 
   @Put(':ticketId')
-  @RequirePermission('bug:ticket:edit')
+  @RequirePermission('bug:ticket:edit', 'bug:ticket:add', 'bug:ticket:my')
   @Log('Bug 工单', BusinessType.UPDATE)
   @ApiOperation({ summary: '编辑 Bug' })
   update(
@@ -101,6 +101,7 @@ export class BugTicketController {
     'bug:ticket:changeStatus',
     'bug:ticket:list',
     'bug:ticket:my',
+    'bug:ticket:assign',
     'bug:ticket:confirm',
     'bug:ticket:reject',
     'bug:ticket:startFix',

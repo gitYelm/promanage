@@ -20,6 +20,7 @@ const notificationRoleKeys = [
   'bug_submitter',
   'bug_project_owner',
   'bug_product_owner',
+  'bug_reviewer',
   'bug_operator',
 ]
 
@@ -42,6 +43,7 @@ async function ensureNotificationMenu() {
   }
 
   await bindNotificationMenusToRoles(notificationMenu.menuId)
+  await ensureDeveloperDashboardPermission()
 }
 
 function notificationMenuData(parentId: bigint) {
@@ -65,6 +67,23 @@ async function bindNotificationMenusToRoles(notificationMenuId: bigint) {
   })
 }
 
+async function ensureDeveloperDashboardPermission() {
+  const statisticsMenu = await prisma.sysMenu.findFirst({
+    where: { perms: 'bug:statistics:view' },
+    select: { menuId: true },
+  })
+  const developerRole = await prisma.sysRole.findFirst({
+    where: { roleKey: 'developer', delFlag: '0' },
+    select: { roleId: true },
+  })
+  if (!statisticsMenu || !developerRole) return
+
+  // developer 登录后的布局会读取待处理/统计类数据，补齐只读统计权限，避免首页初始化 403。
+  await prisma.sysRoleMenu.createMany({
+    data: [{ roleId: developerRole.roleId, menuId: statisticsMenu.menuId }],
+    skipDuplicates: true,
+  })
+}
 
 ensureNotificationMenu()
   .catch((error) => {

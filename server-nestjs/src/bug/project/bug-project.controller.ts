@@ -18,6 +18,7 @@ import {
   UpdateBugVersionDto,
   UpsertBugMemberDto,
 } from '../dto/project.dto'
+import { BugUserOptionQueryDto } from '../dto/common.dto'
 
 type RequestWithUser = Request & { user: { userId: string; username: string } }
 
@@ -39,8 +40,8 @@ export class BugProjectController {
     'bug:project:member',
   )
   @ApiOperation({ summary: '获取 Bug 用户选项' })
-  userOptions(@Query('keyword') keyword?: string) {
-    return this.service.userOptions(keyword)
+  userOptions(@Query() query: BugUserOptionQueryDto) {
+    return this.service.userOptions(query)
   }
 
   @Get('projects/options')

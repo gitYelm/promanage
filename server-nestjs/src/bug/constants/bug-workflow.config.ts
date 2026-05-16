@@ -61,7 +61,7 @@ export const BUG_TRANSITIONS: BugTransitionConfig[] = [
   },
   {
     action: BUG_ACTION.START_FIX,
-    from: [BUG_STATUS.CONFIRMED, BUG_STATUS.ASSIGNED, BUG_STATUS.REOPENED],
+    from: [BUG_STATUS.ASSIGNED],
     to: BUG_STATUS.FIXING,
     permissions: ['bug:ticket:startFix'],
     label: '开始修复',

@@ -30,21 +30,16 @@ export class BugNotificationService {
   ) {}
 
   async notifyCreated(ticket: BugNotificationTicket, actor: RequestUserLike) {
-    const recipientIds = await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.DEVELOPER])
+    const recipientIds = await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER])
     await this.send(ticket, actor, recipientIds, NOTIFICATION_TYPE.BUG_CREATED, `新 Bug：${ticket.ticketNo}`, ticket.title)
   }
 
   async notifyAction(before: BugNotificationTicket, after: BugNotificationTicket, action: string, actor: RequestUserLike, remark?: string) {
-    const recipients = new Set<string>()
-    if (after.submitterId !== BigInt(actor.userId)) recipients.add(String(after.submitterId))
-    if (after.assigneeId && after.assigneeId !== BigInt(actor.userId)) recipients.add(String(after.assigneeId))
-    if (after.verifierId && after.verifierId !== BigInt(actor.userId)) recipients.add(String(after.verifierId))
-    if (action === BUG_ACTION.ASSIGN && after.assigneeId) recipients.add(String(after.assigneeId))
-
+    const recipients = await this.actionRecipients(after, action)
     const type = bugStatusNotificationType(action)
     const title = action === BUG_ACTION.ASSIGN ? `Bug 已指派：${after.ticketNo}` : `Bug 状态更新：${after.ticketNo}`
     const content = remark || `${before.status} → ${after.status}：${after.title}`
-    await this.send(after, actor, [...recipients], type, title, content, action)
+    await this.send(after, actor, recipients, type, title, content, action)
   }
 
   async notifyComment(ticketId: bigint, actor: RequestUserLike, content: string) {
@@ -62,15 +57,29 @@ export class BugNotificationService {
     return ids.filter((id): id is bigint => Boolean(id))
   }
 
+  private async actionRecipients(ticket: BugNotificationTicket, action: string) {
+    const reviewers = await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER])
+    if (action === BUG_ACTION.ASSIGN) return this.nonEmptyIds([ticket.assigneeId, ticket.submitterId])
+    if (action === BUG_ACTION.START_FIX) return this.nonEmptyIds([ticket.submitterId, ...reviewers])
+    if (action === BUG_ACTION.SUBMIT_VERIFY) return this.nonEmptyIds([ticket.submitterId, ticket.verifierId, ...reviewers, ...(await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.TESTER]))])
+    if (action === BUG_ACTION.VERIFY_FAIL || action === BUG_ACTION.REOPEN) return this.nonEmptyIds([ticket.assigneeId, ...reviewers])
+    if (action === BUG_ACTION.VERIFY_PASS || action === BUG_ACTION.CLOSE) return this.nonEmptyIds([ticket.assigneeId, ...reviewers])
+    return this.nonEmptyIds([ticket.submitterId, ticket.assigneeId, ticket.verifierId])
+  }
+
   private async projectRecipients(ticket: BugNotificationTicket, roles: string[]) {
-    const members = await this.prisma.bugProjectMember.findMany({
-      where: { projectId: ticket.projectId, memberRole: { in: roles }, status: '0' },
-      select: { userId: true },
-    })
-    const module = ticket.moduleId
-      ? await this.prisma.bugProjectModule.findUnique({ where: { moduleId: ticket.moduleId }, select: { defaultAssigneeId: true } })
-      : null
-    return this.nonEmptyIds([ticket.assigneeId, module?.defaultAssigneeId, ...members.map((item) => item.userId)])
+    const [members, project] = await Promise.all([
+      this.prisma.bugProjectMember.findMany({
+        where: { projectId: ticket.projectId, memberRole: { in: roles }, status: '0' },
+        select: { userId: true },
+      }),
+      this.prisma.bugProject.findUnique({
+        where: { projectId: ticket.projectId },
+        select: { ownerId: true },
+      }),
+    ])
+    const ownerId = roles.includes(BUG_MEMBER_ROLE.OWNER) ? project?.ownerId : undefined
+    return this.nonEmptyIds([ownerId, ...members.map((item) => item.userId)])
   }
 
   private async send(ticket: BugNotificationTicket, actor: RequestUserLike, recipients: Array<string | bigint>, notificationType: string, title: string, content: string, action?: string) {
