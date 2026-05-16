@@ -1,0 +1,101 @@
+import { Injectable } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
+import { PrismaService } from '../../prisma/prisma.service'
+import { BusinessException } from '../../common/exceptions/business.exception'
+import { BugAccessService, type RequestUserLike } from '../bug-access.service'
+import { PM_ACTIVITY_ACTION, PM_ACTIVITY_TARGET } from '../constants/project-management.constants'
+import { ITERATION_TRANSITIONS, findTransition } from '../constants/project-management-workflow.config'
+import { CreateIterationDto, PmStatusActionDto, QueryIterationDto, UpdateIterationDto } from '../dto/project-management.dto'
+import { ProjectActivityService } from './project-activity.service'
+
+@Injectable()
+export class ProjectIterationService {
+  constructor(private readonly prisma: PrismaService, private readonly access: BugAccessService, private readonly activity: ProjectActivityService) {}
+
+  async list(query: QueryIterationDto, user: RequestUserLike) {
+    const where = await this.where(query, user)
+    const pageNum = Number(query.pageNum ?? 1)
+    const pageSize = Number(query.pageSize ?? 20)
+    const [total, rows] = await Promise.all([
+      this.prisma.projectIteration.count({ where }),
+      this.prisma.projectIteration.findMany({ where, skip: (pageNum - 1) * pageSize, take: pageSize, include: { project: true, owner: true }, orderBy: { iterationId: 'desc' } }),
+    ])
+    return { total, rows }
+  }
+
+  async create(dto: CreateIterationDto, user: RequestUserLike) {
+    await this.assertProjectVisible(user.userId, BigInt(dto.projectId))
+    const row = await this.prisma.projectIteration.create({ data: this.createData(dto) })
+    await this.activity.record({ projectId: row.projectId, targetType: PM_ACTIVITY_TARGET.ITERATION, targetId: row.iterationId, action: PM_ACTIVITY_ACTION.CREATE, operatorId: BigInt(user.userId), toValue: row.status })
+    return row
+  }
+
+  async update(iterationId: string, dto: UpdateIterationDto, user: RequestUserLike) {
+    const row = await this.ensure(iterationId, user)
+    const updated = await this.prisma.projectIteration.update({ where: { iterationId: row.iterationId }, data: this.updateData(dto) })
+    await this.activity.record({ projectId: updated.projectId, targetType: PM_ACTIVITY_TARGET.ITERATION, targetId: updated.iterationId, action: PM_ACTIVITY_ACTION.UPDATE, operatorId: BigInt(user.userId) })
+    return updated
+  }
+
+  async action(iterationId: string, action: string, dto: PmStatusActionDto, user: RequestUserLike) {
+    const row = await this.ensure(iterationId, user)
+    const transition = findTransition(ITERATION_TRANSITIONS, action, row.status)
+    if (!transition) throw BusinessException.denied('当前迭代状态不允许执行该操作')
+    await this.access.assertAnyPermission(user.userId, transition.permissions)
+    const updated = await this.prisma.projectIteration.update({ where: { iterationId: row.iterationId }, data: { status: transition.to } })
+    await this.activity.record({ projectId: updated.projectId, targetType: PM_ACTIVITY_TARGET.ITERATION, targetId: updated.iterationId, action: PM_ACTIVITY_ACTION.STATUS, operatorId: BigInt(user.userId), fromValue: row.status, toValue: updated.status, remark: dto.remark })
+    return updated
+  }
+
+  async remove(ids: string[], user: RequestUserLike) {
+    const idList = ids.map((id) => BigInt(id))
+    const rows = await this.prisma.projectIteration.findMany({ where: { iterationId: { in: idList }, delFlag: '0' } })
+    await Promise.all(rows.map((row) => this.assertProjectVisible(user.userId, row.projectId)))
+    await this.prisma.projectIteration.updateMany({ where: { iterationId: { in: idList } }, data: { delFlag: '2' } })
+    return {}
+  }
+
+  private async where(query: QueryIterationDto, user: RequestUserLike): Promise<Prisma.ProjectIterationWhereInput> {
+    const projectIds = await this.access.getVisibleProjectIds(user.userId)
+    const where: Prisma.ProjectIterationWhereInput = { delFlag: '0', projectId: { in: projectIds } }
+    if (query.keyword) where.iterationName = { contains: query.keyword }
+    if (query.projectId) {
+      const id = BigInt(query.projectId)
+      where.projectId = projectIds.some((item) => item === id) ? id : { in: [] }
+    }
+    if (query.status) where.status = query.status
+    return where
+  }
+
+  private createData(dto: CreateIterationDto): Prisma.ProjectIterationUncheckedCreateInput {
+    return { projectId: BigInt(dto.projectId), iterationName: dto.iterationName, goal: dto.goal ?? '', status: dto.status ?? 'planned', ownerId: this.bigIntOrUndefined(dto.ownerId), startDate: dto.startDate ? new Date(dto.startDate) : undefined, endDate: dto.endDate ? new Date(dto.endDate) : undefined, summary: dto.summary ?? '', riskNote: dto.riskNote ?? '' }
+  }
+
+  private updateData(dto: UpdateIterationDto): Prisma.ProjectIterationUncheckedUpdateInput {
+    const data: Prisma.ProjectIterationUncheckedUpdateInput = {}
+    if (dto.projectId !== undefined) data.projectId = BigInt(dto.projectId)
+    if (dto.iterationName !== undefined) data.iterationName = dto.iterationName
+    if (dto.goal !== undefined) data.goal = dto.goal
+    if (dto.status !== undefined) data.status = dto.status
+    if (dto.ownerId !== undefined) data.ownerId = dto.ownerId ? BigInt(dto.ownerId) : null
+    if (dto.startDate !== undefined) data.startDate = dto.startDate ? new Date(dto.startDate) : null
+    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null
+    if (dto.summary !== undefined) data.summary = dto.summary
+    if (dto.riskNote !== undefined) data.riskNote = dto.riskNote
+    return data
+  }
+
+  private async ensure(iterationId: string, user: RequestUserLike) {
+    const row = await this.prisma.projectIteration.findFirst({ where: { iterationId: BigInt(iterationId), delFlag: '0' } })
+    if (!row) throw BusinessException.notFound('迭代不存在')
+    await this.assertProjectVisible(user.userId, row.projectId)
+    return row
+  }
+
+  private async assertProjectVisible(userId: string, projectId: bigint) {
+    const ids = await this.access.getVisibleProjectIds(userId)
+    if (!ids.some((id) => id === projectId)) throw BusinessException.forbidden('无权访问该项目')
+  }
+
+  private bigIntOrUndefined(value?: string) { return value ? BigInt(value) : undefined }
+}

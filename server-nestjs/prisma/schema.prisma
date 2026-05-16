@@ -102,6 +102,12 @@ model SysUser {
   bugComments         BugComment[]
   bugAttachments      BugAttachment[]
   bugHistories        BugHistory[]
+  projectRequirementsOwned ProjectRequirement[] @relation("RequirementOwner")
+  projectRequirementsDeveloped ProjectRequirement[] @relation("RequirementDeveloper")
+  projectRequirementsTested ProjectRequirement[] @relation("RequirementTester")
+  projectIterationsOwned ProjectIteration[] @relation("IterationOwner")
+  projectMilestonesOwned ProjectMilestone[] @relation("MilestoneOwner")
+  projectActivities ProjectActivity[]
   receivedNotifications SysUserNotification[] @relation("NotificationRecipient")
   actedNotifications    SysUserNotification[] @relation("NotificationActor")
 
@@ -616,6 +622,22 @@ model BugProject {
   ownerId       BigInt?             @map("owner_id")
   /// 项目描述
   description   String?             @default("") @db.VarChar(500)
+  /// 项目阶段
+  projectStage  String?             @default("requirement") @map("project_stage") @db.VarChar(30)
+  /// 计划开始时间
+  plannedStartTime DateTime?        @map("planned_start_time") @db.Timestamp(6)
+  /// 计划完成时间
+  plannedEndTime DateTime?          @map("planned_end_time") @db.Timestamp(6)
+  /// 实际开始时间
+  actualStartTime DateTime?         @map("actual_start_time") @db.Timestamp(6)
+  /// 实际完成时间
+  actualEndTime DateTime?           @map("actual_end_time") @db.Timestamp(6)
+  /// 项目进度 0-100
+  progress      Int?                @default(0)
+  /// 风险等级（low/medium/high）
+  riskLevel     String?             @default("low") @map("risk_level") @db.VarChar(20)
+  /// 风险说明
+  riskNote      String?             @default("") @map("risk_note") @db.VarChar(1000)
   /// 状态（0正常 1停用）
   status        String?             @default("0") @db.Char(1)
   /// 删除标志（0代表存在 2代表删除）
@@ -633,9 +655,16 @@ model BugProject {
   versions      BugProjectVersion[]
   members       BugProjectMember[]
   tickets       BugTicket[]
+  requirements  ProjectRequirement[]
+  iterations    ProjectIteration[]
+  milestones    ProjectMilestone[]
+  activities    ProjectActivity[]
 
   @@unique([projectKey, delFlag])
   @@index([ownerId])
+  @@index([projectStage])
+  @@index([riskLevel])
+  @@index([plannedEndTime])
   @@index([status, delFlag])
   @@map("bug_project")
 }
@@ -663,6 +692,7 @@ model BugProjectModule {
   project          BugProject  @relation(fields: [projectId], references: [projectId])
   defaultAssignee  SysUser?    @relation("BugModuleDefaultAssignee", fields: [defaultAssigneeId], references: [userId])
   tickets          BugTicket[]
+  requirements     ProjectRequirement[]
 
   @@unique([projectId, moduleName, delFlag])
   @@index([projectId, status, delFlag])
@@ -682,6 +712,12 @@ model BugProjectVersion {
   versionName String?     @default("") @map("version_name") @db.VarChar(100)
   /// 发布时间
   releaseDate DateTime?   @map("release_date") @db.Timestamp(6)
+  /// 关联迭代ID
+  iterationId BigInt?     @map("iteration_id")
+  /// 关联里程碑ID
+  milestoneId BigInt?     @map("milestone_id")
+  /// 发布说明
+  releaseNote String?     @default("") @map("release_note")
   /// 状态（planning/testing/released/archived）
   status      String?     @default("planning") @db.VarChar(20)
   /// 删除标志（0代表存在 2代表删除）
@@ -691,10 +727,15 @@ model BugProjectVersion {
   /// 更新时间
   updateTime  DateTime?   @updatedAt @map("update_time") @db.Timestamp(6)
   project     BugProject  @relation(fields: [projectId], references: [projectId])
+  iteration   ProjectIteration? @relation(fields: [iterationId], references: [iterationId])
+  milestone   ProjectMilestone? @relation(fields: [milestoneId], references: [milestoneId])
   tickets     BugTicket[]
+  requirements ProjectRequirement[]
 
   @@unique([projectId, versionNo, delFlag])
   @@index([projectId, status, delFlag])
+  @@index([iterationId])
+  @@index([milestoneId])
   @@map("bug_project_version")
 }
 
@@ -773,6 +814,12 @@ model BugTicket {
   verifyNote      String?         @map("verify_note")
   /// 重复关联 Bug ID
   duplicateOfId   BigInt?         @map("duplicate_of_id")
+  /// 关联需求ID
+  requirementId   BigInt?         @map("requirement_id")
+  /// 关联迭代ID
+  iterationId     BigInt?         @map("iteration_id")
+  /// 关联里程碑ID
+  milestoneId     BigInt?         @map("milestone_id")
   /// 删除标志（0代表存在 2代表删除）
   delFlag         String?         @default("0") @map("del_flag") @db.Char(1)
   /// 创建者
@@ -790,6 +837,9 @@ model BugTicket {
   assignee        SysUser?        @relation("BugAssignee", fields: [assigneeId], references: [userId])
   verifier        SysUser?        @relation("BugVerifier", fields: [verifierId], references: [userId])
   duplicateOf     BugTicket?      @relation("BugDuplicate", fields: [duplicateOfId], references: [ticketId])
+  requirement     ProjectRequirement? @relation(fields: [requirementId], references: [requirementId])
+  iteration       ProjectIteration?   @relation(fields: [iterationId], references: [iterationId])
+  milestone       ProjectMilestone?   @relation(fields: [milestoneId], references: [milestoneId])
   duplicates      BugTicket[]     @relation("BugDuplicate")
   comments        BugComment[]
   attachments     BugAttachment[]
@@ -801,9 +851,207 @@ model BugTicket {
   @@index([submitterId])
   @@index([assigneeId])
   @@index([verifierId])
+  @@index([requirementId])
+  @@index([iterationId])
+  @@index([milestoneId])
   @@index([priority, severity])
   @@index([createTime])
   @@map("bug_ticket")
+}
+
+
+/// 项目需求表
+model ProjectRequirement {
+  /// 需求ID
+  requirementId BigInt @id @default(autoincrement()) @map("requirement_id")
+  /// 需求编号
+  requirementNo String @unique @map("requirement_no") @db.VarChar(50)
+  /// 需求标题
+  title String @db.VarChar(200)
+  /// 所属项目ID
+  projectId BigInt @map("project_id")
+  /// 所属模块ID
+  moduleId BigInt? @map("module_id")
+  /// 需求类型
+  type String @default("feature") @db.VarChar(30)
+  /// 需求来源
+  source String? @default("") @db.VarChar(50)
+  /// 优先级
+  priority String @default("medium") @db.VarChar(30)
+  /// 业务价值分
+  valueScore Int? @default(0) @map("value_score")
+  /// 实现难度分
+  difficultyScore Int? @default(0) @map("difficulty_score")
+  /// 当前状态
+  status String @default("draft") @db.VarChar(30)
+  /// 需求负责人ID
+  ownerId BigInt? @map("owner_id")
+  /// 开发负责人ID
+  developerId BigInt? @map("developer_id")
+  /// 测试负责人ID
+  testerId BigInt? @map("tester_id")
+  /// 所属迭代ID
+  iterationId BigInt? @map("iteration_id")
+  /// 所属里程碑ID
+  milestoneId BigInt? @map("milestone_id")
+  /// 目标版本ID
+  versionId BigInt? @map("version_id")
+  /// 计划开始时间
+  plannedStartTime DateTime? @map("planned_start_time") @db.Timestamp(6)
+  /// 计划完成时间
+  plannedEndTime DateTime? @map("planned_end_time") @db.Timestamp(6)
+  /// 实际完成时间
+  actualEndTime DateTime? @map("actual_end_time") @db.Timestamp(6)
+  /// 需求描述
+  description String? @default("")
+  /// 验收标准
+  acceptanceCriteria String? @default("") @map("acceptance_criteria")
+  /// 备注
+  remark String? @default("") @db.VarChar(1000)
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag String? @default("0") @map("del_flag") @db.Char(1)
+  /// 创建者
+  createBy String? @default("") @map("create_by") @db.VarChar(64)
+  /// 创建时间
+  createTime DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新者
+  updateBy String? @default("") @map("update_by") @db.VarChar(64)
+  /// 更新时间
+  updateTime DateTime? @updatedAt @map("update_time") @db.Timestamp(6)
+  project BugProject @relation(fields: [projectId], references: [projectId])
+  module BugProjectModule? @relation(fields: [moduleId], references: [moduleId])
+  owner SysUser? @relation("RequirementOwner", fields: [ownerId], references: [userId])
+  developer SysUser? @relation("RequirementDeveloper", fields: [developerId], references: [userId])
+  tester SysUser? @relation("RequirementTester", fields: [testerId], references: [userId])
+  iteration ProjectIteration? @relation(fields: [iterationId], references: [iterationId])
+  milestone ProjectMilestone? @relation(fields: [milestoneId], references: [milestoneId])
+  version BugProjectVersion? @relation(fields: [versionId], references: [versionId])
+  tickets BugTicket[]
+
+  @@index([projectId, status, delFlag])
+  @@index([moduleId])
+  @@index([ownerId])
+  @@index([developerId])
+  @@index([testerId])
+  @@index([iterationId])
+  @@index([milestoneId])
+  @@index([versionId])
+  @@index([priority])
+  @@index([plannedEndTime])
+  @@map("project_requirement")
+}
+
+/// 项目迭代表
+model ProjectIteration {
+  /// 迭代ID
+  iterationId BigInt @id @default(autoincrement()) @map("iteration_id")
+  /// 所属项目ID
+  projectId BigInt @map("project_id")
+  /// 迭代名称
+  iterationName String @map("iteration_name") @db.VarChar(100)
+  /// 迭代目标
+  goal String? @default("") @db.VarChar(500)
+  /// 状态
+  status String @default("planned") @db.VarChar(30)
+  /// 负责人ID
+  ownerId BigInt? @map("owner_id")
+  /// 开始日期
+  startDate DateTime? @map("start_date") @db.Timestamp(6)
+  /// 结束日期
+  endDate DateTime? @map("end_date") @db.Timestamp(6)
+  /// 范围说明
+  summary String? @default("") @db.VarChar(1000)
+  /// 风险说明
+  riskNote String? @default("") @map("risk_note") @db.VarChar(1000)
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag String? @default("0") @map("del_flag") @db.Char(1)
+  /// 创建时间
+  createTime DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新时间
+  updateTime DateTime? @updatedAt @map("update_time") @db.Timestamp(6)
+  project BugProject @relation(fields: [projectId], references: [projectId])
+  owner SysUser? @relation("IterationOwner", fields: [ownerId], references: [userId])
+  requirements ProjectRequirement[]
+  tickets BugTicket[]
+  versions BugProjectVersion[]
+
+  @@index([projectId, status, delFlag])
+  @@index([ownerId])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("project_iteration")
+}
+
+/// 项目里程碑表
+model ProjectMilestone {
+  /// 里程碑ID
+  milestoneId BigInt @id @default(autoincrement()) @map("milestone_id")
+  /// 所属项目ID
+  projectId BigInt @map("project_id")
+  /// 里程碑名称
+  milestoneName String @map("milestone_name") @db.VarChar(100)
+  /// 对应项目阶段
+  stage String @db.VarChar(30)
+  /// 状态
+  status String @default("pending") @db.VarChar(30)
+  /// 负责人ID
+  ownerId BigInt? @map("owner_id")
+  /// 目标日期
+  targetDate DateTime? @map("target_date") @db.Timestamp(6)
+  /// 完成时间
+  completedTime DateTime? @map("completed_time") @db.Timestamp(6)
+  /// 完成条件
+  completionCriteria String? @default("") @map("completion_criteria") @db.VarChar(1000)
+  /// 备注
+  remark String? @default("") @db.VarChar(1000)
+  /// 删除标志（0代表存在 2代表删除）
+  delFlag String? @default("0") @map("del_flag") @db.Char(1)
+  /// 创建时间
+  createTime DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  /// 更新时间
+  updateTime DateTime? @updatedAt @map("update_time") @db.Timestamp(6)
+  project BugProject @relation(fields: [projectId], references: [projectId])
+  owner SysUser? @relation("MilestoneOwner", fields: [ownerId], references: [userId])
+  requirements ProjectRequirement[]
+  tickets BugTicket[]
+  versions BugProjectVersion[]
+
+  @@index([projectId, status, delFlag])
+  @@index([stage])
+  @@index([ownerId])
+  @@index([targetDate])
+  @@map("project_milestone")
+}
+
+/// 项目动态表
+model ProjectActivity {
+  /// 动态ID
+  activityId BigInt @id @default(autoincrement()) @map("activity_id")
+  /// 所属项目ID
+  projectId BigInt @map("project_id")
+  /// 目标类型
+  targetType String @map("target_type") @db.VarChar(30)
+  /// 目标ID
+  targetId BigInt @map("target_id")
+  /// 操作类型
+  action String @db.VarChar(50)
+  /// 原值
+  fromValue String? @map("from_value") @db.VarChar(500)
+  /// 新值
+  toValue String? @map("to_value") @db.VarChar(500)
+  /// 操作说明
+  remark String? @db.VarChar(1000)
+  /// 操作人ID
+  operatorId BigInt @map("operator_id")
+  /// 创建时间
+  createTime DateTime? @default(now()) @map("create_time") @db.Timestamp(6)
+  project BugProject @relation(fields: [projectId], references: [projectId])
+  operator SysUser @relation(fields: [operatorId], references: [userId])
+
+  @@index([projectId, createTime])
+  @@index([targetType, targetId])
+  @@index([operatorId])
+  @@map("project_activity")
 }
 
 /// Bug 评论表

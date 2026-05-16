@@ -928,7 +928,6 @@ async function main() {
       orderNum: 4,
     })
   }
-
   // 系统设置按钮
   const settingMenu = await getMenuByPath(systemDir.menuId, 'setting')
   if (settingMenu) {
@@ -1845,6 +1844,8 @@ async function main() {
     { roleKey: 'bug_developer', roleName: 'Bug 开发人员', roleSort: 22, remark: '处理分派给自己的 Bug' },
     { roleKey: 'bug_tester', roleName: 'Bug 测试人员', roleSort: 23, remark: '提交、验证和关闭 Bug' },
     { roleKey: 'bug_submitter', roleName: 'Bug 提交人', roleSort: 24, remark: '提交并跟踪本人 Bug' },
+    { roleKey: 'pm_manager', roleName: '项目管理负责人', roleSort: 25, remark: '管理需求、迭代、里程碑和项目进度' },
+    { roleKey: 'pm_executive', roleName: '老板/管理层', roleSort: 26, remark: '查看老板驾驶舱和项目进度摘要' },
   ]
   const ensuredBugRoles = [] as Array<{ roleKey: string; roleId: bigint }>
   for (const role of bugRoles) {
@@ -1956,6 +1957,34 @@ async function main() {
     isFrame: 1,
   })
 
+
+  const pmDir = await ensureMenu({
+    menuName: '项目管理',
+    path: '/project-management',
+    component: 'Layout',
+    orderNum: 5,
+    menuType: 'M',
+    visible: '0',
+    status: '0',
+    icon: 'folder-kanban',
+    isFrame: 1,
+    parentId: null,
+  })
+  const pmExecutiveMenu = await ensureMenu({ menuName: '老板驾驶舱', parentId: pmDir.menuId, path: 'executive-dashboard', component: 'project-management/executive-dashboard/index', orderNum: 1, menuType: 'C', visible: '0', status: '0', perms: 'pm:executive-dashboard:view', icon: 'layout-dashboard', isFrame: 1 })
+  const pmOverviewMenu = await ensureMenu({ menuName: '项目概览', parentId: pmDir.menuId, path: 'overview', component: 'project-management/overview/index', orderNum: 2, menuType: 'C', visible: '0', status: '0', perms: 'pm:project:view', icon: 'panel-top', isFrame: 1 })
+  const pmRequirementMenu = await ensureMenu({ menuName: '需求管理', parentId: pmDir.menuId, path: 'requirements', component: 'project-management/requirements/index', orderNum: 3, menuType: 'C', visible: '0', status: '0', perms: 'pm:requirement:view', icon: 'list-todo', isFrame: 1 })
+  const pmIterationMenu = await ensureMenu({ menuName: '迭代计划', parentId: pmDir.menuId, path: 'iterations', component: 'project-management/iterations/index', orderNum: 4, menuType: 'C', visible: '0', status: '0', perms: 'pm:iteration:view', icon: 'calendar-days', isFrame: 1 })
+  const pmMilestoneMenu = await ensureMenu({ menuName: '里程碑', parentId: pmDir.menuId, path: 'milestones', component: 'project-management/milestones/index', orderNum: 5, menuType: 'C', visible: '0', status: '0', perms: 'pm:milestone:view', icon: 'flag', isFrame: 1 })
+  const pmBoardMenu = await ensureMenu({ menuName: '项目看板', parentId: pmDir.menuId, path: 'board', component: 'project-management/board/index', orderNum: 6, menuType: 'C', visible: '0', status: '0', perms: 'pm:dashboard:view', icon: 'columns-3', isFrame: 1 })
+
+  for (const [menuName, perms] of [
+    ['查看全部驾驶舱', 'pm:executive-dashboard:all'], ['导出管理层周报', 'pm:executive-dashboard:export'],
+  ]) await ensureButton({ menuName, parentId: pmExecutiveMenu.menuId, perms, orderNum: 1 })
+  for (const [menuName, perms] of [['更新项目进度', 'pm:project:update']]) await ensureButton({ menuName, parentId: pmOverviewMenu.menuId, perms, orderNum: 1 })
+  for (const [menuName, perms] of [['新增需求', 'pm:requirement:create'], ['编辑需求', 'pm:requirement:update'], ['评审需求', 'pm:requirement:review'], ['流转需求', 'pm:requirement:status']]) await ensureButton({ menuName, parentId: pmRequirementMenu.menuId, perms, orderNum: 1 })
+  await ensureButton({ menuName: '管理迭代', parentId: pmIterationMenu.menuId, perms: 'pm:iteration:manage', orderNum: 1 })
+  await ensureButton({ menuName: '管理里程碑', parentId: pmMilestoneMenu.menuId, perms: 'pm:milestone:manage', orderNum: 1 })
+
   const ticketButtons = [
     ['Bug 详情', 'bug:ticket:query'],
     ['Bug 编辑', 'bug:ticket:edit'],
@@ -2003,6 +2032,12 @@ async function main() {
     ['Bug 环境', 'bug_environment'],
     ['Bug 项目角色', 'bug_member_role'],
     ['Bug 版本状态', 'bug_version_status'],
+    ['项目阶段', 'pm_project_stage'],
+    ['需求状态', 'pm_requirement_status'],
+    ['需求类型', 'pm_requirement_type'],
+    ['迭代状态', 'pm_iteration_status'],
+    ['里程碑状态', 'pm_milestone_status'],
+    ['项目风险等级', 'pm_risk_level'],
   ]
   for (const [dictName, dictType] of bugDictTypes) {
     const exists = await prisma.sysDictType.findFirst({ where: { dictType } })
@@ -2016,13 +2051,19 @@ async function main() {
     ['bug_environment', '生产', 'production', 1], ['bug_environment', '预发', 'staging', 2], ['bug_environment', '测试', 'testing', 3], ['bug_environment', '本地', 'local', 4],
     ['bug_member_role', '项目负责人', 'owner', 1], ['bug_member_role', '产品负责人', 'product', 2], ['bug_member_role', '开发人员', 'developer', 3], ['bug_member_role', '测试人员', 'tester', 4], ['bug_member_role', '观察者', 'viewer', 5],
     ['bug_version_status', '规划中', 'planning', 1], ['bug_version_status', '测试中', 'testing', 2], ['bug_version_status', '已发布', 'released', 3], ['bug_version_status', '已归档', 'archived', 4],
+    ['pm_project_stage', '需求阶段', 'requirement', 1], ['pm_project_stage', '规划阶段', 'planning', 2], ['pm_project_stage', '设计阶段', 'design', 3], ['pm_project_stage', '开发阶段', 'development', 4], ['pm_project_stage', '自测阶段', 'self_test', 5], ['pm_project_stage', '内测阶段', 'internal_test', 6], ['pm_project_stage', '待发布', 'release_ready', 7], ['pm_project_stage', '已发布', 'released', 8], ['pm_project_stage', '维护阶段', 'maintenance', 9], ['pm_project_stage', '已暂停', 'paused', 10], ['pm_project_stage', '已归档', 'archived', 11],
+    ['pm_requirement_status', '草稿', 'draft', 1], ['pm_requirement_status', '已提交', 'submitted', 2], ['pm_requirement_status', '评审中', 'reviewing', 3], ['pm_requirement_status', '已通过', 'approved', 4], ['pm_requirement_status', '已驳回', 'rejected', 5], ['pm_requirement_status', '已延期', 'deferred', 6], ['pm_requirement_status', '已排期', 'planned', 7], ['pm_requirement_status', '开发中', 'developing', 8], ['pm_requirement_status', '测试中', 'testing', 9], ['pm_requirement_status', '已验收', 'accepted', 10], ['pm_requirement_status', '已发布', 'released', 11], ['pm_requirement_status', '已关闭', 'closed', 12], ['pm_requirement_status', '变更中', 'changed', 13],
+    ['pm_requirement_type', '新功能', 'feature', 1], ['pm_requirement_type', '优化改进', 'improvement', 2], ['pm_requirement_type', '技术改造', 'technical', 3], ['pm_requirement_type', '体验优化', 'ux', 4], ['pm_requirement_type', '安全需求', 'security', 5],
+    ['pm_iteration_status', '未开始', 'planned', 1], ['pm_iteration_status', '进行中', 'active', 2], ['pm_iteration_status', '测试中', 'testing', 3], ['pm_iteration_status', '已完成', 'completed', 4], ['pm_iteration_status', '已暂停', 'paused', 5], ['pm_iteration_status', '已取消', 'cancelled', 6],
+    ['pm_milestone_status', '未开始', 'pending', 1], ['pm_milestone_status', '进行中', 'in_progress', 2], ['pm_milestone_status', '已达成', 'achieved', 3], ['pm_milestone_status', '已延期', 'delayed', 4], ['pm_milestone_status', '已取消', 'cancelled', 5],
+    ['pm_risk_level', '低风险', 'low', 1], ['pm_risk_level', '中风险', 'medium', 2], ['pm_risk_level', '高风险', 'high', 3], ['pm_risk_level', '已延期', 'delayed', 4],
   ]
   for (const [dictType, dictLabel, dictValue, dictSort] of bugDictData) {
     const exists = await prisma.sysDictData.findFirst({ where: { dictType: String(dictType), dictValue: String(dictValue) } })
     if (!exists) await prisma.sysDictData.create({ data: { dictType: String(dictType), dictLabel: String(dictLabel), dictValue: String(dictValue), dictSort: Number(dictSort), status: '0', isDefault: 'N' } })
   }
 
-  const allBugMenus = await prisma.sysMenu.findMany({ where: { OR: [{ menuId: bugDir.menuId }, { parentId: bugDir.menuId }, { parentId: { in: [bugTicketMenu.menuId, bugMyMenu.menuId, bugCreateMenu.menuId, bugStatisticsMenu.menuId, bugProjectMenu.menuId, bugModuleMenu.menuId, bugVersionMenu.menuId] } }] }, select: { menuId: true } })
+  const allBugMenus = await prisma.sysMenu.findMany({ where: { OR: [{ menuId: bugDir.menuId }, { parentId: bugDir.menuId }, { parentId: { in: [bugTicketMenu.menuId, bugMyMenu.menuId, bugCreateMenu.menuId, bugStatisticsMenu.menuId, bugProjectMenu.menuId, bugModuleMenu.menuId, bugVersionMenu.menuId] } }, { menuId: pmDir.menuId }, { parentId: pmDir.menuId }, { parentId: { in: [pmExecutiveMenu.menuId, pmOverviewMenu.menuId, pmRequirementMenu.menuId, pmIterationMenu.menuId, pmMilestoneMenu.menuId, pmBoardMenu.menuId] } }] }, select: { menuId: true } })
   await prisma.sysRoleMenu.createMany({ data: allBugMenus.map((m) => ({ roleId: adminRole.roleId, menuId: m.menuId })), skipDuplicates: true })
   for (const role of ensuredBugRoles) {
     await prisma.sysRoleMenu.createMany({ data: allBugMenus.map((m) => ({ roleId: role.roleId, menuId: m.menuId })), skipDuplicates: true })

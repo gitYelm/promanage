@@ -51,6 +51,24 @@ export class QueryBugTicketDto extends BugPageDto {
   @IsString()
   submitterId?: string
 
+  /** 关联需求ID */
+  @ApiPropertyOptional({ description: '关联需求ID' })
+  @IsOptional()
+  @IsString()
+  requirementId?: string
+
+  /** 关联迭代ID */
+  @ApiPropertyOptional({ description: '关联迭代ID' })
+  @IsOptional()
+  @IsString()
+  iterationId?: string
+
+  /** 关联里程碑ID */
+  @ApiPropertyOptional({ description: '关联里程碑ID' })
+  @IsOptional()
+  @IsString()
+  milestoneId?: string
+
   /** 开始时间 */
   @ApiPropertyOptional({ description: '创建开始时间，ISO 8601' })
   @IsOptional()
@@ -152,6 +170,25 @@ export class CreateBugTicketDto {
   @IsString()
   deviceInfo?: string
 
+
+  /** 关联需求ID */
+  @ApiPropertyOptional({ description: '关联需求ID' })
+  @IsOptional()
+  @IsString()
+  requirementId?: string
+
+  /** 关联迭代ID */
+  @ApiPropertyOptional({ description: '关联迭代ID' })
+  @IsOptional()
+  @IsString()
+  iterationId?: string
+
+  /** 关联里程碑ID */
+  @ApiPropertyOptional({ description: '关联里程碑ID' })
+  @IsOptional()
+  @IsString()
+  milestoneId?: string
+
   /** 附件ID列表 */
   @ApiPropertyOptional({ description: '附件ID列表', type: [String] })
   @IsOptional()
@@ -192,6 +229,7 @@ export class CreateBugCommentDto {
   @ApiProperty({ description: '评论内容' })
   @IsString()
   content!: string
+
 
   /** 附件ID列表 */
   @ApiPropertyOptional({ description: '附件ID列表', type: [String] })

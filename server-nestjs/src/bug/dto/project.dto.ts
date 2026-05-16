@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger'
-import { IsBoolean, IsIn, IsOptional, IsString, IsInt } from 'class-validator'
+import { IsBoolean, IsIn, IsOptional, IsString, IsInt, Max, Min } from 'class-validator'
 import { Type } from 'class-transformer'
 import { BugKeywordDto } from './common.dto'
 
@@ -33,6 +33,57 @@ export class CreateBugProjectDto {
   @IsOptional()
   @IsString()
   description?: string
+
+  /** 项目阶段 */
+  @ApiPropertyOptional({ description: '项目阶段' })
+  @IsOptional()
+  @IsString()
+  projectStage?: string
+
+  /** 计划开始时间 */
+  @ApiPropertyOptional({ description: '计划开始时间' })
+  @IsOptional()
+  @IsString()
+  plannedStartTime?: string
+
+  /** 计划完成时间 */
+  @ApiPropertyOptional({ description: '计划完成时间' })
+  @IsOptional()
+  @IsString()
+  plannedEndTime?: string
+
+  /** 实际开始时间 */
+  @ApiPropertyOptional({ description: '实际开始时间' })
+  @IsOptional()
+  @IsString()
+  actualStartTime?: string
+
+  /** 实际完成时间 */
+  @ApiPropertyOptional({ description: '实际完成时间' })
+  @IsOptional()
+  @IsString()
+  actualEndTime?: string
+
+  /** 项目进度 */
+  @ApiPropertyOptional({ description: '项目进度 0-100' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  progress?: number
+
+  /** 风险等级 */
+  @ApiPropertyOptional({ description: '风险等级' })
+  @IsOptional()
+  @IsString()
+  riskLevel?: string
+
+  /** 风险说明 */
+  @ApiPropertyOptional({ description: '风险说明' })
+  @IsOptional()
+  @IsString()
+  riskNote?: string
 
   /** 状态 */
   @ApiPropertyOptional({ description: '状态（0正常 1停用）', default: '0' })
@@ -109,6 +160,24 @@ export class CreateBugVersionDto {
   @IsString()
   versionName?: string
 
+  /** 关联迭代ID */
+  @ApiPropertyOptional({ description: '关联迭代ID' })
+  @IsOptional()
+  @IsString()
+  iterationId?: string
+
+  /** 关联里程碑ID */
+  @ApiPropertyOptional({ description: '关联里程碑ID' })
+  @IsOptional()
+  @IsString()
+  milestoneId?: string
+
+  /** 发布说明 */
+  @ApiPropertyOptional({ description: '发布说明' })
+  @IsOptional()
+  @IsString()
+  releaseNote?: string
+
   /** 版本状态 */
   @ApiPropertyOptional({ description: '版本状态' })
   @IsOptional()
@@ -125,9 +194,9 @@ export class UpsertBugMemberDto {
   userId!: string
 
   /** 项目内角色 */
-  @ApiProperty({ description: '项目内角色', enum: ['owner', 'product', 'developer', 'tester', 'viewer'] })
+  @ApiProperty({ description: '项目内角色', enum: ['owner', 'product', 'reviewer', 'developer', 'tester', 'viewer'] })
   @IsString()
-  @IsIn(['owner', 'product', 'developer', 'tester', 'viewer'])
+  @IsIn(['owner', 'product', 'reviewer', 'developer', 'tester', 'viewer'])
   memberRole!: string
 
   /** 是否默认负责人 */

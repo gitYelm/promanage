@@ -14,10 +14,18 @@ import { BugStatisticsService } from './ticket/bug-statistics.service'
 import { BugStatisticsExportProvider } from './ticket/bug-statistics-export.provider'
 import { NotificationModule } from '../system/notification/notification.module'
 import { BugNotificationService } from './bug-notification.service'
+import { ProjectManagementController } from './project-management/project-management.controller'
+import { ProjectRequirementService } from './project-management/project-requirement.service'
+import { ProjectIterationService } from './project-management/project-iteration.service'
+import { ProjectMilestoneService } from './project-management/project-milestone.service'
+import { ProjectActivityService } from './project-management/project-activity.service'
+import { ProjectOverviewService } from './project-management/project-overview.service'
+import { ExecutiveDashboardService } from './project-management/executive-dashboard.service'
+import { ProjectDashboardQueryService } from './project-management/project-dashboard-query.service'
 
 @Module({
   imports: [PrismaModule, LoggerModule, UploadModule, NotificationModule],
-  controllers: [BugProjectController, BugTicketController, BugAttachmentController],
+  controllers: [BugProjectController, BugTicketController, BugAttachmentController, ProjectManagementController],
   providers: [
     BugAccessService,
     BugProjectService,
@@ -27,6 +35,13 @@ import { BugNotificationService } from './bug-notification.service'
     BugStatisticsService,
     BugStatisticsExportProvider,
     BugNotificationService,
+    ProjectRequirementService,
+    ProjectIterationService,
+    ProjectMilestoneService,
+    ProjectActivityService,
+    ProjectOverviewService,
+    ExecutiveDashboardService,
+    ProjectDashboardQueryService,
   ],
 })
 export class BugModule {}
