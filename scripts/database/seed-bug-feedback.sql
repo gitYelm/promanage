@@ -6,10 +6,12 @@ WITH role_data(role_name, role_key, role_sort, remark) AS (
   VALUES
     ('Bug 项目负责人','bug_project_owner',20,'管理项目内 Bug、成员、分派和统计'),
     ('Bug 产品负责人','bug_product_owner',21,'确认 Bug 有效性并分派处理'),
-    ('Bug 开发人员','bug_developer',22,'处理分派给自己的 Bug'),
-    ('Bug 测试人员','bug_tester',23,'提交、验证和关闭 Bug'),
-    ('Bug 提交人','bug_submitter',24,'提交并跟踪本人 Bug'),
-    ('Bug 运营客服','bug_operator',25,'内部代提交和协助跟进 Bug')
+    ('Bug 审核人员','bug_reviewer',22,'审核 Bug、驳回或分派给开发'),
+    ('Bug 开发人员','bug_developer',23,'处理分派给自己的 Bug'),
+    ('Bug 测试人员','bug_tester',24,'提交、验证和关闭 Bug'),
+    ('Bug 提交人','bug_submitter',25,'提交并跟踪本人 Bug'),
+    ('Bug 运营客服','bug_operator',26,'内部代提交和协助跟进 Bug'),
+    ('Bug 观察者','bug_viewer',27,'只读查看授权项目 Bug、统计和项目进度')
 )
 INSERT INTO sys_role (role_name, role_key, role_sort, data_scope, menu_check_strictly, dept_check_strictly, status, del_flag, remark)
 SELECT role_name, role_key, role_sort, '2', true, true, '0', '0', remark FROM role_data
@@ -44,7 +46,8 @@ button_data(menu_name, parent_path, perms, order_num) AS (
     ('Bug 指派','tickets','bug:ticket:assign',4),('状态变更','tickets','bug:ticket:changeStatus',5),('Bug 确认','tickets','bug:ticket:confirm',6),
     ('Bug 驳回','tickets','bug:ticket:reject',7),('开始修复','tickets','bug:ticket:startFix',8),('提交验证','tickets','bug:ticket:submitVerify',9),
     ('验证 Bug','tickets','bug:ticket:verify',10),('关闭 Bug','tickets','bug:ticket:close',11),('重新打开','tickets','bug:ticket:reopen',12),
-    ('新增评论','tickets','bug:comment:add',13),('上传附件','tickets','bug:attachment:upload',14),('删除附件','tickets','bug:attachment:remove',15),
+    ('评论列表','tickets','bug:comment:list',13),('新增评论','tickets','bug:comment:add',14),('删除评论','tickets','bug:comment:remove',15),
+    ('附件列表','tickets','bug:attachment:list',16),('上传附件','tickets','bug:attachment:upload',17),('预览附件','tickets','bug:attachment:preview',18),('下载附件','tickets','bug:attachment:download',19),('删除附件','tickets','bug:attachment:remove',20),
     ('项目查询','projects','bug:project:query',1),('项目新增','projects','bug:project:add',2),('项目修改','projects','bug:project:edit',3),('项目删除','projects','bug:project:remove',4),('项目成员','projects','bug:project:member',5),
     ('模块查询','modules','bug:module:query',1),('模块新增','modules','bug:module:add',2),('模块修改','modules','bug:module:edit',3),('模块删除','modules','bug:module:remove',4),
     ('版本查询','versions','bug:version:query',1),('版本新增','versions','bug:version:add',2),('版本修改','versions','bug:version:edit',3),('版本删除','versions','bug:version:remove',4),
@@ -66,7 +69,9 @@ bug_menus AS (
 )
 DELETE FROM sys_role_menu srm
 USING sys_role r, bug_menus m
-WHERE srm.role_id = r.role_id AND srm.menu_id = m.menu_id AND r.role_key LIKE 'bug_%';
+WHERE srm.role_id = r.role_id
+  AND srm.menu_id = m.menu_id
+  AND r.role_key IN ('bug_project_owner','bug_product_owner','bug_reviewer','bug_developer','bug_tester','bug_submitter','bug_operator','bug_viewer');
 
 WITH root_menu AS (SELECT menu_id FROM sys_menu WHERE parent_id IS NULL AND path = '/bug' LIMIT 1),
 bug_menus AS (
@@ -77,16 +82,18 @@ bug_menus AS (
   SELECT c.menu_id FROM sys_menu c JOIN sys_menu p ON c.parent_id = p.menu_id WHERE p.parent_id IN (SELECT menu_id FROM root_menu)
 ),
 role_data(role_key) AS (
-  VALUES ('bug_project_owner'),('bug_product_owner'),('bug_developer'),('bug_tester'),('bug_submitter'),('bug_operator')
+  VALUES ('bug_project_owner'),('bug_product_owner'),('bug_reviewer'),('bug_developer'),('bug_tester'),('bug_submitter'),('bug_operator'),('bug_viewer')
 ),
 role_permissions(role_key, perms) AS (
   VALUES
-    ('bug_project_owner','bug:ticket:list'),('bug_project_owner','bug:ticket:my'),('bug_project_owner','bug:ticket:add'),('bug_project_owner','bug:ticket:query'),('bug_project_owner','bug:ticket:edit'),('bug_project_owner','bug:ticket:assign'),('bug_project_owner','bug:ticket:changeStatus'),('bug_project_owner','bug:ticket:confirm'),('bug_project_owner','bug:ticket:reject'),('bug_project_owner','bug:ticket:verify'),('bug_project_owner','bug:ticket:close'),('bug_project_owner','bug:ticket:reopen'),('bug_project_owner','bug:comment:add'),('bug_project_owner','bug:attachment:upload'),('bug_project_owner','bug:attachment:remove'),('bug_project_owner','bug:statistics:view'),('bug_project_owner','bug:statistics:export'),('bug_project_owner','bug:project:list'),('bug_project_owner','bug:project:query'),('bug_project_owner','bug:project:add'),('bug_project_owner','bug:project:edit'),('bug_project_owner','bug:project:member'),('bug_project_owner','bug:module:list'),('bug_project_owner','bug:module:query'),('bug_project_owner','bug:module:add'),('bug_project_owner','bug:module:edit'),('bug_project_owner','bug:module:remove'),('bug_project_owner','bug:version:list'),('bug_project_owner','bug:version:query'),('bug_project_owner','bug:version:add'),('bug_project_owner','bug:version:edit'),('bug_project_owner','bug:version:remove'),
-    ('bug_product_owner','bug:ticket:list'),('bug_product_owner','bug:ticket:my'),('bug_product_owner','bug:ticket:add'),('bug_product_owner','bug:ticket:query'),('bug_product_owner','bug:ticket:edit'),('bug_product_owner','bug:ticket:assign'),('bug_product_owner','bug:ticket:changeStatus'),('bug_product_owner','bug:ticket:confirm'),('bug_product_owner','bug:ticket:reject'),('bug_product_owner','bug:ticket:reopen'),('bug_product_owner','bug:comment:add'),('bug_product_owner','bug:attachment:upload'),('bug_product_owner','bug:attachment:remove'),('bug_product_owner','bug:statistics:view'),('bug_product_owner','bug:statistics:export'),('bug_product_owner','bug:project:list'),('bug_product_owner','bug:module:list'),('bug_product_owner','bug:version:list'),
-    ('bug_developer','bug:ticket:list'),('bug_developer','bug:ticket:my'),('bug_developer','bug:ticket:add'),('bug_developer','bug:ticket:query'),('bug_developer','bug:ticket:startFix'),('bug_developer','bug:ticket:submitVerify'),('bug_developer','bug:comment:add'),('bug_developer','bug:attachment:upload'),('bug_developer','bug:attachment:remove'),
-    ('bug_tester','bug:ticket:list'),('bug_tester','bug:ticket:my'),('bug_tester','bug:ticket:add'),('bug_tester','bug:ticket:query'),('bug_tester','bug:ticket:edit'),('bug_tester','bug:ticket:changeStatus'),('bug_tester','bug:ticket:confirm'),('bug_tester','bug:ticket:reject'),('bug_tester','bug:ticket:verify'),('bug_tester','bug:ticket:close'),('bug_tester','bug:ticket:reopen'),('bug_tester','bug:comment:add'),('bug_tester','bug:attachment:upload'),('bug_tester','bug:attachment:remove'),
-    ('bug_submitter','bug:ticket:my'),('bug_submitter','bug:ticket:add'),('bug_submitter','bug:ticket:query'),('bug_submitter','bug:ticket:edit'),('bug_submitter','bug:ticket:reopen'),('bug_submitter','bug:comment:add'),('bug_submitter','bug:attachment:upload'),('bug_submitter','bug:attachment:remove'),
-    ('bug_operator','bug:ticket:list'),('bug_operator','bug:ticket:my'),('bug_operator','bug:ticket:add'),('bug_operator','bug:ticket:query'),('bug_operator','bug:ticket:edit'),('bug_operator','bug:comment:add'),('bug_operator','bug:attachment:upload'),('bug_operator','bug:attachment:remove')
+    ('bug_project_owner','bug:ticket:list'),('bug_project_owner','bug:ticket:my'),('bug_project_owner','bug:ticket:add'),('bug_project_owner','bug:ticket:query'),('bug_project_owner','bug:ticket:edit'),('bug_project_owner','bug:ticket:assign'),('bug_project_owner','bug:ticket:changeStatus'),('bug_project_owner','bug:ticket:confirm'),('bug_project_owner','bug:ticket:reject'),('bug_project_owner','bug:ticket:verify'),('bug_project_owner','bug:ticket:close'),('bug_project_owner','bug:ticket:reopen'),('bug_project_owner','bug:comment:add'),('bug_project_owner','bug:comment:list'),('bug_project_owner','bug:attachment:upload'),('bug_project_owner','bug:attachment:list'),('bug_project_owner','bug:attachment:preview'),('bug_project_owner','bug:attachment:download'),('bug_project_owner','bug:attachment:remove'),('bug_project_owner','bug:statistics:view'),('bug_project_owner','bug:statistics:export'),('bug_project_owner','bug:project:list'),('bug_project_owner','bug:project:query'),('bug_project_owner','bug:project:add'),('bug_project_owner','bug:project:edit'),('bug_project_owner','bug:project:member'),('bug_project_owner','bug:module:list'),('bug_project_owner','bug:module:query'),('bug_project_owner','bug:module:add'),('bug_project_owner','bug:module:edit'),('bug_project_owner','bug:module:remove'),('bug_project_owner','bug:version:list'),('bug_project_owner','bug:version:query'),('bug_project_owner','bug:version:add'),('bug_project_owner','bug:version:edit'),('bug_project_owner','bug:version:remove'),
+    ('bug_product_owner','bug:ticket:list'),('bug_product_owner','bug:ticket:my'),('bug_product_owner','bug:ticket:add'),('bug_product_owner','bug:ticket:query'),('bug_product_owner','bug:ticket:edit'),('bug_product_owner','bug:ticket:assign'),('bug_product_owner','bug:ticket:changeStatus'),('bug_product_owner','bug:ticket:confirm'),('bug_product_owner','bug:ticket:reject'),('bug_product_owner','bug:ticket:reopen'),('bug_product_owner','bug:comment:add'),('bug_product_owner','bug:comment:list'),('bug_product_owner','bug:attachment:upload'),('bug_product_owner','bug:attachment:list'),('bug_product_owner','bug:attachment:preview'),('bug_product_owner','bug:attachment:download'),('bug_product_owner','bug:attachment:remove'),('bug_product_owner','bug:statistics:view'),('bug_product_owner','bug:statistics:export'),('bug_product_owner','bug:project:list'),('bug_product_owner','bug:module:list'),('bug_product_owner','bug:version:list'),
+    ('bug_reviewer','bug:ticket:list'),('bug_reviewer','bug:ticket:my'),('bug_reviewer','bug:ticket:add'),('bug_reviewer','bug:ticket:query'),('bug_reviewer','bug:ticket:edit'),('bug_reviewer','bug:ticket:assign'),('bug_reviewer','bug:ticket:changeStatus'),('bug_reviewer','bug:ticket:confirm'),('bug_reviewer','bug:ticket:reject'),('bug_reviewer','bug:ticket:reopen'),('bug_reviewer','bug:comment:add'),('bug_reviewer','bug:comment:list'),('bug_reviewer','bug:attachment:upload'),('bug_reviewer','bug:attachment:list'),('bug_reviewer','bug:attachment:preview'),('bug_reviewer','bug:attachment:download'),('bug_reviewer','bug:statistics:view'),('bug_reviewer','bug:project:list'),('bug_reviewer','bug:module:list'),('bug_reviewer','bug:version:list'),
+    ('bug_developer','bug:ticket:list'),('bug_developer','bug:ticket:my'),('bug_developer','bug:ticket:query'),('bug_developer','bug:ticket:startFix'),('bug_developer','bug:ticket:submitVerify'),('bug_developer','bug:comment:add'),('bug_developer','bug:comment:list'),('bug_developer','bug:attachment:upload'),('bug_developer','bug:attachment:list'),('bug_developer','bug:attachment:preview'),('bug_developer','bug:attachment:remove'),
+    ('bug_tester','bug:ticket:list'),('bug_tester','bug:ticket:my'),('bug_tester','bug:ticket:add'),('bug_tester','bug:ticket:query'),('bug_tester','bug:ticket:edit'),('bug_tester','bug:ticket:changeStatus'),('bug_tester','bug:ticket:confirm'),('bug_tester','bug:ticket:reject'),('bug_tester','bug:ticket:verify'),('bug_tester','bug:ticket:close'),('bug_tester','bug:ticket:reopen'),('bug_tester','bug:comment:add'),('bug_tester','bug:comment:list'),('bug_tester','bug:attachment:upload'),('bug_tester','bug:attachment:list'),('bug_tester','bug:attachment:preview'),('bug_tester','bug:attachment:remove'),
+    ('bug_submitter','bug:ticket:my'),('bug_submitter','bug:ticket:add'),('bug_submitter','bug:ticket:query'),('bug_submitter','bug:ticket:edit'),('bug_submitter','bug:ticket:reopen'),('bug_submitter','bug:comment:add'),('bug_submitter','bug:comment:list'),('bug_submitter','bug:attachment:upload'),('bug_submitter','bug:attachment:list'),('bug_submitter','bug:attachment:preview'),('bug_submitter','bug:attachment:remove'),
+    ('bug_operator','bug:ticket:list'),('bug_operator','bug:ticket:my'),('bug_operator','bug:ticket:add'),('bug_operator','bug:ticket:query'),('bug_operator','bug:ticket:edit'),('bug_operator','bug:comment:add'),('bug_operator','bug:comment:list'),('bug_operator','bug:attachment:upload'),('bug_operator','bug:attachment:list'),('bug_operator','bug:attachment:preview'),('bug_operator','bug:attachment:remove'),
+    ('bug_viewer','bug:ticket:list'),('bug_viewer','bug:ticket:my'),('bug_viewer','bug:ticket:query'),('bug_viewer','bug:comment:list'),('bug_viewer','bug:attachment:list'),('bug_viewer','bug:attachment:preview'),('bug_viewer','bug:project:list'),('bug_viewer','bug:module:list'),('bug_viewer','bug:version:list'),('bug_viewer','bug:statistics:view')
 )
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT r.role_id, m.menu_id FROM role_data d JOIN sys_role r ON r.role_key = d.role_key CROSS JOIN root_menu m
@@ -107,7 +114,7 @@ WITH dict_data(dict_type, dict_label, dict_value, dict_sort) AS (
     ('bug_severity','致命','blocker',1),('bug_severity','严重','critical',2),('bug_severity','一般','major',3),('bug_severity','轻微','minor',4),
     ('bug_priority','紧急','urgent',1),('bug_priority','高','high',2),('bug_priority','中','medium',3),('bug_priority','低','low',4),
     ('bug_environment','生产','production',1),('bug_environment','预发','staging',2),('bug_environment','测试','testing',3),('bug_environment','本地','local',4),
-    ('bug_member_role','项目负责人','owner',1),('bug_member_role','产品负责人','product',2),('bug_member_role','开发人员','developer',3),('bug_member_role','测试人员','tester',4),('bug_member_role','观察者','viewer',5),
+    ('bug_member_role','项目负责人','owner',1),('bug_member_role','产品负责人','product',2),('bug_member_role','审核人员','reviewer',3),('bug_member_role','开发人员','developer',4),('bug_member_role','测试人员','tester',5),('bug_member_role','观察者','viewer',6),
     ('bug_version_status','规划中','planning',1),('bug_version_status','测试中','testing',2),('bug_version_status','已发布','released',3),('bug_version_status','已归档','archived',4)
 )
 INSERT INTO sys_dict_data (dict_type, dict_label, dict_value, dict_sort, status, is_default)

@@ -54,8 +54,8 @@ export class BugProjectController {
   @Get('projects')
   @RequirePermission('bug:project:list')
   @ApiOperation({ summary: '查询 Bug 项目列表' })
-  listProjects(@Query() query: QueryBugProjectDto) {
-    return this.service.listProjects(query)
+  listProjects(@Query() query: QueryBugProjectDto, @Req() req: RequestWithUser) {
+    return this.service.listProjects(query, req.user.userId)
   }
 
   @Post('projects')
@@ -85,8 +85,8 @@ export class BugProjectController {
   @Get('modules')
   @RequirePermission('bug:module:list', 'bug:ticket:add', 'bug:ticket:list')
   @ApiOperation({ summary: '查询项目模块列表' })
-  listModules(@Query() query: QueryBugModuleDto) {
-    return this.service.listModules(query)
+  listModules(@Query() query: QueryBugModuleDto, @Req() req: RequestWithUser) {
+    return this.service.listModules(query, req.user.userId)
   }
 
   @Post('modules')
@@ -116,8 +116,8 @@ export class BugProjectController {
   @Get('versions')
   @RequirePermission('bug:version:list', 'bug:ticket:add', 'bug:ticket:list')
   @ApiOperation({ summary: '查询项目版本列表' })
-  listVersions(@Query() query: QueryBugVersionDto) {
-    return this.service.listVersions(query)
+  listVersions(@Query() query: QueryBugVersionDto, @Req() req: RequestWithUser) {
+    return this.service.listVersions(query, req.user.userId)
   }
 
   @Post('versions')

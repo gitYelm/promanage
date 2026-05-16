@@ -4,6 +4,13 @@ import { BusinessException } from '../common/exceptions/business.exception'
 import { PrismaService } from '../prisma/prisma.service'
 import { BUG_ACTION, BUG_MEMBER_ROLE, BUG_STATUS, type BugAction } from './constants/bug.constants'
 
+const PROJECT_WIDE_ROLES = [
+  BUG_MEMBER_ROLE.OWNER,
+  BUG_MEMBER_ROLE.PRODUCT,
+  BUG_MEMBER_ROLE.REVIEWER,
+  BUG_MEMBER_ROLE.VIEWER,
+]
+
 export interface RequestUserLike {
   userId: string
   username: string
@@ -70,26 +77,6 @@ export class BugAccessService {
     return [...new Set(members.map((item) => item.projectId))]
   }
 
-  async getReviewerProjectIds(userId: string): Promise<bigint[]> {
-    if (await this.isAdmin(userId)) return this.getVisibleProjectIds(userId)
-
-    const [memberProjects, ownedProjects] = await Promise.all([
-      this.prisma.bugProjectMember.findMany({
-        where: {
-          userId: BigInt(userId),
-          memberRole: { in: [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER] },
-          status: '0',
-        },
-        select: { projectId: true },
-      }),
-      this.prisma.bugProject.findMany({
-        where: { ownerId: BigInt(userId), delFlag: '0', status: '0' },
-        select: { projectId: true },
-      }),
-    ])
-    return [...new Set([...memberProjects, ...ownedProjects].map((item) => item.projectId))]
-  }
-
   async buildTicketWhere(userId: string, mine?: boolean): Promise<Prisma.BugTicketWhereInput> {
     if (await this.isAdmin(userId)) return { delFlag: '0' }
 
@@ -107,16 +94,30 @@ export class BugAccessService {
       }
     }
 
-    const projectIds = await this.getReviewerProjectIds(userId)
+    const projectWideProjectIds = await this.getProjectWideProjectIds(userId)
     const testerProjectIds = await this.getTesterProjectIds(userId)
     return {
       delFlag: '0',
       OR: [
-        { projectId: { in: projectIds } },
+        { projectId: { in: projectWideProjectIds } },
         { projectId: { in: testerProjectIds }, status: BUG_STATUS.PENDING_VERIFY },
         ...personalWhere,
       ],
     }
+  }
+
+  private async getProjectWideProjectIds(userId: string): Promise<bigint[]> {
+    const [memberProjects, ownedProjects] = await Promise.all([
+      this.prisma.bugProjectMember.findMany({
+        where: { userId: BigInt(userId), memberRole: { in: PROJECT_WIDE_ROLES }, status: '0' },
+        select: { projectId: true },
+      }),
+      this.prisma.bugProject.findMany({
+        where: { ownerId: BigInt(userId), delFlag: '0', status: '0' },
+        select: { projectId: true },
+      }),
+    ])
+    return [...new Set([...memberProjects, ...ownedProjects].map((item) => item.projectId))]
   }
 
   private async getTesterProjectIds(userId: string): Promise<bigint[]> {
@@ -186,6 +187,21 @@ export class BugAccessService {
   async isProjectReviewer(userId: string, projectId: bigint) {
     if (await this.isAdmin(userId)) return true
     return this.hasProjectRole(userId, projectId, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER])
+  }
+
+  async isReadonlyProjectViewer(userId: string, projectId: bigint) {
+    if (await this.isAdmin(userId)) return false
+    const [viewer, elevated] = await Promise.all([
+      this.hasProjectRole(userId, projectId, [BUG_MEMBER_ROLE.VIEWER]),
+      this.hasProjectRole(userId, projectId, [
+        BUG_MEMBER_ROLE.OWNER,
+        BUG_MEMBER_ROLE.PRODUCT,
+        BUG_MEMBER_ROLE.REVIEWER,
+        BUG_MEMBER_ROLE.DEVELOPER,
+        BUG_MEMBER_ROLE.TESTER,
+      ]),
+    ])
+    return viewer && !elevated
   }
 
   async assertCanRemoveAttachment(userId: string, attachment: { uploaderId: bigint; ticketId: bigint | null }) {

@@ -12,14 +12,12 @@ const movedMenus = [
   { path: 'projects', menuName: '项目配置', component: 'bug/projects/index', orderNum: 7 },
   { path: 'modules', menuName: '模块管理', component: 'bug/modules/index', orderNum: 8 },
   { path: 'versions', menuName: '版本管理', component: 'bug/versions/index', orderNum: 9 },
-  { path: 'statistics', menuName: 'Bug 看板', component: 'bug/statistics/index', orderNum: 10 },
 ]
 
 const pathRedirects: Record<string, string> = {
   '/bug/projects': '/project-management/projects',
   '/bug/modules': '/project-management/modules',
   '/bug/versions': '/project-management/versions',
-  '/bug/statistics': '/project-management/statistics',
 }
 
 async function main() {
@@ -55,7 +53,43 @@ async function main() {
     console.log(`Moved menu to project management: ${menu.menuName}`)
   }
 
+  await restoreBugStatisticsMenu()
   await migrateWorkspacePaths()
+}
+
+async function restoreBugStatisticsMenu() {
+  const bugDir = await prisma.sysMenu.findFirst({
+    where: { path: '/bug', menuType: 'M', parentId: null },
+  })
+
+  if (!bugDir) {
+    throw new Error('未找到 BUG 管理根菜单 /bug，请先执行主 seed。')
+  }
+
+  const bugStatistics = await prisma.sysMenu.findFirst({
+    where: { component: 'bug/statistics/index' },
+  })
+
+  if (!bugStatistics) {
+    console.warn('未找到 Bug 看板菜单 (bug/statistics/index)')
+    return
+  }
+
+  await prisma.sysMenu.update({
+    where: { menuId: bugStatistics.menuId },
+    data: {
+      menuName: 'Bug 看板',
+      parentId: bugDir.menuId,
+      path: 'statistics',
+      orderNum: 4,
+      status: '0',
+      visible: '0',
+      perms: 'bug:statistics:view',
+      icon: 'bar-chart-3',
+    },
+  })
+
+  console.log('Restored menu to BUG management: Bug 看板')
 }
 
 async function migrateWorkspacePaths() {
@@ -76,6 +110,21 @@ async function migrateWorkspacePaths() {
       newPath,
     )
   }
+
+  await prisma.$executeRawUnsafe(
+    `update sys_role_workspace_config
+     set dashboard_path = '/bug/statistics',
+         update_time = now()
+     where dashboard_path = '/project-management/statistics'`,
+  )
+
+  await prisma.$executeRawUnsafe(
+    `update sys_role_workspace_config
+     set default_path = '/bug/statistics',
+         default_open_menu = '/bug',
+         update_time = now()
+     where default_path = '/project-management/statistics'`,
+  )
 
   await prisma.$executeRawUnsafe(
     `update sys_role_workspace_config

@@ -2,15 +2,17 @@
 import { onMounted, ref } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Progress } from '@/components/ui/progress'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import MetricCard from '@/components/common/MetricCard.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
+import SemanticProgress from '@/components/common/SemanticProgress.vue'
+import PriorityBadge from '@/components/common/PriorityBadge.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { executiveActions, executiveCompletedHistory, executiveCurrentWork, executivePendingWork, executiveProjects, executiveSummary } from '@/api/project-management'
 import type { DashboardSummary, ProjectHealth, Requirement, WorkItems } from '@/api/project-management/types'
-import { PM_PRIORITY_OPTIONS, PM_PROJECT_STAGE_OPTIONS, formatDate, pmLabel } from '../shared/options'
-import type { SemanticTone } from '@/utils/semantic-styles'
+import { formatDate } from '../shared/options'
+import { getRiskStyle, type SemanticTone } from '@/utils/semantic-styles'
 
 const loading = ref(false)
 const summary = ref<DashboardSummary>()
@@ -34,6 +36,12 @@ const cards: Array<{ label: string; key: keyof DashboardSummary; tone: SemanticT
 ]
 
 function bugTitle(item: Record<string, unknown>) { return String(item.title || item.ticketNo || '-') }
+function itemProjectName(item: Record<string, unknown>) {
+  const project = item.project as { projectName?: string } | undefined
+  return project?.projectName || '-'
+}
+function itemStatus(item: Record<string, unknown>) { return typeof item.status === 'string' ? item.status : undefined }
+function itemPriority(item: Record<string, unknown>) { return typeof item.priority === 'string' ? item.priority : undefined }
 function requirementOwner(row: Requirement) { return row.developer?.nickName || row.owner?.nickName || row.owner?.userName || '-' }
 
 async function load() {
@@ -74,7 +82,7 @@ onMounted(load)
               <TableHeader>
                 <TableRow>
                   <TableHead>项目</TableHead>
-                  <TableHead>阶段</TableHead>
+                  <TableHead class="text-center">阶段</TableHead>
                   <TableHead class="min-w-36 text-right">进度</TableHead>
                   <TableHead class="text-right">Bug关闭率</TableHead>
                   <TableHead class="text-center">风险</TableHead>
@@ -83,10 +91,10 @@ onMounted(load)
               <TableBody>
                 <TableRow v-for="item in projects" :key="item.project.projectId">
                   <TableCell>{{ item.project.projectName }}</TableCell>
-                  <TableCell>{{ pmLabel(PM_PROJECT_STAGE_OPTIONS, item.project.projectStage) }}</TableCell>
+                  <TableCell class="text-center"><StatusBadge domain="projectStage" :value="item.project.projectStage" /></TableCell>
                   <TableCell class="min-w-36">
                     <div class="ml-auto flex max-w-44 items-center justify-end gap-2">
-                      <Progress :model-value="item.progress" class="h-2" />
+                      <SemanticProgress :model-value="item.progress" :tone="getRiskStyle(item.health).tone" class="h-2" />
                       <span class="w-10 text-right text-xs tabular-nums">{{ item.progress }}%</span>
                     </div>
                   </TableCell>
@@ -102,9 +110,9 @@ onMounted(load)
       <Card><CardHeader><CardTitle>管理层行动建议</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in actions" :key="item.message" class="rounded-md border p-3 text-sm"><RiskBadge class="mb-2" :value="item.level" /><div>{{ item.message }}</div></div></CardContent></Card>
     </div>
     <div class="grid gap-4 xl:grid-cols-3">
-      <Card><CardHeader><CardTitle>当前处理</CardTitle></CardHeader><CardContent class="space-y-3"><div class="text-sm font-medium">需求</div><div v-for="row in currentWork.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="text-muted-foreground">{{ row.project?.projectName }} · {{ requirementOwner(row) }}</div></div><div class="text-sm font-medium">Bug</div><div v-for="row in currentWork.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm">{{ bugTitle(row) }}</div></CardContent></Card>
-      <Card><CardHeader><CardTitle>历史完成</CardTitle></CardHeader><CardContent class="space-y-3"><div v-for="row in completed.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="text-muted-foreground">{{ formatDate(row.actualEndTime || row.updateTime) }}</div></div><div v-for="row in completed.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm">{{ bugTitle(row) }}</div></CardContent></Card>
-      <Card><CardHeader><CardTitle>未处理</CardTitle></CardHeader><CardContent class="space-y-3"><div v-for="row in pending.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="text-muted-foreground">{{ row.project?.projectName }} · {{ pmLabel(PM_PRIORITY_OPTIONS, row.priority) }}</div></div><div v-for="row in pending.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm">{{ bugTitle(row) }}</div></CardContent></Card>
+      <Card><CardHeader><CardTitle>当前处理</CardTitle></CardHeader><CardContent class="space-y-3"><div class="text-sm font-medium">需求</div><div v-for="row in currentWork.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="requirement" :value="row.status" /><span class="text-xs text-muted-foreground">{{ row.project?.projectName }} · {{ requirementOwner(row) }}</span></div></div><div class="text-sm font-medium">Bug</div><div v-for="row in currentWork.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ bugTitle(row) }}</div><div class="mt-2 flex flex-wrap gap-1"><StatusBadge domain="bug" :value="itemStatus(row)" /><PriorityBadge :value="itemPriority(row)" /></div></div></CardContent></Card>
+      <Card><CardHeader><CardTitle>历史完成</CardTitle></CardHeader><CardContent class="space-y-3"><div v-for="row in completed.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="requirement" :value="row.status" /><span class="text-xs text-muted-foreground">{{ formatDate(row.actualEndTime || row.updateTime) }}</span></div></div><div v-for="row in completed.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ bugTitle(row) }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="bug" :value="itemStatus(row)" /><span class="text-xs text-muted-foreground">{{ String(row.updateTime || '-') }}</span></div></div></CardContent></Card>
+      <Card><CardHeader><CardTitle>未处理</CardTitle></CardHeader><CardContent class="space-y-3"><div v-for="row in pending.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="requirement" :value="row.status" /><PriorityBadge :value="row.priority" /><span class="text-xs text-muted-foreground">{{ row.project?.projectName }}</span></div></div><div v-for="row in pending.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ bugTitle(row) }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="bug" :value="itemStatus(row)" /><PriorityBadge :value="itemPriority(row)" /><span class="text-xs text-muted-foreground">{{ itemProjectName(row) }}</span></div></div></CardContent></Card>
     </div>
   </div>
 </template>

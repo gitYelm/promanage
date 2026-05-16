@@ -22,6 +22,7 @@ const notificationRoleKeys = [
   'bug_product_owner',
   'bug_reviewer',
   'bug_operator',
+  'bug_viewer',
 ]
 
 async function ensureNotificationMenu() {

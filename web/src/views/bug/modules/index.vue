@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { addBugModule, bugProjectOptions, bugUserOptions, deleteBugModules, listBugModules, updateBugModule } from '@/api/bug'
 import type { BugModule, BugProject, BugUserRef } from '@/api/bug/types'
@@ -88,7 +89,7 @@ onMounted(async () => {
       <Button @click="getList">搜索</Button>
     </div>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><TableHead>项目</TableHead><TableHead>模块</TableHead><TableHead>排序</TableHead><TableHead>操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.moduleId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.moduleName }}</TableCell><TableCell>{{ row.orderNum }}</TableCell><TableCell><Button v-hasPermi="['bug:module:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:module:remove']" size="sm" variant="destructive" class="ml-2" @click="remove(row)">删除</Button></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><TableHead>项目</TableHead><TableHead>模块</TableHead><TableHead class="text-right">排序</TableHead><TableHead class="text-center">状态</TableHead><TableHead>操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.moduleId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.moduleName }}</TableCell><TableCell class="text-right tabular-nums">{{ row.orderNum }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell><Button v-hasPermi="['bug:module:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:module:remove']" size="sm" variant="destructive" class="ml-2" @click="remove(row)">删除</Button></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />

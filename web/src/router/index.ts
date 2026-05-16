@@ -124,7 +124,9 @@ const router = createRouter({
         },
         {
           path: 'bug/statistics',
-          redirect: '/project-management/statistics',
+          name: 'BugStatistics',
+          component: () => import('@/views/bug/statistics/index.vue'),
+          meta: { title: 'Bug 看板', icon: 'bar-chart-3' },
         },
         // Project Management Module
         {
@@ -183,9 +185,7 @@ const router = createRouter({
         },
         {
           path: 'project-management/statistics',
-          name: 'ProjectBugStatistics',
-          component: () => import('@/views/bug/statistics/index.vue'),
-          meta: { title: 'Bug 看板', icon: 'bar-chart-3' },
+          redirect: '/bug/statistics',
         },
         // Monitor Module
         {

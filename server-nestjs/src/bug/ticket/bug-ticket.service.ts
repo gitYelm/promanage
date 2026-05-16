@@ -81,6 +81,9 @@ export class BugTicketService {
 
   async create(dto: CreateBugTicketDto, user: RequestUserLike) {
     const project = await this.resolveCreateProject(dto.projectId, user)
+    if (await this.access.isReadonlyProjectViewer(user.userId, project.projectId)) {
+      throw BusinessException.forbidden('观察者只能只读查看项目，不能提交 Bug')
+    }
     await this.assertRelations(
       String(project.projectId),
       dto.moduleId,
@@ -189,7 +192,7 @@ export class BugTicketService {
     if (query.keyword) {
       where.OR = [{ title: { contains: query.keyword } }, { ticketNo: { contains: query.keyword } }]
     }
-    if (query.projectId) where.projectId = BigInt(query.projectId)
+    if (query.projectId) where.projectId = { equals: BigInt(query.projectId) }
     if (query.moduleId) where.moduleId = BigInt(query.moduleId)
     if (query.status) where.status = query.status
     if (query.pending === 'true') where.status = { in: [...BUG_PENDING_STATUSES] }

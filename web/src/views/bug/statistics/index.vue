@@ -2,18 +2,21 @@
 import { computed, onMounted, ref } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import ExportDialog from '@/components/common/ExportDialog.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import MetricCard from '@/components/common/MetricCard.vue'
+import SemanticProgress from '@/components/common/SemanticProgress.vue'
+import SeverityBadge from '@/components/common/SeverityBadge.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { bugStatistics } from '@/api/bug'
 import type { BugStatisticsResult } from '@/api/bug/types'
-import { BUG_SEVERITY_OPTIONS, BUG_STATUS_OPTIONS, optionLabel } from '../shared/bug-options'
+import { getSeverityStyle, getStatusStyle } from '@/utils/semantic-styles'
 
 const exportOpen = ref(false)
 const loading = ref(false)
 const data = ref<BugStatisticsResult>({ total: 0, byStatus: [], bySeverity: [], byProject: [], byAssignee: [] })
-const statusRows = computed(() => data.value.byStatus.map((item) => ({ label: optionLabel(BUG_STATUS_OPTIONS, item.status), count: item._count.status })))
-const severityRows = computed(() => data.value.bySeverity.map((item) => ({ label: optionLabel(BUG_SEVERITY_OPTIONS, item.severity), count: item._count.severity })))
+const statusRows = computed(() => data.value.byStatus.map((item) => ({ value: item.status, count: item._count.status })))
+const severityRows = computed(() => data.value.bySeverity.map((item) => ({ value: item.severity, count: item._count.severity })))
 const projectRows = computed(() => data.value.byProject.map((item) => ({ label: item.projectName || `项目 ${item.projectId}`, count: item._count.projectId })))
 const assigneeRows = computed(() => data.value.byAssignee.map((item) => ({ label: item.user?.nickName || item.user?.userName || '未指派', count: item._count.assigneeId })))
 
@@ -45,11 +48,11 @@ onMounted(async () => {
       </div>
     </div>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-      <Card><CardHeader><CardTitle>总 Bug 数</CardTitle></CardHeader><CardContent class="text-3xl font-bold">{{ data.total }}</CardContent></Card>
-      <Card><CardHeader><CardTitle>状态分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in statusRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><Progress :model-value="percent(item.count)" /></div></CardContent></Card>
-      <Card><CardHeader><CardTitle>严重程度</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in severityRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><Progress :model-value="percent(item.count)" /></div></CardContent></Card>
-      <Card><CardHeader><CardTitle>项目分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in projectRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><Progress :model-value="percent(item.count)" /></div></CardContent></Card>
-      <Card><CardHeader><CardTitle>负责人分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in assigneeRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><Progress :model-value="percent(item.count)" /></div></CardContent></Card>
+      <MetricCard title="总 Bug 数" :value="data.total" tone="neutral" description="当前筛选范围内的 Bug 总量" />
+      <Card><CardHeader><CardTitle>状态分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in statusRows" :key="item.value"><div class="mb-1 flex items-center justify-between gap-2 text-sm"><StatusBadge domain="bug" :value="item.value" /><span :class="getStatusStyle('bug', item.value).textClass" class="font-medium tabular-nums">{{ item.count }}</span></div><SemanticProgress :model-value="percent(item.count)" :tone="getStatusStyle('bug', item.value).tone" /></div></CardContent></Card>
+      <Card><CardHeader><CardTitle>严重程度</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in severityRows" :key="item.value"><div class="mb-1 flex items-center justify-between gap-2 text-sm"><SeverityBadge :value="item.value" /><span :class="getSeverityStyle(item.value).textClass" class="font-medium tabular-nums">{{ item.count }}</span></div><SemanticProgress :model-value="percent(item.count)" :tone="getSeverityStyle(item.value).tone" /></div></CardContent></Card>
+      <Card><CardHeader><CardTitle>项目分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in projectRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><SemanticProgress :model-value="percent(item.count)" tone="info" /></div></CardContent></Card>
+      <Card><CardHeader><CardTitle>负责人分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in assigneeRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><SemanticProgress :model-value="percent(item.count)" tone="neutral" /></div></CardContent></Card>
     </div>
     <ExportDialog v-model:open="exportOpen" module="bug-statistics" module-name="Bug 统计" />
   </div>

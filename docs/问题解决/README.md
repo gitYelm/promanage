@@ -10,5 +10,6 @@
 | 附件上传与截图标注 | [开发协作问题与防重复清单-bug-feedback-system.md#附件上传与截图标注防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#附件上传与截图标注防重复规则) | Bug 提交页附件上传、截图标注、上传后预览、继续上传 |
 | 附件浏览器预览 | [开发协作问题与防重复清单-bug-feedback-system.md#附件浏览器预览防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#附件浏览器预览防重复规则) | Bug 提交页和详情页附件缩略图、主预览、全屏预览、左右切换 |
 | Bug 流程与快捷操作 | [开发协作问题与防重复清单-bug-feedback-system.md#bug-流程与快捷操作防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#bug-流程与快捷操作防重复规则) | Bug 状态流转、reviewer 分派前 developer 不可见、站内通知不泛发、列表快捷按钮、我的 Bug 待处理数量徽标 |
+| 开发进程挂掉/前端代理拒绝连接 | [开发协作问题与防重复清单-bug-feedback-system.md#开发进程挂掉与前端代理拒绝连接防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#开发进程挂掉与前端代理拒绝连接防重复规则) | `pnpm dev`、Nest watch 编译失败、Vite `ECONNREFUSED`、后端 3001 未监听 |
 | Prisma P2022 与数据库漂移 | [开发协作问题与防重复清单-bug-feedback-system.md#prisma-p2022-与数据库漂移防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#prisma-p2022-与数据库漂移防重复规则) | Prisma schema/客户端字段已存在，但 PostgreSQL 真实表结构缺列导致接口 500 |
 | 环境与发布边界 | [开发协作问题与防重复清单-bug-feedback-system.md#环境与发布边界防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#环境与发布边界防重复规则) | 本地开发版、Docker 内测版、18001 内测环境、禁止未授权 Docker 操作 |

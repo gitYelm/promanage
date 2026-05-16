@@ -28,8 +28,9 @@ export class BugProjectService {
     private readonly helper: BugProjectHelperService,
   ) {}
 
-  async listProjects(query: QueryBugProjectDto) {
+  async listProjects(query: QueryBugProjectDto, userId?: string) {
     const where: Prisma.BugProjectWhereInput = { delFlag: '0' }
+    if (userId) where.projectId = { in: await this.helper.visibleProjectIds(userId) }
     if (query.keyword) {
       where.OR = [
         { projectName: { contains: query.keyword } },
@@ -116,9 +117,10 @@ export class BugProjectService {
     return {}
   }
 
-  async listModules(query: QueryBugModuleDto) {
+  async listModules(query: QueryBugModuleDto, userId?: string) {
     const where: Prisma.BugProjectModuleWhereInput = { delFlag: '0' }
-    if (query.projectId) where.projectId = BigInt(query.projectId)
+    const scopedProjectId = await this.scopedProjectIdFilter(query.projectId, userId)
+    if (scopedProjectId) where.projectId = scopedProjectId
     if (query.keyword) where.moduleName = { contains: query.keyword }
     const pageNum = Number(query.pageNum ?? 1)
     const pageSize = Number(query.pageSize ?? 20)
@@ -133,6 +135,16 @@ export class BugProjectService {
       }),
     ])
     return { total, rows }
+  }
+
+  private async scopedProjectIdFilter(queryProjectId: string | undefined, userId?: string) {
+    if (!userId) return queryProjectId ? { equals: BigInt(queryProjectId) } : undefined
+    const visibleProjectIds = await this.helper.visibleProjectIds(userId)
+    if (queryProjectId) {
+      const projectId = BigInt(queryProjectId)
+      return visibleProjectIds.some((id) => id === projectId) ? { equals: projectId } : { in: [] }
+    }
+    return { in: visibleProjectIds }
   }
 
   async createModule(dto: CreateBugModuleDto) {
@@ -165,9 +177,10 @@ export class BugProjectService {
     return {}
   }
 
-  async listVersions(query: QueryBugVersionDto) {
+  async listVersions(query: QueryBugVersionDto, userId?: string) {
     const where: Prisma.BugProjectVersionWhereInput = { delFlag: '0' }
-    if (query.projectId) where.projectId = BigInt(query.projectId)
+    const scopedProjectId = await this.scopedProjectIdFilter(query.projectId, userId)
+    if (scopedProjectId) where.projectId = scopedProjectId
     if (query.keyword) {
       where.OR = [
         { versionNo: { contains: query.keyword } },

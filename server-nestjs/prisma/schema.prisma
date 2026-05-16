@@ -747,7 +747,7 @@ model BugProjectMember {
   projectId  BigInt     @map("project_id")
   /// 用户ID
   userId     BigInt     @map("user_id")
-  /// 项目内角色（owner/product/developer/tester/viewer）
+  /// 项目内角色（owner/product/reviewer/developer/tester/viewer）
   memberRole String     @map("member_role") @db.VarChar(30)
   /// 是否默认负责人
   isDefault  Boolean?   @default(false) @map("is_default")

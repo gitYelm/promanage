@@ -1,13 +1,13 @@
 # 开发协作问题与防重复清单 - bug-feedback-system
 
-最后更新时间：2026-05-15
+最后更新时间：2026-05-16
 
 ## 当前项目事实
 
 - 项目路径：`/Volumes/data/fzl/pro/bug-feedback-system`
 - 前端：Vue 3.5 + Vite 7 + TypeScript + shadcn-vue + Pinia
 - 后端：NestJS 11 + Prisma 7 + PostgreSQL + Redis
-- 权限：已有 RBAC、动态菜单、按钮权限、`@RequirePermission`
+- 权限：已有 RBAC、动态菜单、按钮权限、`@RequirePermission`；Bug 业务采用系统 RBAC + 项目成员角色双层权限
 - 上传：已有 `StorageService` 和 `/api/upload/*`，支持本地/对象存储
 
 ## 已确认产品方向
@@ -19,6 +19,7 @@
 - 截图需要在线标注：画框、箭头、线条、编号、文字
 - 第一版启用站内通知，但只通知下一步处理人；tester 提交后通知 reviewer/负责人，不通知 developer
 - 流程完整：tester 提交 → reviewer 确认/驳回 → reviewer 分派 developer → developer 修复 → tester 验证/关闭
+- 已确认新增 `bug_reviewer` 系统角色、项目成员 `reviewer`、`bug_viewer` 只读角色和项目成员 `viewer`
 
 ## 防重复规则
 
@@ -32,6 +33,15 @@
 8. 数据库必须新建独立库或独立 schema，避免污染已有本地数据。
 9. Redis 必须使用独立 DB 或键前缀，避免污染已有缓存。
 10. 附件上传必须校验类型、大小和内容，图片标注优先在浏览器本地完成后再上传。
+
+### Bug 角色权限防重复规则
+
+- `bug_reviewer` 必须作为独立系统角色存在，不能只依赖产品负责人兼职；项目成员字典必须包含 `reviewer`。
+- `bug_viewer` 是只读角色，项目成员字典必须包含 `viewer`；不得授予提交、评论、上传或状态流转权限。
+- `developer` 分派前不可见 tester 新提交 Bug，不能给开发角色授予审核池数据范围。
+- 项目/模块/版本列表应按 `visibleProjectIds` 限制数据范围，不能因为有菜单权限就返回所有项目基础数据。
+- 种子链路必须包含 `server-nestjs/prisma/seed-bug-workflow-permissions.ts`，确保 reviewer/viewer 角色、字典和权限幂等补齐。
+- 演示验收用户建议使用：`bug_owner`、`bug_product`、`bug_reviewer`、`bug_dev01`、`bug_dev02`、`bug_tester01`、`bug_submitter01`、`bug_viewer01`。
 
 ## 写入前检查
 
@@ -47,6 +57,49 @@
 - 检查新 DTO 有校验和中文说明。
 - 检查无敏感信息输出到日志或前端。
 - 不执行 build/install/打包；如需验证，列出用户可执行命令。
+
+## 开发进程挂掉与前端代理拒绝连接防重复规则
+
+### 现象
+
+- 用户反馈“项目进程又挂了”。
+- 浏览器或 Vite 控制台出现 `/api/*` 代理错误：`AggregateError [ECONNREFUSED]`。
+- `lsof` 检查发现前端 `5173` 可能已启动，但后端 `3001` 未监听。
+
+### 根因
+
+1. 这次根因不是数据库、Redis 或端口占用，而是 Nest watch 编译失败。
+2. 具体错误位于 `server-nestjs/src/bug/project/bug-project.service.ts`：
+   - `scopedProjectIdFilter()` 返回类型绑定为 `Prisma.BugProjectModuleWhereInput['projectId']`。
+   - 该返回值又被复用到 `BugProjectVersionWhereInput.projectId`。
+   - Prisma 7 的模型泛型会把过滤器类型绑定到具体模型，导致 `BugProjectModule` 的 `BigIntFilter` 不能赋给 `BugProjectVersion`。
+3. 后端编译失败后不会监听 `3001`，前端请求 `/api/*` 只能表现为代理拒绝连接。
+
+### 错误决策链路
+
+- 不能只看 Vite `ECONNREFUSED` 就判断是前端问题。
+- 不能先重启 Docker 内测版；本地开发版和 Docker 内测版必须分开处理。
+- 不能先改数据库或重跑迁移；应先看 `pnpm dev` 后端 watch 编译输出。
+- 不能继续把具体 Prisma 模型的 where 字段类型复用到另一个模型。
+
+### 防重复规则
+
+- 遇到“项目挂了”先三步确认：
+  1. `lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(3001|5173)\b'`
+  2. 查看 `pnpm dev` 终端是否有 TypeScript 编译错误。
+  3. 再看 `server-nestjs/logs/*当天日期*.log` 是否有运行期异常。
+- 前端 `ECONNREFUSED` 优先表示后端未启动或未监听，不等于前端 API 封装错误。
+- 可复用的 Prisma where 过滤器不要写成某个具体模型的字段类型；跨模型复用时应返回通用结构，或分别提供模块/版本专用过滤器。
+- 修复后必须确认：
+  - watch 输出 `Found 0 errors`
+  - 后端监听 `3001`
+  - 前端监听 `5173`
+  - `curl http://127.0.0.1:3001/api/health` 返回 200。
+
+### 相关文件路径
+
+- `server-nestjs/src/bug/project/bug-project.service.ts`
+- `docs/问题解决/README.md`
 
 ## 附件上传与截图标注防重复规则
 

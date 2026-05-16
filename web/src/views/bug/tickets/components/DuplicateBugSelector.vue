@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { listBugTickets } from '@/api/bug'
 import type { BugTicket } from '@/api/bug/types'
-import { BUG_STATUS_OPTIONS, optionLabel } from '../../shared/bug-options'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 
 const props = defineProps<{
   currentTicketId?: string
@@ -53,7 +52,7 @@ function selectTicket(ticket: BugTicket) {
       >
         <div class="flex items-center justify-between gap-2">
           <span class="font-medium">{{ item.ticketNo }}</span>
-          <Badge variant="outline">{{ optionLabel(BUG_STATUS_OPTIONS, item.status) }}</Badge>
+          <StatusBadge domain="bug" :value="item.status" />
         </div>
         <div class="mt-1 line-clamp-2 text-muted-foreground">{{ item.title }}</div>
       </button>
