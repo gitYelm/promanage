@@ -76,7 +76,7 @@ const pathOptions = computed(() => {
   const fixed = [
     { label: '系统仪表盘（/dashboard）', value: '/dashboard' },
     { label: '我的 Bug（/bug/my）', value: '/bug/my' },
-    { label: 'Bug 看板（/bug/statistics）', value: '/bug/statistics' },
+    { label: 'Bug 看板（/project-management/statistics）', value: '/project-management/statistics' },
   ]
   return uniqueByValue([...fixed, ...configured].filter((item) => item.value && item.value !== '/'))
 })

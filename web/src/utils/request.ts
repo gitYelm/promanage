@@ -7,6 +7,10 @@ import { ErrorCode, shouldRedirectToLogin, getErrorMessage } from '@/types/error
 
 const { toast } = useToast()
 
+type RequestConfigWithMeta = InternalAxiosRequestConfig & {
+  _authToken?: string
+}
+
 // 默认超时时间（秒）
 const DEFAULT_TIMEOUT = 10
 const DEFAULT_UPLOAD_TIMEOUT = 30
@@ -45,7 +49,12 @@ service.interceptors.request.use(
 
     if (token && !isToken) {
       config.headers['Authorization'] = 'Bearer ' + token
+      ;(config as RequestConfigWithMeta)._authToken = token
     }
+
+    // 受保护接口不能走浏览器协商缓存，否则 304 空响应会导致登录态/权限态混乱。
+    config.headers['Cache-Control'] = 'no-cache'
+    config.headers.Pragma = 'no-cache'
 
     // 动态设置超时时间
     const isUpload = config.data instanceof FormData || config.headers?.['Content-Type'] === 'multipart/form-data'
@@ -68,6 +77,8 @@ service.interceptors.response.use(
     const newToken = response.headers['x-new-token']
     if (newToken) {
       setToken(newToken)
+      const userStore = useUserStore()
+      userStore.token = newToken
     }
 
     // 未设置状态码则默认成功状态
@@ -138,6 +149,7 @@ service.interceptors.response.use(
     if (err.response?.data) {
       const httpStatus = err.response.status // HTTP 状态码
       const { code, msg } = err.response.data // 业务错误码和消息
+      const failedToken = (err as { config?: RequestConfigWithMeta }).config?._authToken
       // 优先使用后端返回的 msg,如果没有则使用错误码映射
       const errorMessage = msg || (code !== undefined ? getErrorMessage(code) : '')
 
@@ -154,7 +166,7 @@ service.interceptors.response.use(
         message = errorMessage || '登录状态已过期，请重新登录'
 
         // 只有用户已成功登录过（使用中过期）才弹窗提示
-        if (userStore.isLoggedIn) {
+        if (userStore.isLoggedIn && (!failedToken || failedToken === getToken())) {
           toast({
             title,
             description: message,
@@ -162,7 +174,7 @@ service.interceptors.response.use(
             duration: 3000,
           })
           setTimeout(() => {
-            userStore.logout().then(() => {
+            userStore.logout(failedToken).then(() => {
               location.href = loginPath
             })
           }, 2000)

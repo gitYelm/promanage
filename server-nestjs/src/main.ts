@@ -8,6 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { join } from 'path'
 import { json, urlencoded } from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import redoc from 'redoc-express'
 import helmet from 'helmet'
 
@@ -27,6 +28,8 @@ async function bootstrap() {
   // 使用自定义日志服务
   const logger = app.get(LoggerService)
   app.useLogger(logger)
+  const expressApp = app.getHttpAdapter().getInstance()
+  expressApp.set('etag', false)
 
   // CORS 配置 (提前解析，供 Helmet 和 CORS 中间件共用)
   const isProduction = process.env.NODE_ENV === 'production'
@@ -72,6 +75,18 @@ async function bootstrap() {
   // 全局前缀
   app.setGlobalPrefix('api')
 
+  // API 响应禁止缓存，避免浏览器对带 Authorization 的 GET 返回 304 空响应，
+  // 进而导致前端登录态、权限态和通知轮询状态出现错乱。
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api/')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      res.setHeader('Pragma', 'no-cache')
+      res.setHeader('Expires', '0')
+      res.setHeader('Surrogate-Control', 'no-store')
+    }
+    next()
+  })
+
   // 增加请求体大小限制 (支持文件上传,如 APK/IPA 包)
   app.use(json({ limit: '100mb' }))
   app.use(urlencoded({ limit: '100mb', extended: true }))
@@ -103,7 +118,7 @@ async function bootstrap() {
     origin: isProduction ? corsOrigins || false : true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma'],
     exposedHeaders: ['X-New-Token'], // 暴露滑动过期的新 Token 头
   })
 
@@ -158,7 +173,6 @@ async function bootstrap() {
   })
 
   // 添加 Redoc API 文档
-  const expressApp = app.getHttpAdapter().getInstance()
   expressApp.use(
     '/redoc',
     redoc({

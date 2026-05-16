@@ -38,6 +38,10 @@ export const useUserStore = defineStore('user', {
   actions: {
     // 登录（不自动设置 token，用于两步验证场景）
     async loginWithoutToken(userInfo: LoginData) {
+      // 登录页可能是由旧 Token 失效跳转而来，先清理旧登录态，避免旧请求的 401 回调误伤新会话。
+      removeToken()
+      this.token = ''
+      this.isLoggedIn = false
       return await login(userInfo)
     },
     // 登录
@@ -82,7 +86,12 @@ export const useUserStore = defineStore('user', {
       return data
     },
     // 退出系统
-    async logout() {
+    async logout(expectedToken?: string) {
+      const currentToken = getToken() || this.token
+      if (expectedToken && currentToken && currentToken !== expectedToken) {
+        // 旧请求延迟触发的退出不能清理/拉黑刚登录的新 Token。
+        return
+      }
       try {
         await logout()
       } catch {

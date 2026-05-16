@@ -25,6 +25,12 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL,
           changeOrigin: true,
         },
+        '/api/system/notifications/stream': {
+          target: env.VITE_API_URL,
+          changeOrigin: true,
+          proxyTimeout: 0,
+          timeout: 0,
+        },
       },
     },
   }

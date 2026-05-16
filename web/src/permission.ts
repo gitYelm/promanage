@@ -86,6 +86,7 @@ router.beforeEach(async (to, _from, next) => {
         }
         next()
       } else {
+        const tokenBeforeGetInfo = userStore.token
         try {
           // 获取用户信息
           await userStore.getInfo()
@@ -101,7 +102,7 @@ router.beforeEach(async (to, _from, next) => {
           // 路由已动态添加，需要用 path 重新导航让新路由生效
           next({ path: nextPath, query: to.query, replace: true })
         } catch {
-          await userStore.logout()
+          await userStore.logout(tokenBeforeGetInfo)
           next(`${loginPath}?redirect=${to.path}`)
           NProgress.done()
         }
