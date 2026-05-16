@@ -18,7 +18,7 @@ import {
 
 type RequestWithUser = Request & { user: { userId: string; username: string } }
 
-@ApiTags('Bug 管理')
+@ApiTags('缺陷管理')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('bug/tickets')
@@ -30,14 +30,14 @@ export class BugTicketController {
 
   @Get('statistics')
   @RequirePermission('bug:statistics:view')
-  @ApiOperation({ summary: 'Bug 统计' })
+  @ApiOperation({ summary: '缺陷统计' })
   statistics(@Req() req: RequestWithUser) {
     return this.statisticsService.overview(req.user)
   }
 
   @Get()
   @RequirePermission('bug:ticket:list', 'bug:ticket:my')
-  @ApiOperation({ summary: '查询 Bug 列表' })
+  @ApiOperation({ summary: '查询缺陷列表' })
   list(@Query() query: QueryBugTicketDto, @Req() req: RequestWithUser) {
     return this.service.list(query, req.user)
   }
@@ -52,7 +52,7 @@ export class BugTicketController {
   @Post()
   @RequirePermission('bug:ticket:add')
   @Log('Bug 工单', BusinessType.INSERT)
-  @ApiOperation({ summary: '提交 Bug' })
+  @ApiOperation({ summary: '提交缺陷' })
   create(@Body() dto: CreateBugTicketDto, @Req() req: RequestWithUser) {
     return this.service.create(dto, req.user)
   }

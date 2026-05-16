@@ -41,7 +41,7 @@ onMounted(async () => {
 <template>
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between">
-      <h2 class="text-2xl font-bold">Bug 看板</h2>
+      <h2 class="text-2xl font-bold">缺陷看板</h2>
       <div class="flex items-center gap-2">
         <DataRefreshButton :loading="loading" @refresh="loadStatistics" />
         <Button v-hasPermi="['bug:statistics:export']" variant="outline" @click="exportOpen = true">导出统计</Button>
@@ -54,6 +54,6 @@ onMounted(async () => {
       <Card><CardHeader><CardTitle>项目分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in projectRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><SemanticProgress :model-value="percent(item.count)" tone="info" /></div></CardContent></Card>
       <Card><CardHeader><CardTitle>负责人分布</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in assigneeRows" :key="item.label"><div class="mb-1 flex justify-between text-sm"><span>{{ item.label }}</span><span>{{ item.count }}</span></div><SemanticProgress :model-value="percent(item.count)" tone="neutral" /></div></CardContent></Card>
     </div>
-    <ExportDialog v-model:open="exportOpen" module="bug-statistics" module-name="Bug 统计" />
+    <ExportDialog v-model:open="exportOpen" module="bug-statistics" module-name="缺陷统计" />
   </div>
 </template>

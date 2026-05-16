@@ -60,7 +60,7 @@ onMounted(load)
 <template>
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between">
-      <div><h2 class="text-2xl font-bold">老板驾驶舱</h2><p class="text-sm text-muted-foreground">实时查看项目进度、当前处理、历史完成和未处理事项</p></div>
+      <div><h2 class="text-2xl font-bold">仪表盘</h2><p class="text-sm text-muted-foreground">实时查看项目进度、当前处理、历史完成和未处理事项</p></div>
       <DataRefreshButton :loading="loading" @refresh="load" />
     </div>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">

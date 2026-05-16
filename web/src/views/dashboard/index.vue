@@ -1,227 +1,74 @@
 <script setup lang="ts">
-import { Activity, ArrowUpRight, CreditCard, DollarSign, Users } from 'lucide-vue-next'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { Bug, ClipboardList, FolderKanban, LayoutDashboard } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+
+const quickEntries = [
+  {
+    title: '仪表盘',
+    description: '查看项目进度、风险、未处理事项和下阶段安排。',
+    path: '/project-management/executive-dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    title: '需求管理',
+    description: '维护需求、评审结论、优先级和关联迭代。',
+    path: '/project-management/requirements',
+    icon: ClipboardList,
+  },
+  {
+    title: '缺陷管理',
+    description: '跟踪缺陷提交、审核、分派、修复和验证闭环。',
+    path: '/bug/tickets',
+    icon: Bug,
+  },
+  {
+    title: '项目管理',
+    description: '维护项目、模块、版本、迭代和里程碑。',
+    path: '/project-management/overview',
+    icon: FolderKanban,
+  },
+]
 </script>
 
 <template>
-  <div class="flex min-h-screen w-full flex-col">
-    <main class="flex flex-1 flex-col gap-4 p-4 sm:p-6 md:gap-8 md:p-8">
-      <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium"> 总营收 </CardTitle>
-            <DollarSign class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">$45,231.89</div>
-            <p class="text-xs text-muted-foreground">较上月增长 +20.1%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium"> 订阅用户 </CardTitle>
-            <Users class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">+2350</div>
-            <p class="text-xs text-muted-foreground">较上月增长 +180.1%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium"> 销售额 </CardTitle>
-            <CreditCard class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">+12,234</div>
-            <p class="text-xs text-muted-foreground">较上月增长 +19%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium"> 活跃用户 </CardTitle>
-            <Activity class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">+573</div>
-            <p class="text-xs text-muted-foreground">较上小时增长 +201</p>
-          </CardContent>
-        </Card>
+  <main class="space-y-6 p-4 sm:p-6">
+    <section class="rounded-xl border bg-card p-6 shadow-sm">
+      <div class="max-w-3xl space-y-3">
+        <p class="text-sm font-medium text-primary">业务首页</p>
+        <h1 class="text-3xl font-bold tracking-tight">研发协作工作台</h1>
+        <p class="text-muted-foreground">
+          当前首页用于承载常用业务入口；项目进度、风险和待处理事项请进入“项目管理 > 仪表盘”查看。
+        </p>
+        <div class="flex flex-wrap gap-3 pt-2">
+          <Button as-child>
+            <RouterLink to="/project-management/executive-dashboard">进入仪表盘</RouterLink>
+          </Button>
+          <Button variant="outline" as-child>
+            <RouterLink to="/bug/tickets">查看缺陷列表</RouterLink>
+          </Button>
+        </div>
       </div>
-      <div class="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-        <Card class="xl:col-span-2">
-          <CardHeader class="flex flex-row items-center">
-            <div class="grid gap-2">
-              <CardTitle>交易记录</CardTitle>
-              <CardDescription> 近期共有 5 笔交易记录。 </CardDescription>
-            </div>
-            <Button as-child size="sm" class="ml-auto gap-1">
-              <a href="#">
-                查看全部
-                <ArrowUpRight class="h-4 w-4" />
-              </a>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>用户</TableHead>
-                  <TableHead class="hidden xl:table-cell"> 类型 </TableHead>
-                  <TableHead class="hidden xl:table-cell"> 状态 </TableHead>
-                  <TableHead class="hidden xl:table-cell"> 日期 </TableHead>
-                  <TableHead class="text-right"> 金额 </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <div class="font-medium">Liam Johnson</div>
-                    <div class="hidden text-sm text-muted-foreground md:inline">
-                      liam@example.com
-                    </div>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> Sale </TableCell>
-                  <TableCell class="hidden xl:table-cell">
-                    <Badge class="text-xs" variant="outline"> Approved </Badge>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> 2023-06-23 </TableCell>
-                  <TableCell class="text-right"> $250.00 </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div class="font-medium">Olivia Smith</div>
-                    <div class="hidden text-sm text-muted-foreground md:inline">
-                      olivia@example.com
-                    </div>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> Refund </TableCell>
-                  <TableCell class="hidden xl:table-cell">
-                    <Badge class="text-xs" variant="outline"> Declined </Badge>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> 2023-06-24 </TableCell>
-                  <TableCell class="text-right"> $150.00 </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div class="font-medium">Noah Williams</div>
-                    <div class="hidden text-sm text-muted-foreground md:inline">
-                      noah@example.com
-                    </div>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> Subscription </TableCell>
-                  <TableCell class="hidden xl:table-cell">
-                    <Badge class="text-xs" variant="outline"> Approved </Badge>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> 2023-06-25 </TableCell>
-                  <TableCell class="text-right"> $350.00 </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div class="font-medium">Emma Brown</div>
-                    <div class="hidden text-sm text-muted-foreground md:inline">
-                      emma@example.com
-                    </div>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> Sale </TableCell>
-                  <TableCell class="hidden xl:table-cell">
-                    <Badge class="text-xs" variant="outline"> Approved </Badge>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> 2023-06-26 </TableCell>
-                  <TableCell class="text-right"> $450.00 </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div class="font-medium">Liam Johnson</div>
-                    <div class="hidden text-sm text-muted-foreground md:inline">
-                      liam@example.com
-                    </div>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> Sale </TableCell>
-                  <TableCell class="hidden xl:table-cell">
-                    <Badge class="text-xs" variant="outline"> Approved </Badge>
-                  </TableCell>
-                  <TableCell class="hidden xl:table-cell"> 2023-06-27 </TableCell>
-                  <TableCell class="text-right"> $550.00 </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>近期销售</CardTitle>
-          </CardHeader>
-          <CardContent class="grid gap-8">
-            <div class="flex items-center gap-4">
-              <Avatar class="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                <AvatarFallback>OM</AvatarFallback>
-              </Avatar>
-              <div class="grid gap-1">
-                <p class="text-sm font-medium leading-none">Olivia Martin</p>
-                <p class="text-sm text-muted-foreground">olivia.martin@email.com</p>
-              </div>
-              <div class="ml-auto font-medium">+$1,999.00</div>
-            </div>
-            <div class="flex items-center gap-4">
-              <Avatar class="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/02.png" alt="Avatar" />
-                <AvatarFallback>JL</AvatarFallback>
-              </Avatar>
-              <div class="grid gap-1">
-                <p class="text-sm font-medium leading-none">Jackson Lee</p>
-                <p class="text-sm text-muted-foreground">jackson.lee@email.com</p>
-              </div>
-              <div class="ml-auto font-medium">+$39.00</div>
-            </div>
-            <div class="flex items-center gap-4">
-              <Avatar class="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/03.png" alt="Avatar" />
-                <AvatarFallback>IN</AvatarFallback>
-              </Avatar>
-              <div class="grid gap-1">
-                <p class="text-sm font-medium leading-none">Isabella Nguyen</p>
-                <p class="text-sm text-muted-foreground">isabella.nguyen@email.com</p>
-              </div>
-              <div class="ml-auto font-medium">+$299.00</div>
-            </div>
-            <div class="flex items-center gap-4">
-              <Avatar class="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/04.png" alt="Avatar" />
-                <AvatarFallback>WK</AvatarFallback>
-              </Avatar>
-              <div class="grid gap-1">
-                <p class="text-sm font-medium leading-none">William Kim</p>
-                <p class="text-sm text-muted-foreground">will@email.com</p>
-              </div>
-              <div class="ml-auto font-medium">+$99.00</div>
-            </div>
-            <div class="flex items-center gap-4">
-              <Avatar class="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/05.png" alt="Avatar" />
-                <AvatarFallback>SD</AvatarFallback>
-              </Avatar>
-              <div class="grid gap-1">
-                <p class="text-sm font-medium leading-none">Sofia Davis</p>
-                <p class="text-sm text-muted-foreground">sofia.davis@email.com</p>
-              </div>
-              <div class="ml-auto font-medium">+$39.00</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
-  </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <Card v-for="entry in quickEntries" :key="entry.path">
+        <CardHeader class="space-y-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <component :is="entry.icon" class="h-5 w-5" />
+          </div>
+          <div>
+            <CardTitle class="text-base">{{ entry.title }}</CardTitle>
+            <CardDescription>{{ entry.description }}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button variant="secondary" class="w-full" as-child>
+            <RouterLink :to="entry.path">打开</RouterLink>
+          </Button>
+        </CardContent>
+      </Card>
+    </section>
+  </main>
 </template>

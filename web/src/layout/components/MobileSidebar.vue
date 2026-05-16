@@ -41,7 +41,7 @@ const activeAccordionValue = computed(() => {
             to="/dashboard"
             :class="cn('flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary', isActive('/dashboard') ? 'bg-muted text-primary' : 'text-muted-foreground')"
           >
-            <LayoutDashboard class="h-4 w-4" /><span>仪表盘</span>
+            <LayoutDashboard class="h-4 w-4" /><span>首页</span>
           </router-link>
           <Accordion type="single" collapsible class="w-full" :default-value="activeAccordionValue">
             <AccordionItem v-for="(item, index) in menuStore.menuList" :key="item.path" :value="`item-${index}`" class="border-b-0">

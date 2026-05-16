@@ -46,7 +46,7 @@ onMounted(async () => { projects.value = await bugProjectOptions(); await load()
       <div class="flex flex-wrap gap-2"><Select v-model="query.projectId" @update:model-value="load"><SelectTrigger class="w-64"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="PM_ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select><DataRefreshButton :loading="loading" @refresh="load" /></div>
     </div>
     <Tabs default-value="requirements" class="space-y-4">
-      <TabsList><TabsTrigger value="requirements">需求看板</TabsTrigger><TabsTrigger value="bugs">Bug 看板</TabsTrigger></TabsList>
+      <TabsList><TabsTrigger value="requirements">需求看板</TabsTrigger><TabsTrigger value="bugs">缺陷看板</TabsTrigger></TabsList>
       <TabsContent value="requirements">
         <div class="grid gap-4 xl:grid-cols-5">
           <Card v-for="column in requirementColumns" :key="column.title" class="min-h-72">

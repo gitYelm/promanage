@@ -91,24 +91,24 @@ const router = createRouter({
           component: () => import('@/views/system/notification/index.vue'),
           meta: { title: '站内通知', icon: 'bell-ring', perms: ['system:notification:list'] },
         },
-        // Bug Module
+        // 缺陷管理模块
         {
           path: 'bug/tickets',
           name: 'BugTickets',
           component: () => import('@/views/bug/tickets/index.vue'),
-          meta: { title: 'Bug 列表', icon: 'bug' },
+          meta: { title: '缺陷列表', icon: 'bug' },
         },
         {
           path: 'bug/my',
           name: 'MyBugTickets',
           component: () => import('@/views/bug/tickets/index.vue'),
-          meta: { title: '我的 Bug', icon: 'user-check' },
+          meta: { title: '我的缺陷', icon: 'user-check' },
         },
         {
           path: 'bug/create',
           name: 'BugCreate',
           component: () => import('@/views/bug/tickets/create.vue'),
-          meta: { title: '提交 Bug', icon: 'plus-square' },
+          meta: { title: '提交缺陷', icon: 'plus-square' },
         },
         {
           path: 'bug/projects',
@@ -126,14 +126,14 @@ const router = createRouter({
           path: 'bug/statistics',
           name: 'BugStatistics',
           component: () => import('@/views/bug/statistics/index.vue'),
-          meta: { title: 'Bug 看板', icon: 'bar-chart-3' },
+          meta: { title: '缺陷看板', icon: 'bar-chart-3' },
         },
         // Project Management Module
         {
           path: 'project-management/executive-dashboard',
           name: 'ProjectExecutiveDashboard',
           component: () => import('@/views/project-management/executive-dashboard/index.vue'),
-          meta: { title: '老板驾驶舱', icon: 'layout-dashboard' },
+          meta: { title: '仪表盘', icon: 'layout-dashboard' },
         },
         {
           path: 'project-management/overview',

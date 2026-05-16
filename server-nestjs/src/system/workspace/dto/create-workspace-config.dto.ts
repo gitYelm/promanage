@@ -12,7 +12,7 @@ export class CreateWorkspaceConfigDto {
   @IsString()
   defaultPath!: string
 
-  @ApiPropertyOptional({ description: '仪表盘替代路径', example: '/bug/statistics' })
+  @ApiPropertyOptional({ description: '首页替代路径', example: '/bug/statistics' })
   @IsOptional()
   @IsString()
   dashboardPath?: string

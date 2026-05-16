@@ -63,7 +63,7 @@ async function restoreBugStatisticsMenu() {
   })
 
   if (!bugDir) {
-    throw new Error('未找到 BUG 管理根菜单 /bug，请先执行主 seed。')
+    throw new Error('未找到缺陷管理根菜单 /bug，请先执行主 seed。')
   }
 
   const bugStatistics = await prisma.sysMenu.findFirst({
@@ -71,14 +71,14 @@ async function restoreBugStatisticsMenu() {
   })
 
   if (!bugStatistics) {
-    console.warn('未找到 Bug 看板菜单 (bug/statistics/index)')
+    console.warn('未找到缺陷看板菜单 (bug/statistics/index)')
     return
   }
 
   await prisma.sysMenu.update({
     where: { menuId: bugStatistics.menuId },
     data: {
-      menuName: 'Bug 看板',
+      menuName: '缺陷看板',
       parentId: bugDir.menuId,
       path: 'statistics',
       orderNum: 4,
@@ -89,7 +89,7 @@ async function restoreBugStatisticsMenu() {
     },
   })
 
-  console.log('Restored menu to BUG management: Bug 看板')
+  console.log('Restored menu to 缺陷管理: 缺陷看板')
 }
 
 async function migrateWorkspacePaths() {

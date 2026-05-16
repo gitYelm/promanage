@@ -88,7 +88,7 @@ onMounted(loadBase)
 <template>
   <div class="space-y-6 p-4 sm:p-6">
     <div>
-      <h2 class="text-2xl font-bold">提交 Bug</h2>
+      <h2 class="text-2xl font-bold">提交缺陷</h2>
       <p class="text-muted-foreground">只需填写标题即可提交；可补充项目、模块、复现步骤、截图、日志或录屏，截图支持上传前标注。</p>
     </div>
     <div class="grid gap-6 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(34rem,1.15fr)]">

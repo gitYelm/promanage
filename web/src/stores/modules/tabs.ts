@@ -12,7 +12,7 @@ export interface TabItem {
 
 export const useTabsStore = defineStore('tabs', () => {
   const tabs = ref<TabItem[]>([
-    { path: '/dashboard', name: 'Dashboard', title: '仪表盘', closable: false },
+    { path: '/dashboard', name: 'Dashboard', title: '首页', closable: false },
   ])
   const activeTab = ref('/dashboard')
 
@@ -45,7 +45,7 @@ export const useTabsStore = defineStore('tabs', () => {
     if (index === -1) return null
 
     const tab = tabs.value[index]
-    // 不能关闭固定标签（仪表盘）
+    // 不能关闭固定标签（首页）
     if (!tab || !tab.closable) return null
 
     tabs.value.splice(index, 1)

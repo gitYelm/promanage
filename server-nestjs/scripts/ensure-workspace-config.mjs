@@ -4,10 +4,10 @@ import { Client } from 'pg'
 const client = new Client({ connectionString: process.env.DATABASE_URL })
 
 const configs = [
-  ['admin', '/dashboard', '/dashboard', null, 'all', '0', '管理员保留系统仪表盘'],
-  ['tester', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '测试人员默认进入我的 Bug'],
-  ['developer', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '开发人员默认进入我的 Bug'],
-  ['reviewer', '/bug/statistics', '/bug/statistics', '/bug', 'business', '0', '审核人员默认进入 Bug 看板'],
+  ['admin', '/dashboard', '/dashboard', null, 'all', '0', '管理员保留系统首页'],
+  ['tester', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '测试人员默认进入我的缺陷'],
+  ['developer', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '开发人员默认进入我的缺陷'],
+  ['reviewer', '/bug/statistics', '/bug/statistics', '/bug', 'business', '0', '审核人员默认进入缺陷看板'],
 ]
 
 const workspacePerms = [

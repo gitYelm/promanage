@@ -226,7 +226,7 @@
 - `confirmed` / `reopened` 必须先由 reviewer/项目负责人/产品负责人执行 `assign`，再通知指定 developer 处理。
 - tester 提交 Bug 的 `notifyCreated` 只通知 owner/product/reviewer，禁止通知 developer、模块默认负责人或项目全部成员。
 - Bug 数据范围必须区分角色：reviewer/owner/product 可看项目审核池；developer 只能看分派给自己或自己参与评论的 Bug；tester/submitter 看本人相关。
-- Bug 列表、详情、统计、项目驾驶舱都必须复用服务端数据范围，不能只在列表页过滤。
+- Bug 列表、详情、统计、项目仪表盘都必须复用服务端数据范围，不能只在列表页过滤。
 - Bug 列表行应携带按当前用户和当前工单计算的 `availableActions`，列表快捷按钮复用服务端结果。
 - 快捷操作组件应独立维护，避免把列表页继续堆成长文件。
 - “我的 Bug”待处理数量通过后端 `pending-count` 接口获取；提交或状态变更后通过前端事件刷新徽标。

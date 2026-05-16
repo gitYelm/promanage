@@ -18,17 +18,17 @@ SELECT role_name, role_key, role_sort, '2', true, true, '0', '0', remark FROM ro
 ON CONFLICT (role_key, del_flag) DO UPDATE SET role_name = EXCLUDED.role_name, status = '0', remark = EXCLUDED.remark;
 
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon)
-SELECT 'Bug 管理', NULL, 4, '/bug', 'Layout', 1, 0, 'M', '0', '0', NULL, 'bug'
+SELECT '缺陷管理', NULL, 4, '/bug', 'Layout', 1, 0, 'M', '0', '0', NULL, 'bug'
 WHERE NOT EXISTS (SELECT 1 FROM sys_menu WHERE parent_id IS NULL AND path = '/bug');
 
 WITH root_menu AS (
   SELECT menu_id FROM sys_menu WHERE parent_id IS NULL AND path = '/bug' ORDER BY menu_id LIMIT 1
 ), page_data(menu_name, path, component, perms, icon, order_num) AS (
   VALUES
-    ('Bug 列表','tickets','bug/tickets/index','bug:ticket:list','list-checks',1),
-    ('我的 Bug','my','bug/tickets/index','bug:ticket:my','user-check',2),
-    ('提交 Bug','create','bug/tickets/create','bug:ticket:add','plus-square',3),
-    ('Bug 看板','statistics','bug/statistics/index','bug:statistics:view','bar-chart-3',4),
+    ('缺陷列表','tickets','bug/tickets/index','bug:ticket:list','list-checks',1),
+    ('我的缺陷','my','bug/tickets/index','bug:ticket:my','user-check',2),
+    ('提交缺陷','create','bug/tickets/create','bug:ticket:add','plus-square',3),
+    ('缺陷看板','statistics','bug/statistics/index','bug:statistics:view','bar-chart-3',4),
     ('项目管理','projects','bug/projects/index','bug:project:list','folder-kanban',5),
     ('模块管理','modules','bug/modules/index','bug:module:list','blocks',6),
     ('版本管理','versions','bug/versions/index','bug:version:list','git-branch',7)
@@ -129,7 +129,7 @@ ON CONFLICT (project_key, del_flag) DO UPDATE SET project_name = EXCLUDED.projec
 WITH admin_user AS (SELECT user_id FROM sys_user WHERE user_name = 'admin' AND del_flag = '0' LIMIT 1),
 project AS (SELECT project_id FROM bug_project WHERE project_key = 'ADMIN' AND del_flag = '0' LIMIT 1)
 INSERT INTO bug_project_module (project_id, module_name, default_assignee_id, order_num, status, del_flag)
-SELECT project_id, 'Bug 管理', user_id, 1, '0', '0' FROM project CROSS JOIN admin_user
+SELECT project_id, '缺陷管理', user_id, 1, '0', '0' FROM project CROSS JOIN admin_user
 ON CONFLICT (project_id, module_name, del_flag) DO UPDATE SET status = '0';
 
 WITH project AS (SELECT project_id FROM bug_project WHERE project_key = 'ADMIN' AND del_flag = '0' LIMIT 1)

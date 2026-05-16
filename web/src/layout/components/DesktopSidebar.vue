@@ -51,7 +51,7 @@ const sidebarStyle = computed(() => ({
               to="/dashboard"
               :class="cn('flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary', isActive('/dashboard') ? 'bg-muted text-primary' : 'text-muted-foreground')"
             >
-              <LayoutDashboard class="h-4 w-4" /><span>仪表盘</span>
+              <LayoutDashboard class="h-4 w-4" /><span>首页</span>
             </router-link>
             <DynamicMenu />
           </div>
@@ -65,7 +65,7 @@ const sidebarStyle = computed(() => ({
                   <LayoutDashboard class="h-4 w-4" />
                 </router-link>
               </TooltipTrigger>
-              <TooltipContent side="right">仪表盘</TooltipContent>
+              <TooltipContent side="right">首页</TooltipContent>
             </Tooltip>
             <HoverCard v-for="menu in menuStore.menuList" :key="menu.path" :open-delay="0" :close-delay="100">
               <HoverCardTrigger as-child>

@@ -6,7 +6,7 @@ export default defineConfig({
   migrations: {
     path: 'prisma/migrations',
     seed:
-      'ts-node prisma/seed.ts && ts-node prisma/seed-project-management-menu.ts && ts-node prisma/seed-bug-workflow-permissions.ts && ts-node prisma/seed-notification.ts',
+      'ts-node prisma/seed.ts && ts-node prisma/seed-project-management-menu.ts && ts-node prisma/seed-bug-workflow-permissions.ts && ts-node prisma/seed-defect-menu-names.ts && ts-node prisma/seed-dashboard-menu-names.ts && ts-node prisma/seed-notification.ts',
   },
   datasource: {
     url: env('DATABASE_URL'),

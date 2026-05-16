@@ -82,7 +82,7 @@ export class BugTicketService {
   async create(dto: CreateBugTicketDto, user: RequestUserLike) {
     const project = await this.resolveCreateProject(dto.projectId, user)
     if (await this.access.isReadonlyProjectViewer(user.userId, project.projectId)) {
-      throw BusinessException.forbidden('观察者只能只读查看项目，不能提交 Bug')
+      throw BusinessException.forbidden('观察者只能只读查看项目，不能提交缺陷')
     }
     await this.assertRelations(
       String(project.projectId),

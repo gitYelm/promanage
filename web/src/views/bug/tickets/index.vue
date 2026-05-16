@@ -178,16 +178,16 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between">
-      <div><h2 class="text-2xl font-bold">{{ isMyPage ? '我的 Bug' : 'Bug 列表' }}</h2><p class="text-muted-foreground">跟踪 Bug 确认、分派、修复和验证闭环。</p></div>
+      <div><h2 class="text-2xl font-bold">{{ isMyPage ? '我的缺陷' : '缺陷列表' }}</h2><p class="text-muted-foreground">跟踪缺陷确认、分派、修复和验证闭环。</p></div>
       <div class="flex items-center gap-2">
         <DataRefreshButton :loading="loading" @refresh="getList" />
-        <Button v-hasPermi="['bug:ticket:add']" as-child><router-link to="/bug/create">提交 Bug</router-link></Button>
+        <Button v-hasPermi="['bug:ticket:add']" as-child><router-link to="/bug/create">提交缺陷</router-link></Button>
       </div>
     </div>
     <Alert v-if="listStale" class="border-primary/30 bg-primary/5">
-      <AlertTitle>有新的 Bug 动态</AlertTitle>
+      <AlertTitle>有新的缺陷动态</AlertTitle>
       <AlertDescription class="flex items-center justify-between gap-3">
-        <span>收到新的 Bug 通知，点击刷新列表查看最新内容。</span>
+        <span>收到新的缺陷通知，点击刷新列表查看最新内容。</span>
         <Button size="sm" @click="getList">刷新列表</Button>
       </AlertDescription>
     </Alert>
