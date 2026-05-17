@@ -29,9 +29,9 @@ const cards: Array<{ label: string; key: keyof DashboardSummary; tone: SemanticT
   { label: '已延期', key: 'delayedProjects', tone: 'overdue', description: '已超过计划完成时间' },
   { label: '7天关键节点', key: 'upcomingMilestones', tone: 'info', description: '未来 7 天需要关注的里程碑' },
   { label: '处理中需求', key: 'currentRequirements', tone: 'info', description: '当前正在推进的需求' },
-  { label: '修复中 Bug', key: 'currentBugs', tone: 'warning', description: '当前修复中的问题' },
+  { label: '修复中缺陷', key: 'currentBugs', tone: 'warning', description: '当前修复中的问题' },
   { label: '历史完成需求', key: 'completedRequirements', tone: 'success', description: '所选周期内已完成需求' },
-  { label: '历史修复 Bug', key: 'completedBugs', tone: 'success', description: '所选周期内已修复问题' },
+  { label: '历史修复缺陷', key: 'completedBugs', tone: 'success', description: '所选周期内已修复问题' },
   { label: '未处理事项', key: 'pendingRequirements', tone: 'danger', description: '仍待确认、分派或处理' },
 ]
 
@@ -84,7 +84,7 @@ onMounted(load)
                   <TableHead>项目</TableHead>
                   <TableHead class="text-center">阶段</TableHead>
                   <TableHead class="min-w-36 text-right">进度</TableHead>
-                  <TableHead class="text-right">Bug关闭率</TableHead>
+                  <TableHead class="text-right">缺陷关闭率</TableHead>
                   <TableHead class="text-center">风险</TableHead>
                 </TableRow>
               </TableHeader>
@@ -110,7 +110,7 @@ onMounted(load)
       <Card><CardHeader><CardTitle>管理层行动建议</CardTitle></CardHeader><CardContent class="space-y-2"><div v-for="item in actions" :key="item.message" class="rounded-md border p-3 text-sm"><RiskBadge class="mb-2" :value="item.level" /><div>{{ item.message }}</div></div></CardContent></Card>
     </div>
     <div class="grid gap-4 xl:grid-cols-3">
-      <Card><CardHeader><CardTitle>当前处理</CardTitle></CardHeader><CardContent class="space-y-3"><div class="text-sm font-medium">需求</div><div v-for="row in currentWork.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="requirement" :value="row.status" /><span class="text-xs text-muted-foreground">{{ row.project?.projectName }} · {{ requirementOwner(row) }}</span></div></div><div class="text-sm font-medium">Bug</div><div v-for="row in currentWork.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ bugTitle(row) }}</div><div class="mt-2 flex flex-wrap gap-1"><StatusBadge domain="bug" :value="itemStatus(row)" /><PriorityBadge :value="itemPriority(row)" /></div></div></CardContent></Card>
+      <Card><CardHeader><CardTitle>当前处理</CardTitle></CardHeader><CardContent class="space-y-3"><div class="text-sm font-medium">需求</div><div v-for="row in currentWork.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="requirement" :value="row.status" /><span class="text-xs text-muted-foreground">{{ row.project?.projectName }} · {{ requirementOwner(row) }}</span></div></div><div class="text-sm font-medium">缺陷</div><div v-for="row in currentWork.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ bugTitle(row) }}</div><div class="mt-2 flex flex-wrap gap-1"><StatusBadge domain="bug" :value="itemStatus(row)" /><PriorityBadge :value="itemPriority(row)" /></div></div></CardContent></Card>
       <Card><CardHeader><CardTitle>历史完成</CardTitle></CardHeader><CardContent class="space-y-3"><div v-for="row in completed.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="requirement" :value="row.status" /><span class="text-xs text-muted-foreground">{{ formatDate(row.actualEndTime || row.updateTime) }}</span></div></div><div v-for="row in completed.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ bugTitle(row) }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="bug" :value="itemStatus(row)" /><span class="text-xs text-muted-foreground">{{ String(row.updateTime || '-') }}</span></div></div></CardContent></Card>
       <Card><CardHeader><CardTitle>未处理</CardTitle></CardHeader><CardContent class="space-y-3"><div v-for="row in pending.requirements" :key="row.requirementId" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ row.title }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="requirement" :value="row.status" /><PriorityBadge :value="row.priority" /><span class="text-xs text-muted-foreground">{{ row.project?.projectName }}</span></div></div><div v-for="row in pending.bugs" :key="String(row.ticketId)" class="rounded-md border p-2 text-sm"><div class="font-medium">{{ bugTitle(row) }}</div><div class="mt-2 flex flex-wrap items-center gap-2"><StatusBadge domain="bug" :value="itemStatus(row)" /><PriorityBadge :value="itemPriority(row)" /><span class="text-xs text-muted-foreground">{{ itemProjectName(row) }}</span></div></div></CardContent></Card>
     </div>

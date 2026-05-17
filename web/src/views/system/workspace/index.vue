@@ -232,8 +232,8 @@ onMounted(async () => {
             <TableHead>首页替代路径</TableHead>
             <TableHead>默认展开菜单</TableHead>
             <TableHead>菜单策略</TableHead>
-            <TableHead>状态</TableHead>
-            <TableHead class="w-32">操作</TableHead>
+            <TableHead class="text-center">状态</TableHead>
+            <TableHead class="w-32 text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -243,9 +243,9 @@ onMounted(async () => {
             <TableCell><Badge variant="secondary">{{ row.dashboardPath || row.defaultPath }}</Badge></TableCell>
             <TableCell>{{ row.defaultOpenMenu || '-' }}</TableCell>
             <TableCell>{{ menuScopeLabel(row.menuScope) }}</TableCell>
-            <TableCell><Badge :variant="row.status === '0' ? 'default' : 'secondary'">{{ row.status === '0' ? '启用' : '停用' }}</Badge></TableCell>
-            <TableCell>
-              <div class="flex gap-2">
+            <TableCell class="text-center"><Badge :variant="row.status === '0' ? 'default' : 'secondary'">{{ row.status === '0' ? '启用' : '停用' }}</Badge></TableCell>
+            <TableCell class="text-right">
+              <div class="flex justify-end gap-2">
                 <Button v-hasPermi="['system:workspace:edit']" size="sm" variant="outline" @click="handleEdit(row)"><Edit class="h-4 w-4" /></Button>
                 <Button v-hasPermi="['system:workspace:remove']" size="sm" variant="destructive" @click="handleDelete(row)"><Trash2 class="h-4 w-4" /></Button>
               </div>

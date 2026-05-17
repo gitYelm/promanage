@@ -103,18 +103,6 @@ const rolePermissions: Record<string, string[]> = {
     'bug:ticket:reopen',
     ...notificationPermissions,
   ],
-  bug_operator: [
-    ...readPermissions,
-    ...writeCollaborationPermissions,
-    'bug:ticket:add',
-    'bug:ticket:edit',
-    ...notificationPermissions,
-  ],
-  bug_viewer: [
-    ...readPermissions,
-    ...projectReadPermissions,
-    ...notificationPermissions,
-  ],
 }
 
 async function ensureBugWorkflowPermissions() {
@@ -125,9 +113,7 @@ async function ensureBugWorkflowPermissions() {
 
 async function ensureSupplementRoles() {
   const roles = [
-    ['bug_reviewer', 'Bug 审核人员', 21, '审核 Bug、驳回或分派给开发'],
-    ['bug_operator', 'Bug 运营客服', 25, '内部代提交和协助跟进 Bug'],
-    ['bug_viewer', 'Bug 观察者', 27, '只读查看授权项目 Bug、统计和项目进度'],
+    ['bug_reviewer', '审核人员', 22, '审核缺陷、驳回或分派给开发'],
   ] as const
 
   for (const [roleKey, roleName, roleSort, remark] of roles) {

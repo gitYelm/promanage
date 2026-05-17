@@ -38,8 +38,8 @@ withDefaults(defineProps<Props>(), {
         <TableHead v-for="i in columns" :key="i">
           <Skeleton class="h-4 w-20" />
         </TableHead>
-        <TableHead v-if="showActions" class="w-32 text-center">
-          <Skeleton class="mx-auto h-4 w-12" />
+        <TableHead v-if="showActions" class="w-32 text-right">
+          <Skeleton class="ml-auto h-4 w-12" />
         </TableHead>
       </TableRow>
     </TableHeader>
@@ -52,7 +52,7 @@ withDefaults(defineProps<Props>(), {
           <Skeleton class="h-4" :class="col === 1 ? 'w-16' : 'w-24'" />
         </TableCell>
         <TableCell v-if="showActions">
-          <div class="flex justify-center gap-2">
+          <div class="flex justify-end gap-2">
             <Skeleton class="h-8 w-14" />
             <Skeleton class="h-8 w-14" />
           </div>

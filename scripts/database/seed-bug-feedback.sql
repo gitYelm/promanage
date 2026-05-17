@@ -4,14 +4,12 @@ BEGIN;
 
 WITH role_data(role_name, role_key, role_sort, remark) AS (
   VALUES
-    ('Bug 项目负责人','bug_project_owner',20,'管理项目内 Bug、成员、分派和统计'),
-    ('Bug 产品负责人','bug_product_owner',21,'确认 Bug 有效性并分派处理'),
-    ('Bug 审核人员','bug_reviewer',22,'审核 Bug、驳回或分派给开发'),
-    ('Bug 开发人员','bug_developer',23,'处理分派给自己的 Bug'),
-    ('Bug 测试人员','bug_tester',24,'提交、验证和关闭 Bug'),
-    ('Bug 提交人','bug_submitter',25,'提交并跟踪本人 Bug'),
-    ('Bug 运营客服','bug_operator',26,'内部代提交和协助跟进 Bug'),
-    ('Bug 观察者','bug_viewer',27,'只读查看授权项目 Bug、统计和项目进度')
+    ('项目负责人','bug_project_owner',20,'管理项目内缺陷、成员、分派和统计'),
+    ('产品负责人','bug_product_owner',21,'确认缺陷有效性并参与分派处理'),
+    ('审核人员','bug_reviewer',22,'审核缺陷、驳回或分派给开发'),
+    ('开发人员','bug_developer',23,'处理分派给自己的缺陷'),
+    ('测试人员','bug_tester',24,'提交、验证和关闭缺陷'),
+    ('提交人','bug_submitter',25,'提交并跟踪本人缺陷')
 )
 INSERT INTO sys_role (role_name, role_key, role_sort, data_scope, menu_check_strictly, dept_check_strictly, status, del_flag, remark)
 SELECT role_name, role_key, role_sort, '2', true, true, '0', '0', remark FROM role_data
@@ -42,10 +40,10 @@ ON CONFLICT DO NOTHING;
 WITH root_menu AS (SELECT menu_id FROM sys_menu WHERE parent_id IS NULL AND path = '/bug' LIMIT 1),
 button_data(menu_name, parent_path, perms, order_num) AS (
   VALUES
-    ('Bug 详情','tickets','bug:ticket:query',1),('Bug 编辑','tickets','bug:ticket:edit',2),('Bug 删除','tickets','bug:ticket:remove',3),
-    ('Bug 指派','tickets','bug:ticket:assign',4),('状态变更','tickets','bug:ticket:changeStatus',5),('Bug 确认','tickets','bug:ticket:confirm',6),
-    ('Bug 驳回','tickets','bug:ticket:reject',7),('开始修复','tickets','bug:ticket:startFix',8),('提交验证','tickets','bug:ticket:submitVerify',9),
-    ('验证 Bug','tickets','bug:ticket:verify',10),('关闭 Bug','tickets','bug:ticket:close',11),('重新打开','tickets','bug:ticket:reopen',12),
+    ('缺陷详情','tickets','bug:ticket:query',1),('缺陷编辑','tickets','bug:ticket:edit',2),('缺陷删除','tickets','bug:ticket:remove',3),
+    ('缺陷指派','tickets','bug:ticket:assign',4),('状态变更','tickets','bug:ticket:changeStatus',5),('缺陷确认','tickets','bug:ticket:confirm',6),
+    ('缺陷驳回','tickets','bug:ticket:reject',7),('开始修复','tickets','bug:ticket:startFix',8),('提交验证','tickets','bug:ticket:submitVerify',9),
+    ('验证缺陷','tickets','bug:ticket:verify',10),('关闭缺陷','tickets','bug:ticket:close',11),('重新打开','tickets','bug:ticket:reopen',12),
     ('评论列表','tickets','bug:comment:list',13),('新增评论','tickets','bug:comment:add',14),('删除评论','tickets','bug:comment:remove',15),
     ('附件列表','tickets','bug:attachment:list',16),('上传附件','tickets','bug:attachment:upload',17),('预览附件','tickets','bug:attachment:preview',18),('下载附件','tickets','bug:attachment:download',19),('删除附件','tickets','bug:attachment:remove',20),
     ('项目查询','projects','bug:project:query',1),('项目新增','projects','bug:project:add',2),('项目修改','projects','bug:project:edit',3),('项目删除','projects','bug:project:remove',4),('项目成员','projects','bug:project:member',5),
@@ -71,7 +69,7 @@ DELETE FROM sys_role_menu srm
 USING sys_role r, bug_menus m
 WHERE srm.role_id = r.role_id
   AND srm.menu_id = m.menu_id
-  AND r.role_key IN ('bug_project_owner','bug_product_owner','bug_reviewer','bug_developer','bug_tester','bug_submitter','bug_operator','bug_viewer');
+  AND r.role_key IN ('bug_project_owner','bug_product_owner','bug_reviewer','bug_developer','bug_tester','bug_submitter');
 
 WITH root_menu AS (SELECT menu_id FROM sys_menu WHERE parent_id IS NULL AND path = '/bug' LIMIT 1),
 bug_menus AS (
@@ -82,7 +80,7 @@ bug_menus AS (
   SELECT c.menu_id FROM sys_menu c JOIN sys_menu p ON c.parent_id = p.menu_id WHERE p.parent_id IN (SELECT menu_id FROM root_menu)
 ),
 role_data(role_key) AS (
-  VALUES ('bug_project_owner'),('bug_product_owner'),('bug_reviewer'),('bug_developer'),('bug_tester'),('bug_submitter'),('bug_operator'),('bug_viewer')
+  VALUES ('bug_project_owner'),('bug_product_owner'),('bug_reviewer'),('bug_developer'),('bug_tester'),('bug_submitter')
 ),
 role_permissions(role_key, perms) AS (
   VALUES
@@ -91,9 +89,7 @@ role_permissions(role_key, perms) AS (
     ('bug_reviewer','bug:ticket:list'),('bug_reviewer','bug:ticket:my'),('bug_reviewer','bug:ticket:add'),('bug_reviewer','bug:ticket:query'),('bug_reviewer','bug:ticket:edit'),('bug_reviewer','bug:ticket:assign'),('bug_reviewer','bug:ticket:changeStatus'),('bug_reviewer','bug:ticket:confirm'),('bug_reviewer','bug:ticket:reject'),('bug_reviewer','bug:ticket:reopen'),('bug_reviewer','bug:comment:add'),('bug_reviewer','bug:comment:list'),('bug_reviewer','bug:attachment:upload'),('bug_reviewer','bug:attachment:list'),('bug_reviewer','bug:attachment:preview'),('bug_reviewer','bug:attachment:download'),('bug_reviewer','bug:statistics:view'),('bug_reviewer','bug:project:list'),('bug_reviewer','bug:module:list'),('bug_reviewer','bug:version:list'),
     ('bug_developer','bug:ticket:list'),('bug_developer','bug:ticket:my'),('bug_developer','bug:ticket:query'),('bug_developer','bug:ticket:startFix'),('bug_developer','bug:ticket:submitVerify'),('bug_developer','bug:comment:add'),('bug_developer','bug:comment:list'),('bug_developer','bug:attachment:upload'),('bug_developer','bug:attachment:list'),('bug_developer','bug:attachment:preview'),('bug_developer','bug:attachment:remove'),
     ('bug_tester','bug:ticket:list'),('bug_tester','bug:ticket:my'),('bug_tester','bug:ticket:add'),('bug_tester','bug:ticket:query'),('bug_tester','bug:ticket:edit'),('bug_tester','bug:ticket:changeStatus'),('bug_tester','bug:ticket:confirm'),('bug_tester','bug:ticket:reject'),('bug_tester','bug:ticket:verify'),('bug_tester','bug:ticket:close'),('bug_tester','bug:ticket:reopen'),('bug_tester','bug:comment:add'),('bug_tester','bug:comment:list'),('bug_tester','bug:attachment:upload'),('bug_tester','bug:attachment:list'),('bug_tester','bug:attachment:preview'),('bug_tester','bug:attachment:remove'),
-    ('bug_submitter','bug:ticket:my'),('bug_submitter','bug:ticket:add'),('bug_submitter','bug:ticket:query'),('bug_submitter','bug:ticket:edit'),('bug_submitter','bug:ticket:reopen'),('bug_submitter','bug:comment:add'),('bug_submitter','bug:comment:list'),('bug_submitter','bug:attachment:upload'),('bug_submitter','bug:attachment:list'),('bug_submitter','bug:attachment:preview'),('bug_submitter','bug:attachment:remove'),
-    ('bug_operator','bug:ticket:list'),('bug_operator','bug:ticket:my'),('bug_operator','bug:ticket:add'),('bug_operator','bug:ticket:query'),('bug_operator','bug:ticket:edit'),('bug_operator','bug:comment:add'),('bug_operator','bug:comment:list'),('bug_operator','bug:attachment:upload'),('bug_operator','bug:attachment:list'),('bug_operator','bug:attachment:preview'),('bug_operator','bug:attachment:remove'),
-    ('bug_viewer','bug:ticket:list'),('bug_viewer','bug:ticket:my'),('bug_viewer','bug:ticket:query'),('bug_viewer','bug:comment:list'),('bug_viewer','bug:attachment:list'),('bug_viewer','bug:attachment:preview'),('bug_viewer','bug:project:list'),('bug_viewer','bug:module:list'),('bug_viewer','bug:version:list'),('bug_viewer','bug:statistics:view')
+    ('bug_submitter','bug:ticket:my'),('bug_submitter','bug:ticket:add'),('bug_submitter','bug:ticket:query'),('bug_submitter','bug:ticket:edit'),('bug_submitter','bug:ticket:reopen'),('bug_submitter','bug:comment:add'),('bug_submitter','bug:comment:list'),('bug_submitter','bug:attachment:upload'),('bug_submitter','bug:attachment:list'),('bug_submitter','bug:attachment:preview'),('bug_submitter','bug:attachment:remove')
 )
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT r.role_id, m.menu_id FROM role_data d JOIN sys_role r ON r.role_key = d.role_key CROSS JOIN root_menu m

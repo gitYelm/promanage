@@ -10,6 +10,7 @@ import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
+import SemanticActionButton from '@/components/common/SemanticActionButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { addRequirement, deleteRequirements, listRequirements, runRequirementAction, updateRequirement } from '@/api/project-management'
@@ -31,6 +32,7 @@ function edit(row: Requirement) { Object.assign(form, row, { ownerId: row.ownerI
 async function save() { const payload = { ...form, ownerId: pmNormalizeOptional(form.ownerId), developerId: pmNormalizeOptional(form.developerId) }; form.requirementId ? await updateRequirement(payload) : await addRequirement(payload); toast({ title: '保存成功' }); open.value = false; getList() }
 async function remove(row: Requirement) { await deleteRequirements([row.requirementId]); toast({ title: '删除成功' }); getList() }
 async function action(row: Requirement, act: string) { await runRequirementAction(row.requirementId, act); toast({ title: '状态已更新' }); getList() }
+function quickActions(row: Requirement) { return pmAvailableActions(PM_REQUIREMENT_ACTION_OPTIONS, row.status) }
 
 onMounted(async () => { const res = await loadPmBasicResources(); projects.value = res.projects; users.value = res.users; await getList() })
 </script>
@@ -39,7 +41,55 @@ onMounted(async () => { const res = await loadPmBasicResources(); projects.value
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex items-center justify-between"><h2 class="text-2xl font-bold">需求管理</h2><div class="flex gap-2"><DataRefreshButton :loading="loading" @refresh="getList" /><Button v-hasPermi="['pm:requirement:create']" @click="add">新增需求</Button></div></div>
     <div class="flex flex-wrap gap-2"><Input v-model="query.keyword" class="w-56" placeholder="需求标题/编号" @keyup.enter="getList" /><Select v-model="query.projectId"><SelectTrigger class="w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="PM_ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select><Select v-model="query.status"><SelectTrigger class="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="PM_ALL_OPTION_VALUE">全部状态</SelectItem><SelectItem v-for="s in PM_REQUIREMENT_STATUS_OPTIONS" :key="s.value" :value="s.value">{{ s.label }}</SelectItem></SelectContent></Select><Button @click="getList">搜索</Button></div>
-    <div class="rounded-md border"><Table><TableHeader><TableRow><TableHead>编号</TableHead><TableHead>标题</TableHead><TableHead>项目</TableHead><TableHead>负责人</TableHead><TableHead class="text-center">状态</TableHead><TableHead class="text-center">优先级</TableHead><TableHead>计划完成</TableHead><TableHead>操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.requirementId"><TableCell>{{ row.requirementNo }}</TableCell><TableCell>{{ row.title }}</TableCell><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.owner?.nickName || row.developer?.nickName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="requirement" :value="row.status" /></TableCell><TableCell class="text-center"><PriorityBadge :value="row.priority" /></TableCell><TableCell>{{ formatDate(row.plannedEndTime) }}</TableCell><TableCell class="space-x-2"><Button v-hasPermi="['pm:requirement:update']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-for="item in pmAvailableActions(PM_REQUIREMENT_ACTION_OPTIONS, row.status)" :key="item.action" v-hasPermi="['pm:requirement:status']" size="sm" variant="outline" @click="action(row, item.action)">{{ item.label }}</Button><Button v-hasPermi="['pm:requirement:update']" size="sm" variant="destructive" @click="remove(row)">删除</Button></TableCell></TableRow></TableBody></Table><EmptyState v-if="!rows.length" /></div>
+    <div class="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>编号</TableHead>
+            <TableHead>标题</TableHead>
+            <TableHead>项目</TableHead>
+            <TableHead>负责人</TableHead>
+            <TableHead class="text-center">状态</TableHead>
+            <TableHead class="text-center">优先级</TableHead>
+            <TableHead class="text-left">计划完成</TableHead>
+            <TableHead class="min-w-48 text-left">快捷操作</TableHead>
+            <TableHead class="w-36 text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="row in rows" :key="row.requirementId">
+            <TableCell>{{ row.requirementNo }}</TableCell>
+            <TableCell>{{ row.title }}</TableCell>
+            <TableCell>{{ row.project?.projectName }}</TableCell>
+            <TableCell>{{ row.owner?.nickName || row.developer?.nickName || '-' }}</TableCell>
+            <TableCell class="text-center"><StatusBadge domain="requirement" :value="row.status" /></TableCell>
+            <TableCell class="text-center"><PriorityBadge :value="row.priority" /></TableCell>
+            <TableCell class="text-left">{{ formatDate(row.plannedEndTime) }}</TableCell>
+            <TableCell class="text-left">
+              <div v-if="quickActions(row).length" class="flex flex-wrap gap-2">
+                <SemanticActionButton
+                  v-for="item in quickActions(row)"
+                  :key="item.action"
+                  v-hasPermi="['pm:requirement:status']"
+                  :action="item.action"
+                  @click="action(row, item.action)"
+                >
+                  {{ item.label }}
+                </SemanticActionButton>
+              </div>
+              <span v-else class="text-sm text-muted-foreground">-</span>
+            </TableCell>
+            <TableCell class="text-right">
+              <div class="flex justify-end gap-2">
+                <Button v-hasPermi="['pm:requirement:update']" size="sm" variant="outline" @click="edit(row)">编辑</Button>
+                <Button v-hasPermi="['pm:requirement:update']" size="sm" variant="destructive" @click="remove(row)">删除</Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+      <EmptyState v-if="!rows.length" />
+    </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
     <Dialog v-model:open="open"><DialogContent class="max-w-2xl"><DialogHeader><DialogTitle>需求</DialogTitle></DialogHeader><div class="grid gap-3 md:grid-cols-2"><Input v-model="form.title" class="md:col-span-2" placeholder="需求标题" /><Select v-model="form.projectId"><SelectTrigger><SelectValue placeholder="项目" /></SelectTrigger><SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select><Select v-model="form.type"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="t in PM_REQUIREMENT_TYPE_OPTIONS" :key="t.value" :value="t.value">{{ t.label }}</SelectItem></SelectContent></Select><Select v-model="form.priority"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="p in PM_PRIORITY_OPTIONS" :key="p.value" :value="p.value">{{ p.label }}</SelectItem></SelectContent></Select><Select v-model="form.ownerId"><SelectTrigger><SelectValue placeholder="需求负责人" /></SelectTrigger><SelectContent><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><Select v-model="form.developerId"><SelectTrigger><SelectValue placeholder="开发负责人" /></SelectTrigger><SelectContent><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><Input v-model="form.plannedStartTime" type="date" /><Input v-model="form.plannedEndTime" type="date" /><Textarea v-model="form.description" class="md:col-span-2" placeholder="需求描述" /><Textarea v-model="form.acceptanceCriteria" class="md:col-span-2" placeholder="验收标准" /></div><DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter></DialogContent></Dialog>
   </div>

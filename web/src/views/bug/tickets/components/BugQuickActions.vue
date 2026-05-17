@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Button } from '@/components/ui/button'
+import SemanticActionButton from '@/components/common/SemanticActionButton.vue'
 import type { BugActionOption, BugTicket } from '@/api/bug/types'
 
 const props = defineProps<{
@@ -8,7 +8,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (event: 'detail', ticket: BugTicket): void
   (event: 'run', action: BugActionOption, ticket: BugTicket): void
 }>()
 
@@ -17,15 +16,14 @@ const primaryActions = computed(() => (props.ticket.availableActions || []).slic
 
 <template>
   <div class="flex flex-wrap items-center gap-1" @click.stop>
-    <Button size="sm" variant="outline" @click="emit('detail', ticket)">详情</Button>
-    <Button
+    <SemanticActionButton
       v-for="action in primaryActions"
       :key="action.action"
-      size="sm"
-      variant="secondary"
+      :action="action.action"
       @click="emit('run', action, ticket)"
     >
       {{ action.label }}
-    </Button>
+    </SemanticActionButton>
+    <span v-if="!primaryActions.length" class="text-sm text-muted-foreground">-</span>
   </div>
 </template>

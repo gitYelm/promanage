@@ -5,9 +5,13 @@ const client = new Client({ connectionString: process.env.DATABASE_URL })
 
 const configs = [
   ['admin', '/dashboard', '/dashboard', null, 'all', '0', '管理员保留系统首页'],
-  ['tester', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '测试人员默认进入我的缺陷'],
-  ['developer', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '开发人员默认进入我的缺陷'],
-  ['reviewer', '/bug/statistics', '/bug/statistics', '/bug', 'business', '0', '审核人员默认进入缺陷看板'],
+  ['bug_tester', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '测试人员默认进入我的缺陷'],
+  ['bug_developer', '/bug/my', '/bug/statistics', '/bug', 'business', '0', '开发人员默认进入我的缺陷'],
+  ['bug_reviewer', '/bug/tickets', '/bug/statistics', '/bug', 'business', '0', '审核人员默认查看缺陷列表'],
+  ['bug_project_owner', '/project-management/overview', '/project-management/executive-dashboard', '/project-management', 'business', '0', '项目负责人默认查看项目概览'],
+  ['bug_product_owner', '/project-management/requirements', '/project-management/executive-dashboard', '/project-management', 'business', '0', '产品负责人默认查看需求管理'],
+  ['bug_submitter', '/bug/create', '/bug/my', '/bug', 'business', '0', '提交人默认进入提交缺陷'],
+  ['pm_executive', '/project-management/executive-dashboard', '/project-management/executive-dashboard', '/project-management', 'business', '0', '管理层默认查看项目仪表盘'],
 ]
 
 const workspacePerms = [

@@ -84,7 +84,7 @@ export class ExecutiveDashboardService {
     const summary = await this.summary(input, user)
     const actions = [] as Array<{ level: string; message: string }>
     if (summary.delayedProjects > 0) actions.push({ level: 'high', message: `已有 ${summary.delayedProjects} 个项目延期，建议重新确认排期。` })
-    if (summary.blockerBugs > 0) actions.push({ level: 'high', message: `存在 ${summary.blockerBugs} 个阻断 Bug，建议协调研发优先处理。` })
+    if (summary.blockerBugs > 0) actions.push({ level: 'high', message: `存在 ${summary.blockerBugs} 个阻断缺陷，建议协调研发优先处理。` })
     if (summary.pendingRequirements > 0) actions.push({ level: 'medium', message: `仍有 ${summary.pendingRequirements} 个未处理需求，建议产品负责人确认排期。` })
     if (!actions.length) actions.push({ level: 'low', message: '当前项目整体推进正常，暂无需要管理层介入事项。' })
     return actions

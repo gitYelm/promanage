@@ -291,7 +291,7 @@ onMounted(() => {
             <TableHead class="min-w-[120px]">登录地点</TableHead>
             <TableHead class="w-[120px]">浏览器</TableHead>
             <TableHead class="w-[120px]">操作系统</TableHead>
-            <TableHead class="w-[90px]">登录状态</TableHead>
+            <TableHead class="w-[90px] text-center">登录状态</TableHead>
             <TableHead class="min-w-[150px]">操作信息</TableHead>
             <TableHead class="w-[170px]">登录时间</TableHead>
           </TableRow>
@@ -310,7 +310,7 @@ onMounted(() => {
             <TableCell>{{ item.loginLocation }}</TableCell>
             <TableCell>{{ item.browser }}</TableCell>
             <TableCell>{{ item.os }}</TableCell>
-            <TableCell>
+            <TableCell class="text-center">
               <Badge :variant="item.status === '0' ? 'default' : 'destructive'">
                 {{ item.status === '0' ? '成功' : '失败' }}
               </Badge>

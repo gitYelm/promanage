@@ -1839,13 +1839,13 @@ async function main() {
 
   // 8. 初始化 Bug 反馈系统菜单、角色、字典和演示项目
   const bugRoles = [
-    { roleKey: 'bug_project_owner', roleName: 'Bug 项目负责人', roleSort: 20, remark: '管理项目内 Bug、成员、分派和统计' },
-    { roleKey: 'bug_product_owner', roleName: 'Bug 产品负责人', roleSort: 21, remark: '确认 Bug 有效性并分派处理' },
-    { roleKey: 'bug_developer', roleName: 'Bug 开发人员', roleSort: 22, remark: '处理分派给自己的 Bug' },
-    { roleKey: 'bug_tester', roleName: 'Bug 测试人员', roleSort: 23, remark: '提交、验证和关闭 Bug' },
-    { roleKey: 'bug_submitter', roleName: 'Bug 提交人', roleSort: 24, remark: '提交并跟踪本人 Bug' },
+    { roleKey: 'bug_project_owner', roleName: '项目负责人', roleSort: 20, remark: '管理项目内缺陷、成员、分派和统计' },
+    { roleKey: 'bug_product_owner', roleName: '产品负责人', roleSort: 21, remark: '确认缺陷有效性并分派处理' },
+    { roleKey: 'bug_developer', roleName: '开发人员', roleSort: 22, remark: '处理分派给自己的缺陷' },
+    { roleKey: 'bug_tester', roleName: '测试人员', roleSort: 23, remark: '提交、验证和关闭缺陷' },
+    { roleKey: 'bug_submitter', roleName: '提交人', roleSort: 24, remark: '提交并跟踪本人缺陷' },
     { roleKey: 'pm_manager', roleName: '项目管理负责人', roleSort: 25, remark: '管理需求、迭代、里程碑和项目进度' },
-    { roleKey: 'pm_executive', roleName: '老板/管理层', roleSort: 26, remark: '查看老板驾驶舱和项目进度摘要' },
+    { roleKey: 'pm_executive', roleName: '管理层', roleSort: 26, remark: '查看项目仪表盘和项目进度摘要' },
   ]
   const ensuredBugRoles = [] as Array<{ roleKey: string; roleId: bigint }>
   for (const role of bugRoles) {
@@ -1854,7 +1854,7 @@ async function main() {
   }
 
   const bugDir = await ensureMenu({
-    menuName: 'Bug 管理',
+    menuName: '缺陷管理',
     path: '/bug',
     component: 'Layout',
     orderNum: 4,
@@ -1866,7 +1866,7 @@ async function main() {
     parentId: null,
   })
   const bugTicketMenu = await ensureMenu({
-    menuName: 'Bug 列表',
+    menuName: '缺陷列表',
     parentId: bugDir.menuId,
     path: 'tickets',
     component: 'bug/tickets/index',
@@ -1879,7 +1879,7 @@ async function main() {
     isFrame: 1,
   })
   const bugMyMenu = await ensureMenu({
-    menuName: '我的 Bug',
+    menuName: '我的缺陷',
     parentId: bugDir.menuId,
     path: 'my',
     component: 'bug/tickets/index',
@@ -1892,7 +1892,7 @@ async function main() {
     isFrame: 1,
   })
   const bugCreateMenu = await ensureMenu({
-    menuName: '提交 Bug',
+    menuName: '提交缺陷',
     parentId: bugDir.menuId,
     path: 'create',
     component: 'bug/tickets/create',
@@ -1905,7 +1905,7 @@ async function main() {
     isFrame: 1,
   })
   const bugStatisticsMenu = await ensureMenu({
-    menuName: 'Bug 看板',
+    menuName: '缺陷看板',
     parentId: bugDir.menuId,
     path: 'statistics',
     component: 'bug/statistics/index',
@@ -1970,7 +1970,7 @@ async function main() {
     isFrame: 1,
     parentId: null,
   })
-  const pmExecutiveMenu = await ensureMenu({ menuName: '老板驾驶舱', parentId: pmDir.menuId, path: 'executive-dashboard', component: 'project-management/executive-dashboard/index', orderNum: 1, menuType: 'C', visible: '0', status: '0', perms: 'pm:executive-dashboard:view', icon: 'layout-dashboard', isFrame: 1 })
+  const pmExecutiveMenu = await ensureMenu({ menuName: '仪表盘', parentId: pmDir.menuId, path: 'executive-dashboard', component: 'project-management/executive-dashboard/index', orderNum: 1, menuType: 'C', visible: '0', status: '0', perms: 'pm:executive-dashboard:view', icon: 'layout-dashboard', isFrame: 1 })
   const pmOverviewMenu = await ensureMenu({ menuName: '项目概览', parentId: pmDir.menuId, path: 'overview', component: 'project-management/overview/index', orderNum: 2, menuType: 'C', visible: '0', status: '0', perms: 'pm:project:view', icon: 'panel-top', isFrame: 1 })
   const pmRequirementMenu = await ensureMenu({ menuName: '需求管理', parentId: pmDir.menuId, path: 'requirements', component: 'project-management/requirements/index', orderNum: 3, menuType: 'C', visible: '0', status: '0', perms: 'pm:requirement:view', icon: 'list-todo', isFrame: 1 })
   const pmIterationMenu = await ensureMenu({ menuName: '迭代计划', parentId: pmDir.menuId, path: 'iterations', component: 'project-management/iterations/index', orderNum: 4, menuType: 'C', visible: '0', status: '0', perms: 'pm:iteration:view', icon: 'calendar-days', isFrame: 1 })
@@ -1978,7 +1978,7 @@ async function main() {
   const pmBoardMenu = await ensureMenu({ menuName: '项目看板', parentId: pmDir.menuId, path: 'board', component: 'project-management/board/index', orderNum: 6, menuType: 'C', visible: '0', status: '0', perms: 'pm:dashboard:view', icon: 'columns-3', isFrame: 1 })
 
   for (const [menuName, perms] of [
-    ['查看全部驾驶舱', 'pm:executive-dashboard:all'], ['导出管理层周报', 'pm:executive-dashboard:export'],
+    ['查看全部仪表盘', 'pm:executive-dashboard:all'], ['导出管理层周报', 'pm:executive-dashboard:export'],
   ]) await ensureButton({ menuName, parentId: pmExecutiveMenu.menuId, perms, orderNum: 1 })
   for (const [menuName, perms] of [['更新项目进度', 'pm:project:update']]) await ensureButton({ menuName, parentId: pmOverviewMenu.menuId, perms, orderNum: 1 })
   for (const [menuName, perms] of [['新增需求', 'pm:requirement:create'], ['编辑需求', 'pm:requirement:update'], ['评审需求', 'pm:requirement:review'], ['流转需求', 'pm:requirement:status']]) await ensureButton({ menuName, parentId: pmRequirementMenu.menuId, perms, orderNum: 1 })
@@ -1986,17 +1986,17 @@ async function main() {
   await ensureButton({ menuName: '管理里程碑', parentId: pmMilestoneMenu.menuId, perms: 'pm:milestone:manage', orderNum: 1 })
 
   const ticketButtons = [
-    ['Bug 详情', 'bug:ticket:query'],
-    ['Bug 编辑', 'bug:ticket:edit'],
-    ['Bug 删除', 'bug:ticket:remove'],
-    ['Bug 指派', 'bug:ticket:assign'],
+    ['缺陷详情', 'bug:ticket:query'],
+    ['缺陷编辑', 'bug:ticket:edit'],
+    ['缺陷删除', 'bug:ticket:remove'],
+    ['缺陷指派', 'bug:ticket:assign'],
     ['状态变更', 'bug:ticket:changeStatus'],
-    ['Bug 确认', 'bug:ticket:confirm'],
-    ['Bug 驳回', 'bug:ticket:reject'],
+    ['缺陷确认', 'bug:ticket:confirm'],
+    ['缺陷驳回', 'bug:ticket:reject'],
     ['开始修复', 'bug:ticket:startFix'],
     ['提交验证', 'bug:ticket:submitVerify'],
-    ['验证 Bug', 'bug:ticket:verify'],
-    ['关闭 Bug', 'bug:ticket:close'],
+    ['验证缺陷', 'bug:ticket:verify'],
+    ['关闭缺陷', 'bug:ticket:close'],
     ['重新打开', 'bug:ticket:reopen'],
     ['评论列表', 'bug:comment:list'],
     ['新增评论', 'bug:comment:add'],
@@ -2010,9 +2010,9 @@ async function main() {
   for (const [menuName, perms] of ticketButtons) {
     await ensureButton({ menuName, parentId: bugTicketMenu.menuId, perms, orderNum: 1 })
   }
-  await ensureButton({ menuName: '我的 Bug 查询', parentId: bugMyMenu.menuId, perms: 'bug:ticket:my', orderNum: 1 })
-  await ensureButton({ menuName: '提交 Bug', parentId: bugCreateMenu.menuId, perms: 'bug:ticket:add', orderNum: 1 })
-  await ensureButton({ menuName: '统计导出', parentId: bugStatisticsMenu.menuId, perms: 'bug:statistics:export', orderNum: 1 })
+  await ensureButton({ menuName: '我的缺陷查询', parentId: bugMyMenu.menuId, perms: 'bug:ticket:my', orderNum: 1 })
+  await ensureButton({ menuName: '提交缺陷', parentId: bugCreateMenu.menuId, perms: 'bug:ticket:add', orderNum: 1 })
+  await ensureButton({ menuName: '缺陷统计导出', parentId: bugStatisticsMenu.menuId, perms: 'bug:statistics:export', orderNum: 1 })
   for (const [parent, prefix] of [
     [bugProjectMenu, 'bug:project'],
     [bugModuleMenu, 'bug:module'],
@@ -2074,10 +2074,14 @@ async function main() {
     update: { projectName: '后台管理系统', status: '0' },
     create: { projectName: '后台管理系统', projectKey: 'ADMIN', ownerId: adminUser.userId, description: 'Bug 反馈系统默认演示项目' },
   })
+  await prisma.bugProjectModule.updateMany({
+    where: { projectId: demoProject.projectId, moduleName: 'Bug 管理', delFlag: '0' },
+    data: { moduleName: '缺陷管理' },
+  })
   await prisma.bugProjectModule.upsert({
-    where: { projectId_moduleName_delFlag: { projectId: demoProject.projectId, moduleName: 'Bug 管理', delFlag: '0' } },
+    where: { projectId_moduleName_delFlag: { projectId: demoProject.projectId, moduleName: '缺陷管理', delFlag: '0' } },
     update: { status: '0' },
-    create: { projectId: demoProject.projectId, moduleName: 'Bug 管理', defaultAssigneeId: adminUser.userId, orderNum: 1 },
+    create: { projectId: demoProject.projectId, moduleName: '缺陷管理', defaultAssigneeId: adminUser.userId, orderNum: 1 },
   })
   await prisma.bugProjectVersion.upsert({
     where: { projectId_versionNo_delFlag: { projectId: demoProject.projectId, versionNo: 'v1.0.0', delFlag: '0' } },

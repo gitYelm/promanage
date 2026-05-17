@@ -298,7 +298,7 @@ onMounted(() => {
             <TableHead>参数名称</TableHead>
             <TableHead>参数键名</TableHead>
             <TableHead>参数键值</TableHead>
-            <TableHead>系统内置</TableHead>
+            <TableHead class="text-center">系统内置</TableHead>
             <TableHead>备注</TableHead>
             <TableHead>创建时间</TableHead>
             <TableHead class="text-right">操作</TableHead>
@@ -312,25 +312,27 @@ onMounted(() => {
             <TableCell class="max-w-[200px] truncate" :title="item.configValue">{{
               item.configValue
             }}</TableCell>
-            <TableCell>
+            <TableCell class="text-center">
               <Badge :variant="item.configType === 'Y' ? 'default' : 'secondary'">
                 {{ item.configType === 'Y' ? '是' : '否' }}
               </Badge>
             </TableCell>
             <TableCell class="max-w-[200px] truncate">{{ item.remark }}</TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
-            <TableCell class="text-right space-x-2">
-              <Button variant="ghost" size="icon" @click="handleUpdate(item)">
-                <Edit class="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="text-destructive"
-                @click="handleDelete(item)"
-              >
-                <Trash2 class="w-4 h-4" />
-              </Button>
+            <TableCell class="text-right">
+              <div class="flex justify-end gap-2">
+                <Button variant="ghost" size="icon" @click="handleUpdate(item)">
+                  <Edit class="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="text-destructive"
+                  @click="handleDelete(item)"
+                >
+                  <Trash2 class="w-4 h-4" />
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         </TableBody>

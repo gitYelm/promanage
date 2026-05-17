@@ -102,7 +102,7 @@
     "typescript-eslint": "^8.20.0"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts && ts-node prisma/seed-project-management-menu.ts && ts-node prisma/seed-bug-workflow-permissions.ts && ts-node prisma/seed-defect-menu-names.ts && ts-node prisma/seed-dashboard-menu-names.ts && ts-node prisma/seed-notification.ts"
+    "seed": "ts-node prisma/seed.ts && ts-node prisma/seed-project-management-menu.ts && ts-node prisma/seed-bug-workflow-permissions.ts && ts-node prisma/seed-defect-menu-names.ts && ts-node prisma/seed-dashboard-menu-names.ts && ts-node prisma/seed-role-user-cleanup.ts && ts-node prisma/seed-notification.ts"
   },
   "jest": {
     "moduleFileExtensions": [

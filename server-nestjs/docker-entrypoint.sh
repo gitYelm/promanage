@@ -22,6 +22,7 @@ else
 fi
 
 echo "🧩 补齐 Bug 团队角色、演示账号和工作台配置..."
+pnpm exec ts-node prisma/seed-role-user-cleanup.ts
 node scripts/ensure-bug-team-roles.mjs
 node scripts/ensure-workspace-config.mjs
 

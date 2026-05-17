@@ -11,9 +11,9 @@ const defaultPassword = 'admin123'
 const roles = [
   {
     roleKey: 'bug_tester',
-    roleName: 'Bug 测试人员',
-    roleSort: 30,
-    remark: '提交 Bug、补充评论、验证和关闭 Bug',
+    roleName: '测试人员',
+    roleSort: 24,
+    remark: '提交缺陷、补充评论、验证和关闭缺陷',
     permissions: [
       'bug:ticket:my',
       'bug:ticket:add',
@@ -26,9 +26,9 @@ const roles = [
   },
   {
     roleKey: 'bug_developer',
-    roleName: 'Bug 开发人员',
-    roleSort: 31,
-    remark: '查看 Bug、开始修复、提交验证并补充修复说明',
+    roleName: '开发人员',
+    roleSort: 23,
+    remark: '查看缺陷、开始修复、提交验证并补充修复说明',
     permissions: [
       'bug:ticket:my',
       'bug:ticket:query',
@@ -39,9 +39,9 @@ const roles = [
   },
   {
     roleKey: 'bug_reviewer',
-    roleName: 'Bug 审核人员',
-    roleSort: 32,
-    remark: '确认、驳回、标记重复并审核 Bug 流程',
+    roleName: '审核人员',
+    roleSort: 22,
+    remark: '确认、驳回、标记重复并审核缺陷流程',
     permissions: [
       'bug:ticket:my',
       'bug:ticket:query',
@@ -54,9 +54,9 @@ const roles = [
   },
   {
     roleKey: 'bug_submitter',
-    roleName: 'Bug 提交人',
-    roleSort: 33,
-    remark: '提交并跟踪本人 Bug',
+    roleName: '提交人',
+    roleSort: 25,
+    remark: '提交并跟踪本人缺陷',
     permissions: [
       'bug:ticket:my',
       'bug:ticket:add',
@@ -65,23 +65,10 @@ const roles = [
     ],
   },
   {
-    roleKey: 'bug_operator',
-    roleName: 'Bug 运营客服',
-    roleSort: 34,
-    remark: '内部代提交和协助跟进 Bug',
-    permissions: [
-      'bug:ticket:list',
-      'bug:ticket:my',
-      'bug:ticket:add',
-      'bug:ticket:query',
-      'bug:ticket:edit',
-    ],
-  },
-  {
     roleKey: 'bug_project_owner',
-    roleName: 'Bug 项目负责人',
-    roleSort: 35,
-    remark: '管理项目内 Bug、成员、分派和统计',
+    roleName: '项目负责人',
+    roleSort: 20,
+    remark: '管理项目内缺陷、成员、分派和统计',
     permissions: [
       'bug:ticket:list',
       'bug:ticket:my',
@@ -101,9 +88,9 @@ const roles = [
   },
   {
     roleKey: 'bug_product_owner',
-    roleName: 'Bug 产品负责人',
-    roleSort: 36,
-    remark: '确认 Bug 有效性并分派处理',
+    roleName: '产品负责人',
+    roleSort: 21,
+    remark: '确认缺陷有效性并参与分派处理',
     permissions: [
       'bug:ticket:list',
       'bug:ticket:my',
@@ -117,94 +104,88 @@ const roles = [
       'bug:statistics:view',
     ],
   },
-  {
-    roleKey: 'bug_viewer',
-    roleName: 'Bug 观察者',
-    roleSort: 37,
-    remark: '只读查看授权项目 Bug、统计和项目进度',
-    permissions: [
-      'bug:ticket:list',
-      'bug:ticket:my',
-      'bug:ticket:query',
-      'bug:project:list',
-      'bug:statistics:view',
-    ],
-  },
 ]
 
 const accounts = [
   {
-    userName: 'bug_owner',
-    nickName: 'Bug 项目负责人',
+    userName: 'project_owner',
+    nickName: '项目负责人',
     roleKey: 'bug_project_owner',
     deptName: '技术部',
-    email: 'bug_owner@example.com',
+    email: 'project_owner@example.com',
     phonenumber: '13800002001',
     projectMemberRole: 'owner',
   },
   {
-    userName: 'bug_product',
-    nickName: 'Bug 产品负责人',
+    userName: 'product_owner',
+    nickName: '产品负责人',
     roleKey: 'bug_product_owner',
     deptName: '技术部',
-    email: 'bug_product@example.com',
+    email: 'product_owner@example.com',
     phonenumber: '13800002002',
     projectMemberRole: 'product',
   },
   {
-    userName: 'bug_reviewer',
-    nickName: 'Bug 审核人员',
+    userName: 'reviewer01',
+    nickName: '审核人员',
     roleKey: 'bug_reviewer',
     deptName: '技术部',
-    email: 'bug_reviewer@example.com',
+    email: 'reviewer01@example.com',
     phonenumber: '13800002003',
     projectMemberRole: 'reviewer',
   },
   {
-    userName: 'bug_dev01',
-    nickName: 'Bug 开发一号',
+    userName: 'developer01',
+    nickName: '开发一号',
     roleKey: 'bug_developer',
     deptName: '研发一部',
-    email: 'bug_dev01@example.com',
+    email: 'developer01@example.com',
     phonenumber: '13800002004',
     projectMemberRole: 'developer',
   },
   {
-    userName: 'bug_dev02',
-    nickName: 'Bug 开发二号',
+    userName: 'developer02',
+    nickName: '开发二号',
     roleKey: 'bug_developer',
     deptName: '研发一部',
-    email: 'bug_dev02@example.com',
+    email: 'developer02@example.com',
     phonenumber: '13800002005',
     projectMemberRole: 'developer',
   },
   {
-    userName: 'bug_tester01',
-    nickName: 'Bug 测试一号',
+    userName: 'tester01',
+    nickName: '测试一号',
     roleKey: 'bug_tester',
     deptName: '测试一部',
-    email: 'bug_tester01@example.com',
+    email: 'tester01@example.com',
     phonenumber: '13800002006',
     projectMemberRole: 'tester',
   },
   {
-    userName: 'bug_submitter01',
-    nickName: 'Bug 提交人一号',
+    userName: 'submitter01',
+    nickName: '提交人一号',
     roleKey: 'bug_submitter',
     deptName: '测试一部',
-    email: 'bug_submitter01@example.com',
+    email: 'submitter01@example.com',
     phonenumber: '13800002007',
     projectMemberRole: undefined,
   },
-  {
-    userName: 'bug_viewer01',
-    nickName: 'Bug 观察者一号',
-    roleKey: 'bug_viewer',
-    deptName: '技术部',
-    email: 'bug_viewer01@example.com',
-    phonenumber: '13800002008',
-    projectMemberRole: 'viewer',
-  },
+]
+
+const deprecatedRoleKeys = ['developer', 'tester', 'reviewer', 'pm_manager', 'bug_operator', 'bug_viewer']
+const deprecatedUserNames = [
+  'developer',
+  'tester',
+  'reviewer',
+  'bug_owner',
+  'bug_product',
+  'bug_reviewer',
+  'bug_dev01',
+  'bug_dev02',
+  'bug_tester01',
+  'bug_submitter01',
+  'bug_viewer01',
+  'viewer01',
 ]
 
 async function ensureRole(role) {
@@ -281,7 +262,6 @@ async function ensureAccount(account, passwordHash) {
   })
   const data = {
     nickName: account.nickName,
-    password: passwordHash,
     status: '0',
     deptId,
     email: account.email,
@@ -291,7 +271,7 @@ async function ensureAccount(account, passwordHash) {
   }
   const user = existed
     ? await prisma.sysUser.update({ where: { userId: existed.userId }, data })
-    : await prisma.sysUser.create({ data: { ...data, userName: account.userName } })
+    : await prisma.sysUser.create({ data: { ...data, userName: account.userName, password: passwordHash } })
 
   await prisma.sysUserRole.createMany({
     data: [{ userId: user.userId, roleId: role.roleId }],
@@ -384,6 +364,29 @@ async function ensureMemberRoleDict() {
   }
 }
 
+async function deactivateDeprecatedRolesAndUsers() {
+  await prisma.$executeRawUnsafe(`
+    update sys_role
+       set role_key = concat(role_key, '_deprecated_', role_id),
+           status = '1',
+           del_flag = '2',
+           remark = '已由规范业务角色替代，逻辑删除以避免角色列表重复',
+           update_time = now()
+     where role_key in (${deprecatedRoleKeys.map((key) => `'${key}'`).join(',')})
+       and del_flag = '0'
+  `)
+  await prisma.$executeRawUnsafe(`
+    update sys_user
+       set user_name = concat(user_name, '_deprecated_', user_id),
+           status = '1',
+           del_flag = '2',
+           remark = '重复演示账号，已逻辑删除；请使用规范业务账号',
+           update_time = now()
+     where user_name in (${deprecatedUserNames.map((name) => `'${name}'`).join(',')})
+       and del_flag = '0'
+  `)
+}
+
 async function main() {
   await ensureMemberRoleDict()
 
@@ -408,6 +411,7 @@ async function main() {
       `Ensured account: ${account.nickName} (${account.userName}), projects: ${projectCount}`,
     )
   }
+  await deactivateDeprecatedRolesAndUsers()
 }
 
 main()

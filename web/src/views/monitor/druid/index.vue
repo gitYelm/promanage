@@ -222,7 +222,7 @@ onUnmounted(() => {
             <TableHeader>
               <TableRow>
                 <TableHead>PID</TableHead>
-                <TableHead>状态</TableHead>
+                <TableHead class="text-center">状态</TableHead>
                 <TableHead>客户端</TableHead>
                 <TableHead>连接时间</TableHead>
                 <TableHead class="max-w-[300px]">当前查询</TableHead>
@@ -231,7 +231,7 @@ onUnmounted(() => {
             <TableBody>
               <TableRow v-for="conn in data.activeConnections" :key="conn.pid">
                 <TableCell class="font-mono">{{ conn.pid }}</TableCell>
-                <TableCell>
+                <TableCell class="text-center">
                   <Badge :class="getStateBadge(conn.state)" variant="secondary">
                     {{ getStateLabel(conn.state) }}
                   </Badge>

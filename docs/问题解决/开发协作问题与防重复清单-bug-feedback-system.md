@@ -1,6 +1,6 @@
 # 开发协作问题与防重复清单 - bug-feedback-system
 
-最后更新时间：2026-05-16
+最后更新时间：2026-05-17
 
 ## 当前项目事实
 
@@ -19,7 +19,7 @@
 - 截图需要在线标注：画框、箭头、线条、编号、文字
 - 第一版启用站内通知，但只通知下一步处理人；tester 提交后通知 reviewer/负责人，不通知 developer
 - 流程完整：tester 提交 → reviewer 确认/驳回 → reviewer 分派 developer → developer 修复 → tester 验证/关闭
-- 已确认新增 `bug_reviewer` 系统角色、项目成员 `reviewer`、`bug_viewer` 只读角色和项目成员 `viewer`
+- 已确认新增 `bug_reviewer` 系统角色和项目成员 `reviewer`；`bug_viewer`/`bug_operator` 作为历史可选系统角色默认停用，项目成员 `viewer` 仅作为可选只读成员角色保留。
 
 ## 防重复规则
 
@@ -37,11 +37,11 @@
 ### Bug 角色权限防重复规则
 
 - `bug_reviewer` 必须作为独立系统角色存在，不能只依赖产品负责人兼职；项目成员字典必须包含 `reviewer`。
-- `bug_viewer` 是只读角色，项目成员字典必须包含 `viewer`；不得授予提交、评论、上传或状态流转权限。
+- `bug_viewer`/`bug_operator` 默认停用，不进入常规角色列表；如未来启用只读观察，应优先复用项目成员 `viewer` 并确保不得授予提交、评论、上传或状态流转权限。
 - `developer` 分派前不可见 tester 新提交 Bug，不能给开发角色授予审核池数据范围。
 - 项目/模块/版本列表应按 `visibleProjectIds` 限制数据范围，不能因为有菜单权限就返回所有项目基础数据。
-- 种子链路必须包含 `server-nestjs/prisma/seed-bug-workflow-permissions.ts`，确保 reviewer/viewer 角色、字典和权限幂等补齐。
-- 演示验收用户建议使用：`bug_owner`、`bug_product`、`bug_reviewer`、`bug_dev01`、`bug_dev02`、`bug_tester01`、`bug_submitter01`、`bug_viewer01`。
+- 种子链路必须包含 `server-nestjs/prisma/seed-bug-workflow-permissions.ts`，确保 reviewer 角色、项目成员字典和权限幂等补齐。
+- 演示/验收用户名不要带业务模块前缀，建议使用：`project_owner`、`product_owner`、`reviewer01`、`developer01`、`developer02`、`tester01`、`submitter01`；如需只读观察再启用 `viewer01`。
 
 ## 写入前检查
 

@@ -42,7 +42,7 @@ onMounted(async () => { projects.value = await bugProjectOptions(); await load()
 <template>
   <div class="space-y-4 p-4 sm:p-6">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div><h2 class="text-2xl font-bold">项目看板</h2><p class="text-sm text-muted-foreground">第一版提供只读列视图，方便负责人和老板查看需求与 Bug 当前分布。</p></div>
+      <div><h2 class="text-2xl font-bold">项目看板</h2><p class="text-sm text-muted-foreground">第一版提供只读列视图，方便负责人和管理层查看需求与缺陷当前分布。</p></div>
       <div class="flex flex-wrap gap-2"><Select v-model="query.projectId" @update:model-value="load"><SelectTrigger class="w-64"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="PM_ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select><DataRefreshButton :loading="loading" @refresh="load" /></div>
     </div>
     <Tabs default-value="requirements" class="space-y-4">
