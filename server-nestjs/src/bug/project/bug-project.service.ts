@@ -20,6 +20,8 @@ import {
   UpsertBugMemberDto,
 } from '../dto/project.dto'
 
+type RequestUserLike = { userId: string; username: string }
+
 @Injectable()
 export class BugProjectService {
   constructor(
@@ -76,33 +78,45 @@ export class BugProjectService {
     })
   }
 
-  async createProject(dto: CreateBugProjectDto) {
+  async createProject(dto: CreateBugProjectDto, user: RequestUserLike) {
     const existed = await this.prisma.bugProject.findFirst({
       where: { projectKey: dto.projectKey, delFlag: '0' },
     })
     if (existed) throw new BusinessException(ErrorCode.BUG_PROJECT_EXISTS, '项目标识已存在')
+    if (!(await this.isAdmin(user.userId)) && dto.ownerId && dto.ownerId !== user.userId) {
+      throw BusinessException.forbidden('项目负责人只能创建自己负责的项目')
+    }
+    const ownerId = dto.ownerId ? BigInt(dto.ownerId) : BigInt(user.userId)
+    await this.helper.ensureUser(String(ownerId))
     this.logger.log(`创建 Bug 项目: ${dto.projectName}`, 'BugProjectService')
-    return this.prisma.bugProject.create({
-      data: {
-        projectName: dto.projectName,
-        projectKey: dto.projectKey.toUpperCase(),
-        ownerId: dto.ownerId ? BigInt(dto.ownerId) : undefined,
-        description: dto.description ?? '',
-        projectStage: dto.projectStage ?? 'requirement',
-        plannedStartTime: dto.plannedStartTime ? new Date(dto.plannedStartTime) : undefined,
-        plannedEndTime: dto.plannedEndTime ? new Date(dto.plannedEndTime) : undefined,
-        actualStartTime: dto.actualStartTime ? new Date(dto.actualStartTime) : undefined,
-        actualEndTime: dto.actualEndTime ? new Date(dto.actualEndTime) : undefined,
-        progress: dto.progress ?? 0,
-        riskLevel: dto.riskLevel ?? 'low',
-        riskNote: dto.riskNote ?? '',
-        status: dto.status ?? '0',
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const project = await tx.bugProject.create({
+        data: {
+          projectName: dto.projectName,
+          projectKey: dto.projectKey.toUpperCase(),
+          ownerId,
+          description: dto.description ?? '',
+          projectStage: dto.projectStage ?? 'requirement',
+          plannedStartTime: dto.plannedStartTime ? new Date(dto.plannedStartTime) : undefined,
+          plannedEndTime: dto.plannedEndTime ? new Date(dto.plannedEndTime) : undefined,
+          actualStartTime: dto.actualStartTime ? new Date(dto.actualStartTime) : undefined,
+          actualEndTime: dto.actualEndTime ? new Date(dto.actualEndTime) : undefined,
+          progress: dto.progress ?? 0,
+          riskLevel: dto.riskLevel ?? 'low',
+          riskNote: dto.riskNote ?? '',
+          status: dto.status ?? '0',
+        },
+      })
+      await tx.bugProjectMember.create({
+        data: { projectId: project.projectId, userId: ownerId, memberRole: BUG_MEMBER_ROLE.OWNER, isDefault: true, status: '0' },
+      })
+      return project
     })
   }
 
-  async updateProject(projectId: string, dto: UpdateBugProjectDto) {
-    await this.helper.ensureProject(projectId)
+  async updateProject(projectId: string, dto: UpdateBugProjectDto, operatorId?: string) {
+    const project = await this.helper.ensureProject(projectId)
+    if (operatorId) await this.assertProjectManageAllowed(operatorId, project.projectId)
     return this.prisma.bugProject.update({
       where: { projectId: BigInt(projectId) },
       data: this.projectUpdateData(dto),
@@ -232,8 +246,9 @@ export class BugProjectService {
     return {}
   }
 
-  async listMembers(projectId: string) {
+  async listMembers(projectId: string, operatorId: string) {
     await this.helper.ensureProject(projectId)
+    await this.assertProjectManageAllowed(operatorId, BigInt(projectId))
     return this.prisma.bugProjectMember.findMany({
       where: { projectId: BigInt(projectId) },
       include: { user: true },
@@ -241,9 +256,11 @@ export class BugProjectService {
     })
   }
 
-  async upsertMember(projectId: string, dto: UpsertBugMemberDto) {
-    await this.helper.ensureProject(projectId)
+  async upsertMember(projectId: string, dto: UpsertBugMemberDto, operatorId: string) {
+    const project = await this.helper.ensureProject(projectId)
+    await this.assertProjectManageAllowed(operatorId, project.projectId)
     await this.helper.ensureUser(dto.userId)
+    await this.assertMemberChangeAllowed(operatorId, project, BigInt(dto.userId), dto.status)
     if (dto.memberRole === BUG_MEMBER_ROLE.DEVELOPER) await this.assertReviewerExists(projectId)
     return this.prisma.bugProjectMember.upsert({
       where: {
@@ -264,9 +281,54 @@ export class BugProjectService {
     })
   }
 
-  async removeMember(memberId: string) {
+  async removeMember(memberId: string, operatorId: string) {
+    const member = await this.prisma.bugProjectMember.findUnique({
+      where: { memberId: BigInt(memberId) },
+      include: { project: true },
+    })
+    if (!member) throw BusinessException.notFound('项目成员不存在')
+    await this.assertProjectManageAllowed(operatorId, member.projectId)
+    await this.assertMemberChangeAllowed(operatorId, member.project, member.userId, '1')
     await this.prisma.bugProjectMember.delete({ where: { memberId: BigInt(memberId) } })
     return {}
+  }
+
+  private async assertProjectManageAllowed(userId: string, projectId: bigint) {
+    if (await this.isAdmin(userId)) return
+    const [ownedProject, ownerMember] = await Promise.all([
+      this.prisma.bugProject.findFirst({
+        where: { projectId, ownerId: BigInt(userId), delFlag: '0', status: '0' },
+        select: { projectId: true },
+      }),
+      this.prisma.bugProjectMember.findFirst({
+        where: { projectId, userId: BigInt(userId), memberRole: BUG_MEMBER_ROLE.OWNER, status: '0' },
+        select: { memberId: true },
+      }),
+    ])
+    if (!ownedProject && !ownerMember) throw BusinessException.forbidden('只有超级管理员或该项目负责人可以维护项目配置')
+  }
+
+  private async assertMemberChangeAllowed(
+    operatorId: string,
+    project: { ownerId: bigint | null },
+    targetUserId: bigint,
+    targetStatus?: string,
+  ) {
+    if (await this.isAdmin(operatorId)) return
+    if (await this.userHasRole(targetUserId, 'admin')) throw BusinessException.forbidden('项目负责人不能维护超级管理员的项目成员关系')
+    if (targetStatus === '1' && project.ownerId === targetUserId) throw BusinessException.forbidden('不能移除或停用项目负责人字段对应的用户')
+  }
+
+  private async isAdmin(userId: string) {
+    return this.userHasRole(BigInt(userId), 'admin')
+  }
+
+  private async userHasRole(userId: bigint, roleKey: string) {
+    const role = await this.prisma.sysUserRole.findFirst({
+      where: { userId, role: { roleKey, delFlag: '0', status: '0' } },
+      select: { userId: true },
+    })
+    return Boolean(role)
   }
 
   private async assertReviewerExists(projectId: string) {

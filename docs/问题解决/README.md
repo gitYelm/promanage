@@ -7,6 +7,7 @@
 | 主题 | 文档 | 适用范围 |
 |---|---|---|
 | Bug 反馈系统防重复 | [开发协作问题与防重复清单-bug-feedback-system.md](./开发协作问题与防重复清单-bug-feedback-system.md) | Bug 反馈系统后端、前端、数据库、权限、上传实现 |
+| 角色与项目数据权限 | [开发协作问题与防重复清单-bug-feedback-system.md#项目数据权限越权防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#项目数据权限越权防重复规则) | 系统角色、项目成员、项目负责人、项目/需求/仪表盘数据范围 |
 | 附件上传与截图标注 | [开发协作问题与防重复清单-bug-feedback-system.md#附件上传与截图标注防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#附件上传与截图标注防重复规则) | Bug 提交页附件上传、截图标注、上传后预览、继续上传 |
 | 附件浏览器预览 | [开发协作问题与防重复清单-bug-feedback-system.md#附件浏览器预览防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#附件浏览器预览防重复规则) | Bug 提交页和详情页附件缩略图、主预览、全屏预览、左右切换 |
 | Bug 流程与快捷操作 | [开发协作问题与防重复清单-bug-feedback-system.md#bug-流程与快捷操作防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#bug-流程与快捷操作防重复规则) | Bug 状态流转、reviewer 分派前 developer 不可见、站内通知不泛发、列表快捷按钮、我的 Bug 待处理数量徽标 |

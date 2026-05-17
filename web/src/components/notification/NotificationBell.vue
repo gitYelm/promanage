@@ -33,7 +33,7 @@ onBeforeUnmount(() => store.disconnectStream())
         <span class="sr-only">站内通知</span>
       </Button>
     </PopoverTrigger>
-    <PopoverContent align="end" class="p-0">
+    <PopoverContent align="end" class="w-[min(calc(100vw-2rem),22rem)] p-0">
       <NotificationPanel />
     </PopoverContent>
   </Popover>

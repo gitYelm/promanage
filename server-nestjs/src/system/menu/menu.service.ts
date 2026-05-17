@@ -232,6 +232,8 @@ export class MenuService {
     const routers: RouterVo[] = []
 
     menus.forEach((menu) => {
+      const children = menu.children?.length ? this.buildMenus(menu.children) : []
+      if (menu.menuType === 'M' && children.length === 0) return
       const router: RouterVo = {
         name: this.getRouteName(menu),
         path: this.getRouterPath(menu),
@@ -246,8 +248,8 @@ export class MenuService {
         },
       }
 
-      if (menu.children && menu.children.length > 0) {
-        router.children = this.buildMenus(menu.children)
+      if (children.length > 0) {
+        router.children = children
         // 如果是目录且有子菜单，处理 alwaysShow 逻辑等 (这里简化)
       }
 

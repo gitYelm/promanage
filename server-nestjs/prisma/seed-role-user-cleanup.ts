@@ -43,6 +43,7 @@ async function main() {
   await migrateDuplicateUserReferences()
   await deactivateDuplicateRolesAndUsers()
   await removeAdminBusinessRoleBindings()
+  await pruneDemoAccountProjectMemberships()
   await ensureWorkspaceConfigs()
   console.log('Cleaned duplicate business roles and normalized user names')
 }
@@ -219,6 +220,48 @@ async function removeAdminBusinessRoleBindings() {
   await prisma.sysUserRole.deleteMany({
     where: { userId: admin.userId, roleId: { in: roles.map((role) => role.roleId) } },
   })
+}
+
+async function pruneDemoAccountProjectMemberships() {
+  const accounts = await prisma.sysUser.findMany({
+    where: { userName: { in: accountNameMappings.map(([, userName]) => userName) }, delFlag: '0' },
+    select: { userId: true, userName: true },
+  })
+  const owner = accounts.find((user) => user.userName === 'project_owner')
+  const allowedProjects = owner
+    ? await prisma.bugProject.findMany({
+        where: { ownerId: owner.userId, delFlag: '0', status: '0' },
+        select: { projectId: true },
+      })
+    : []
+  const allowedProjectIds = allowedProjects.map((project) => project.projectId)
+  for (const account of accounts) {
+    const memberRole = demoMemberRole(account.userName)
+    const where = memberRole && allowedProjectIds.length
+      ? {
+          userId: account.userId,
+          status: '0',
+          OR: [
+            { projectId: { notIn: allowedProjectIds } },
+            { memberRole: { not: memberRole } },
+          ],
+        }
+      : { userId: account.userId, status: '0' }
+    await prisma.bugProjectMember.updateMany({ where, data: { status: '1' } })
+  }
+}
+
+function demoMemberRole(userName: string) {
+  const roleByUserName: Record<string, string | undefined> = {
+    project_owner: 'owner',
+    product_owner: 'product',
+    reviewer01: 'reviewer',
+    developer01: 'developer',
+    developer02: 'developer',
+    tester01: 'tester',
+    submitter01: undefined,
+  }
+  return roleByUserName[userName]
 }
 
 async function ensureWorkspaceConfigs() {

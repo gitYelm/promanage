@@ -70,11 +70,17 @@ export class BugAccessService {
       return projects.map((item) => item.projectId)
     }
 
-    const members = await this.prisma.bugProjectMember.findMany({
-      where: { userId: BigInt(userId), status: '0' },
-      select: { projectId: true },
-    })
-    return [...new Set(members.map((item) => item.projectId))]
+    const [memberProjects, ownedProjects] = await Promise.all([
+      this.prisma.bugProjectMember.findMany({
+        where: { userId: BigInt(userId), status: '0' },
+        select: { projectId: true },
+      }),
+      this.prisma.bugProject.findMany({
+        where: { ownerId: BigInt(userId), delFlag: '0', status: '0' },
+        select: { projectId: true },
+      }),
+    ])
+    return [...new Set([...memberProjects, ...ownedProjects].map((item) => item.projectId))]
   }
 
   async buildTicketWhere(userId: string, mine?: boolean): Promise<Prisma.BugTicketWhereInput> {

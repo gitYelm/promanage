@@ -311,6 +311,24 @@ const BOARD_COLUMN_TONE_MAP: Record<string, SemanticTone> = {
   '暂缓/异常': 'danger',
 }
 
+const NOTIFICATION_TYPE_TONE_MAP: Record<string, SemanticTone> = {
+  bug_created: 'warning',
+  bug_assigned: 'info',
+  bug_status_changed: 'info',
+  bug_commented: 'lowRisk',
+  bug_verify_failed: 'danger',
+  bug_reopened: 'danger',
+}
+
+const NOTIFICATION_TYPE_LABEL_MAP: Record<string, string> = {
+  bug_created: '新 Bug',
+  bug_assigned: '已指派',
+  bug_status_changed: '状态更新',
+  bug_commented: '新评论',
+  bug_verify_failed: '验证失败',
+  bug_reopened: '重新打开',
+}
+
 export function getSemanticStyle(tone: SemanticTone = 'neutral') {
   return SEMANTIC_STYLES[tone]
 }
@@ -378,4 +396,20 @@ export function getBoardColumnTone(title?: string): SemanticTone {
 
 export function getBoardColumnStyle(title?: string) {
   return getSemanticStyle(getBoardColumnTone(title))
+}
+
+export function getNotificationTypeTone(value?: string, status?: string): SemanticTone {
+  if (value === 'bug_status_changed' && status) return getStatusTone('bug', status)
+  if (!value) return 'neutral'
+  return NOTIFICATION_TYPE_TONE_MAP[value] || 'neutral'
+}
+
+export function getNotificationTypeLabel(value?: string, status?: string, fallback = '通知') {
+  if (value === 'bug_status_changed' && status) return getStatusLabel('bug', status, fallback)
+  if (!value) return fallback
+  return NOTIFICATION_TYPE_LABEL_MAP[value] || fallback
+}
+
+export function getNotificationTypeStyle(value?: string, status?: string) {
+  return getSemanticStyle(getNotificationTypeTone(value, status))
 }

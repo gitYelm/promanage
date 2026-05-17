@@ -12,13 +12,13 @@ onMounted(() => void store.fetchNotifications())
 </script>
 
 <template>
-  <div class="w-[340px] max-w-[calc(100vw-2rem)]">
+  <div class="w-full min-w-0 max-w-full">
     <div class="flex items-center justify-between border-b p-3">
-      <div>
+      <div class="min-w-0">
         <h3 class="text-sm font-semibold">站内通知</h3>
-        <p class="text-xs text-muted-foreground">未读 {{ store.unreadCount }} 条</p>
+        <p class="truncate text-xs text-muted-foreground">未读 {{ store.unreadCount }} 条</p>
       </div>
-      <div class="flex gap-1">
+      <div class="flex shrink-0 gap-1">
         <Button variant="ghost" size="icon" @click="store.fetchNotifications()"><RefreshCw class="h-4 w-4" /></Button>
         <Button variant="ghost" size="sm" :disabled="store.unreadCount === 0" @click="store.markAllRead()">全部已读</Button>
       </div>

@@ -82,6 +82,8 @@ const roles = [
       'bug:ticket:close',
       'bug:ticket:reopen',
       'bug:project:list',
+      'bug:project:add',
+      'bug:project:edit',
       'bug:project:member',
       'bug:statistics:view',
     ],
@@ -173,20 +175,7 @@ const accounts = [
 ]
 
 const deprecatedRoleKeys = ['developer', 'tester', 'reviewer', 'pm_manager', 'bug_operator', 'bug_viewer']
-const deprecatedUserNames = [
-  'developer',
-  'tester',
-  'reviewer',
-  'bug_owner',
-  'bug_product',
-  'bug_reviewer',
-  'bug_dev01',
-  'bug_dev02',
-  'bug_tester01',
-  'bug_submitter01',
-  'bug_viewer01',
-  'viewer01',
-]
+const deprecatedUserNames = ['developer', 'tester', 'reviewer', 'bug_owner', 'bug_product', 'bug_reviewer', 'bug_dev01', 'bug_dev02', 'bug_tester01', 'bug_submitter01', 'bug_viewer01', 'viewer01']
 
 async function ensureRole(role) {
   const existed = await prisma.sysRole.findFirst({
@@ -280,11 +269,31 @@ async function ensureAccount(account, passwordHash) {
   return user
 }
 
-async function ensureProjectMembership(userId, memberRole) {
-  const projects = await prisma.bugProject.findMany({
-    where: { delFlag: '0', status: '0' },
+async function demoMembershipProjects(ownerUserId) {
+  return prisma.bugProject.findMany({
+    where: { ownerId: ownerUserId, delFlag: '0', status: '0' },
     select: { projectId: true, projectName: true },
   })
+}
+
+async function pruneDemoMemberships(ensuredAccounts, projects) {
+  const projectIds = projects.map((project) => project.projectId)
+  for (const { account, user } of ensuredAccounts) {
+    const where = account.projectMemberRole && projectIds.length
+      ? {
+          userId: user.userId,
+          status: '0',
+          OR: [
+            { projectId: { notIn: projectIds } },
+            { memberRole: { not: account.projectMemberRole } },
+          ],
+        }
+      : { userId: user.userId, status: '0' }
+    await prisma.bugProjectMember.updateMany({ where, data: { status: '1' } })
+  }
+}
+
+async function ensureProjectMembership(userId, memberRole, projects) {
   for (const project of projects) {
     await prisma.bugProjectMember.upsert({
       where: {
@@ -402,10 +411,18 @@ async function main() {
   }
 
   const passwordHash = await bcrypt.hash(defaultPassword, 10)
+  const ensuredAccounts = []
   for (const account of accounts) {
     const user = await ensureAccount(account, passwordHash)
+    ensuredAccounts.push({ account, user })
+  }
+
+  const ownerEntry = ensuredAccounts.find((item) => item.account.projectMemberRole === 'owner')
+  const projects = ownerEntry ? await demoMembershipProjects(ownerEntry.user.userId) : []
+  await pruneDemoMemberships(ensuredAccounts, projects)
+  for (const { account, user } of ensuredAccounts) {
     const projectCount = account.projectMemberRole
-      ? await ensureProjectMembership(user.userId, account.projectMemberRole)
+      ? await ensureProjectMembership(user.userId, account.projectMemberRole, projects)
       : 0
     console.log(
       `Ensured account: ${account.nickName} (${account.userName}), projects: ${projectCount}`,

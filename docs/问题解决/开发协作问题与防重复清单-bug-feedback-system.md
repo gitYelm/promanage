@@ -43,6 +43,51 @@
 - 种子链路必须包含 `server-nestjs/prisma/seed-bug-workflow-permissions.ts`，确保 reviewer 角色、项目成员字典和权限幂等补齐。
 - 演示/验收用户名不要带业务模块前缀，建议使用：`project_owner`、`product_owner`、`reviewer01`、`developer01`、`developer02`、`tester01`、`submitter01`；如需只读观察再启用 `viewer01`。
 
+### 项目数据权限越权防重复规则
+
+#### 现象
+
+- 使用 `project_owner` 登录后，曾能看到“后台管理系统”项目。
+- “后台管理系统”的负责人是 `admin/超级管理员`，不属于 `project_owner` 负责或参与的项目。
+
+#### 根因
+
+1. 演示账号初始化脚本曾把 `project_owner`、`product_owner`、`reviewer01`、`developer01`、`developer02`、`tester01` 自动加入所有项目，导致 `bug_project_member` 中存在错误 active 成员关系。
+2. 项目管理模块和缺陷模块曾存在多个 `visibleProjectIds` 实现，容易出现一个入口已修、另一个入口仍按旧逻辑判断的情况。
+3. 系统角色 `bug_project_owner` 只是功能权限角色，不能理解成“所有项目负责人”；数据范围必须另看 `BugProject.ownerId` 和 active 项目成员关系。
+
+#### 防重复规则
+
+- 演示/验收脚本不得把业务演示账号加入所有项目，只能加入其被明确授权的项目。
+- 普通业务角色的项目可见范围统一为：`BugProject.ownerId = 当前用户` 或 `bug_project_member.status = '0'` 的项目；超级管理员才可见全部项目。
+- `bug_project_owner`、`bug_product_owner`、`bug_reviewer` 等系统角色只控制菜单/按钮能力，不直接扩大项目数据范围。
+- 项目/模块/版本、项目管理仪表盘、需求、迭代、里程碑、项目概览都必须复用服务端项目可见范围，不能只在前端过滤。
+- 查询时即使传入不可见 `projectId`，列表接口也只能返回空数据；详情/概览类接口必须返回无权访问。
+- 项目负责人可以新增项目，但普通项目负责人新增时项目负责人只能是自己，不能指定超级管理员或其他用户作为负责人。
+- 项目负责人只能维护自己负责或自己是 `owner` 成员的项目配置；后端必须校验，不能只靠菜单权限。
+- 项目负责人不能维护超级管理员的项目成员关系，不能把超级管理员加入/移除/停用为项目成员。
+- 项目负责人不能移除或停用 `BugProject.ownerId` 对应的项目负责人成员；如需更换负责人，必须先走明确的项目负责人变更逻辑。
+- 项目删除权限默认仅超级管理员拥有，项目负责人不应拥有 `bug:project:remove`。
+- 后端 `/getRouters` 必须过滤没有可见子菜单的目录；按钮权限带出的上级目录不能作为空菜单显示，例如只有通知按钮权限时不能显示空的“系统管理”。
+
+#### 相关文件
+
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/bug-access.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/project/bug-project-helper.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/scripts/ensure-bug-team-roles.mjs`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/prisma/seed-role-user-cleanup.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/prisma/seed-bug-workflow-permissions.ts`
+
+#### 写入后验收
+
+- `project_owner` 调 `/api/bug/projects/options`、`/api/bug/projects`、`/api/project-management/executive-dashboard/projects` 只能看到“飞鸟探亲”。
+- `project_owner` 访问 `/api/project-management/projects/1/overview` 必须返回无权访问。
+- `project_owner` 查询 `projectId=1` 的需求、迭代、里程碑列表必须为空。
+- `project_owner` 调 `/api/bug/projects` 可新增自己负责的项目，但指定 `ownerId=admin` 必须返回无权访问。
+- `project_owner` 修改“后台管理系统”或维护超级管理员项目成员关系必须返回无权访问。
+- `project_owner` 删除自己负责项目的 owner 成员必须返回无权访问。
+- `project_owner` 调 `/api/getRouters` 不应返回空的“系统管理”目录；返回的每个目录都必须至少有一个可见子菜单。
+
 ## 写入前检查
 
 - 写入 `.ts`、`.vue` 前先执行 `wc -l` 查看目标文件行数。

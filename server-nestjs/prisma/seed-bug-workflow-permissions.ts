@@ -33,11 +33,54 @@ const projectReadPermissions = [
   'bug:statistics:view',
 ]
 
+const pmProjectOwnerPermissions = [
+  'pm:executive-dashboard:view',
+  'pm:project:view',
+  'pm:project:update',
+  'pm:requirement:view',
+  'pm:requirement:create',
+  'pm:requirement:update',
+  'pm:requirement:review',
+  'pm:requirement:status',
+  'pm:iteration:view',
+  'pm:iteration:manage',
+  'pm:milestone:view',
+  'pm:milestone:manage',
+  'pm:dashboard:view',
+]
+
+const pmProductOwnerPermissions = [
+  'pm:executive-dashboard:view',
+  'pm:project:view',
+  'pm:requirement:view',
+  'pm:requirement:create',
+  'pm:requirement:update',
+  'pm:requirement:review',
+  'pm:requirement:status',
+  'pm:iteration:view',
+  'pm:milestone:view',
+  'pm:dashboard:view',
+]
+
+const pmReviewerPermissions = [
+  'pm:project:view',
+  'pm:requirement:view',
+  'pm:dashboard:view',
+]
+
+const pmExecutivePermissions = [
+  'pm:executive-dashboard:view',
+  'pm:executive-dashboard:all',
+  'pm:project:view',
+  'pm:dashboard:view',
+]
+
 const rolePermissions: Record<string, string[]> = {
   bug_project_owner: [
     ...readPermissions,
     ...writeCollaborationPermissions,
     ...projectReadPermissions,
+    ...pmProjectOwnerPermissions,
     'bug:ticket:edit',
     'bug:ticket:assign',
     'bug:ticket:changeStatus',
@@ -47,6 +90,8 @@ const rolePermissions: Record<string, string[]> = {
     'bug:ticket:close',
     'bug:ticket:reopen',
     'bug:attachment:download',
+    'bug:project:add',
+    'bug:project:edit',
     'bug:project:query',
     'bug:project:member',
     'bug:module:query',
@@ -57,6 +102,7 @@ const rolePermissions: Record<string, string[]> = {
     ...readPermissions,
     ...writeCollaborationPermissions,
     ...projectReadPermissions,
+    ...pmProductOwnerPermissions,
     'bug:ticket:edit',
     'bug:ticket:assign',
     'bug:ticket:changeStatus',
@@ -70,6 +116,7 @@ const rolePermissions: Record<string, string[]> = {
     ...readPermissions,
     ...writeCollaborationPermissions,
     ...projectReadPermissions,
+    ...pmReviewerPermissions,
     'bug:ticket:edit',
     'bug:ticket:assign',
     'bug:ticket:changeStatus',
@@ -103,6 +150,7 @@ const rolePermissions: Record<string, string[]> = {
     'bug:ticket:reopen',
     ...notificationPermissions,
   ],
+  pm_executive: pmExecutivePermissions,
 }
 
 async function ensureBugWorkflowPermissions() {

@@ -62,16 +62,16 @@ export class BugProjectController {
   @RequirePermission('bug:project:add')
   @Log('Bug 项目', BusinessType.INSERT)
   @ApiOperation({ summary: '新增 Bug 项目' })
-  createProject(@Body() dto: CreateBugProjectDto) {
-    return this.service.createProject(dto)
+  createProject(@Body() dto: CreateBugProjectDto, @Req() req: RequestWithUser) {
+    return this.service.createProject(dto, req.user)
   }
 
   @Put('projects/:projectId')
   @RequirePermission('bug:project:edit')
   @Log('Bug 项目', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改 Bug 项目' })
-  updateProject(@Param('projectId') projectId: string, @Body() dto: UpdateBugProjectDto) {
-    return this.service.updateProject(projectId, dto)
+  updateProject(@Param('projectId') projectId: string, @Body() dto: UpdateBugProjectDto, @Req() req: RequestWithUser) {
+    return this.service.updateProject(projectId, dto, req.user.userId)
   }
 
   @Delete('projects')
@@ -147,23 +147,23 @@ export class BugProjectController {
   @Get('projects/:projectId/members')
   @RequirePermission('bug:project:member')
   @ApiOperation({ summary: '查询项目成员' })
-  listMembers(@Param('projectId') projectId: string) {
-    return this.service.listMembers(projectId)
+  listMembers(@Param('projectId') projectId: string, @Req() req: RequestWithUser) {
+    return this.service.listMembers(projectId, req.user.userId)
   }
 
   @Post('projects/:projectId/members')
   @RequirePermission('bug:project:member')
   @Log('Bug 项目成员', BusinessType.UPDATE)
   @ApiOperation({ summary: '新增或更新项目成员' })
-  upsertMember(@Param('projectId') projectId: string, @Body() dto: UpsertBugMemberDto) {
-    return this.service.upsertMember(projectId, dto)
+  upsertMember(@Param('projectId') projectId: string, @Body() dto: UpsertBugMemberDto, @Req() req: RequestWithUser) {
+    return this.service.upsertMember(projectId, dto, req.user.userId)
   }
 
   @Delete('projects/members/:memberId')
   @RequirePermission('bug:project:member')
   @Log('Bug 项目成员', BusinessType.DELETE)
   @ApiOperation({ summary: '删除项目成员' })
-  removeMember(@Param('memberId') memberId: string) {
-    return this.service.removeMember(memberId)
+  removeMember(@Param('memberId') memberId: string, @Req() req: RequestWithUser) {
+    return this.service.removeMember(memberId, req.user.userId)
   }
 }
