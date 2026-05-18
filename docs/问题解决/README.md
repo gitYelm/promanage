@@ -15,4 +15,5 @@
 | 开发进程挂掉/前端代理拒绝连接 | [开发协作问题与防重复清单-bug-feedback-system.md#开发进程挂掉与前端代理拒绝连接防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#开发进程挂掉与前端代理拒绝连接防重复规则) | `pnpm dev`、Nest watch 编译失败、Vite `ECONNREFUSED`、后端 3001 未监听 |
 | Prisma P2022 与数据库漂移 | [开发协作问题与防重复清单-bug-feedback-system.md#prisma-p2022-与数据库漂移防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#prisma-p2022-与数据库漂移防重复规则) | Prisma schema/客户端字段已存在，但 PostgreSQL 真实表结构缺列导致接口 500 |
 | 表单字段说明缺失 | [开发协作问题与防重复清单-bug-feedback-system.md#表单字段说明缺失防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#表单字段说明缺失防重复规则) | 新增/编辑弹窗、负责人下拉、日期字段、placeholder、暂不指定空值说明 |
+| 表单焦点态边框裁切 | [开发协作问题与防重复清单-bug-feedback-system.md#表单焦点态边框裁切防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#表单焦点态边框裁切防重复规则) | 全局 Input、Textarea、Select、Checkbox、Radio 焦点态，角色管理新增/编辑弹窗等表单 |
 | 环境与发布边界 | [开发协作问题与防重复清单-bug-feedback-system.md#环境与发布边界防重复规则](./开发协作问题与防重复清单-bug-feedback-system.md#环境与发布边界防重复规则) | 本地开发版、Docker 内测版、18001 内测环境、禁止未授权 Docker 操作 |

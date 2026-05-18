@@ -544,3 +544,47 @@
 - `web/src/views/bug/projects/index.vue`
 - `web/src/views/bug/modules/index.vue`
 - `web/src/views/bug/versions/index.vue`
+
+## 表单焦点态边框裁切防重复规则
+
+### 现象
+
+角色管理新增 / 编辑弹窗中的输入框聚焦后会出现颜色边框，这个交互有助于用户识别当前正在编辑的字段。但靠近弹窗内容区左右边缘的控件，聚焦色线条在最左侧或最右侧容易被裁切，看起来像边框缺了一段。
+
+### 根因
+
+1. 公共表单控件使用外扩 `ring` 作为焦点态，外扩描边在弹窗、滚动容器或边界贴近场景下可能被容器边界裁切。
+2. 焦点态能力没有明确写入全局表单规范，容易被当成某个页面的局部样式问题。
+3. 如果在单个页面补 `border-*` 或 `ring-*`，会造成不同表单控件焦点态不一致。
+
+### 防重复规则
+
+1. 表单控件必须保留清晰焦点态，不能为了避免裁切直接去掉焦点边框。
+2. 输入框、多行文本、下拉选择器、复选框、单选框的焦点态应在公共组件统一维护。
+3. 文本输入、日期输入、多行文本和下拉选择器优先使用 1px 级别边框色变化，避免焦点态过粗。
+4. 小尺寸 Checkbox / Radio 如需焦点环，应使用 `ring-inset` 或等效内描边，避免外扩 ring 被弹窗或滚动容器裁切。
+5. 页面内禁止用零散 `border-*` / `ring-*` 单独修补焦点态，除非先确认公共组件无法覆盖该控件类型。
+5. 下拉组件需要同时覆盖键盘聚焦态和展开态。
+
+### 写入前检查
+
+- 修改表单样式前先检查 `web/src/components/ui/input/Input.vue`、`Textarea.vue`、`SelectTrigger.vue`、`Checkbox.vue`、`RadioGroupItem.vue`。
+- 检查目标文件行数；公共组件均为自有代码，必须遵守 500 行限制。
+- 检查是否已有全局规范路径：`docs/开发规范/前端页面交互与视觉规范.md#89-表单控件焦点态规范`。
+
+### 写入后验收
+
+- 在角色管理新增 / 编辑弹窗中，聚焦角色名称、权限字符、安全等级、备注等控件时，焦点色完整可见。
+- 控件贴近弹窗左侧或右侧时，焦点边框不被裁切。
+- Select 展开时也能保持明显焦点态。
+- 深色模式下焦点态可见。
+
+### 相关文件路径
+
+- `docs/开发规范/前端页面交互与视觉规范.md`
+- `web/src/components/ui/input/Input.vue`
+- `web/src/components/ui/textarea/Textarea.vue`
+- `web/src/components/ui/select/SelectTrigger.vue`
+- `web/src/components/ui/checkbox/Checkbox.vue`
+- `web/src/components/ui/radio-group/RadioGroupItem.vue`
+- `web/src/views/system/role/components/RoleFormDialog.vue`
