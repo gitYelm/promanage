@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards, Request } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -15,13 +15,19 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
 import { Log, BusinessType } from '../../common/decorators/log.decorator'
+import { SystemRoleSecurityService } from '../security/system-role-security.service'
+
+type RequestWithUser = { user: { userId: string; username: string } }
 
 @ApiTags('菜单管理')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('system/menu')
 export class SystemMenuController {
-  constructor(private readonly menuService: MenuService) {}
+  constructor(
+    private readonly menuService: MenuService,
+    private readonly roleSecurity: SystemRoleSecurityService,
+  ) {}
 
   @Post()
   @RequirePermission('system:menu:add')
@@ -37,16 +43,16 @@ export class SystemMenuController {
   @RequirePermission('system:menu:list')
   @ApiOperation({ summary: '查询菜单列表' })
   @ApiResponse({ status: 200, description: '查询成功' })
-  findAll(@Query() query: QueryMenuDto) {
-    return this.menuService.findAll(query)
+  findAll(@Request() req: RequestWithUser, @Query() query: QueryMenuDto) {
+    return this.menuService.findAllWithScope(query, req.user.userId)
   }
 
   @Get('treeselect')
   @RequirePermission('system:menu:list')
   @ApiOperation({ summary: '查询菜单下拉树' })
   @ApiResponse({ status: 200, description: '查询成功' })
-  treeSelect(@Query() query: QueryMenuDto) {
-    return this.menuService.listTree(query)
+  treeSelect(@Request() req: RequestWithUser, @Query() query: QueryMenuDto) {
+    return this.menuService.listTreeWithScope(query, req.user.userId)
   }
 
   @Get('roleMenuTreeselect/:roleId')
@@ -54,9 +60,9 @@ export class SystemMenuController {
   @ApiOperation({ summary: '查询角色菜单下拉树' })
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiResponse({ status: 200, description: '查询成功' })
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async roleMenuTreeselect(@Param('roleId') roleId: string) {
-    const menus = await this.menuService.listTree({})
+  async roleMenuTreeselect(@Request() req: RequestWithUser, @Param('roleId') roleId: string) {
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId, roleId)
+    const menus = await this.menuService.listTreeWithScope({}, req.user.userId)
     return { menus }
   }
 

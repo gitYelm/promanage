@@ -9,6 +9,13 @@ export interface BugUserRef {
   nickName: string
 }
 
+export interface BugUserOptionParams {
+  projectId?: string
+  memberRole?: string
+  assignContext?: string
+  assignableOnly?: boolean | string
+}
+
 export interface BugProject {
   projectId: string
   projectName: string

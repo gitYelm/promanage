@@ -6,6 +6,8 @@ import { BusinessException } from '../../common/exceptions/business.exception'
 import { PM_ACTIVITY_ACTION, PM_ACTIVITY_TARGET, REQUIREMENT_STATUS } from '../constants/project-management.constants'
 import { REQUIREMENT_TRANSITIONS, findTransition } from '../constants/project-management-workflow.config'
 import { BugAccessService, type RequestUserLike } from '../bug-access.service'
+import { BUG_MEMBER_ROLE } from '../constants/bug.constants'
+import { RoleSecurityService } from '../security/role-security.service'
 import { ProjectActivityService } from './project-activity.service'
 import { CreateRequirementDto, QueryRequirementDto, RequirementActionDto, UpdateRequirementDto } from '../dto/project-management.dto'
 
@@ -15,6 +17,7 @@ export class ProjectRequirementService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly access: BugAccessService,
+    private readonly roleSecurity: RoleSecurityService,
     private readonly activity: ProjectActivityService,
   ) {}
 
@@ -47,6 +50,8 @@ export class ProjectRequirementService {
 
   async create(dto: CreateRequirementDto, user: RequestUserLike) {
     await this.assertProjectVisible(user.userId, BigInt(dto.projectId))
+    await this.assertRelations(BigInt(dto.projectId), dto)
+    await this.assertAssigneesAllowed(user, BigInt(dto.projectId), dto)
     const count = await this.prisma.projectRequirement.count({ where: { projectId: BigInt(dto.projectId) } })
     const project = await this.prisma.bugProject.findUnique({ where: { projectId: BigInt(dto.projectId) } })
     if (!project) throw BusinessException.notFound('项目不存在')
@@ -60,6 +65,19 @@ export class ProjectRequirementService {
 
   async update(requirementId: string, dto: UpdateRequirementDto, user: RequestUserLike) {
     const existing = await this.ensure(requirementId, user)
+    const projectId = dto.projectId ? BigInt(dto.projectId) : existing.projectId
+    await this.assertProjectVisible(user.userId, projectId)
+    await this.assertRelations(projectId, {
+      moduleId: this.nextUserId(dto.moduleId, existing.moduleId),
+      iterationId: this.nextUserId(dto.iterationId, existing.iterationId),
+      milestoneId: this.nextUserId(dto.milestoneId, existing.milestoneId),
+      versionId: this.nextUserId(dto.versionId, existing.versionId),
+    })
+    await this.assertAssigneesAllowed(user, projectId, {
+      ownerId: this.nextUserId(dto.ownerId, existing.ownerId),
+      developerId: this.nextUserId(dto.developerId, existing.developerId),
+      testerId: this.nextUserId(dto.testerId, existing.testerId),
+    })
     const updated = await this.prisma.projectRequirement.update({
       where: { requirementId: existing.requirementId },
       data: this.updateData(dto, user),
@@ -144,6 +162,81 @@ export class ProjectRequirementService {
     if (!ids.some((id) => id === projectId)) throw BusinessException.forbidden('无权访问该项目')
   }
 
+  private async assertAssigneesAllowed(user: RequestUserLike, projectId: bigint, dto: CreateRequirementDto | UpdateRequirementDto) {
+    await Promise.all([
+      this.roleSecurity.assertAssignableProjectFieldUser({
+        operatorId: user.userId,
+        projectId,
+        targetUserId: dto.ownerId,
+        allowedMemberRoles: [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER],
+        label: '需求负责人',
+      }),
+      this.roleSecurity.assertAssignableProjectFieldUser({
+        operatorId: user.userId,
+        projectId,
+        targetUserId: dto.developerId,
+        allowedMemberRoles: [BUG_MEMBER_ROLE.DEVELOPER],
+        label: '开发负责人',
+      }),
+      this.roleSecurity.assertAssignableProjectFieldUser({
+        operatorId: user.userId,
+        projectId,
+        targetUserId: dto.testerId,
+        allowedMemberRoles: [BUG_MEMBER_ROLE.TESTER],
+        label: '测试负责人',
+      }),
+    ])
+  }
+
+  private async assertRelations(projectId: bigint, dto: Pick<CreateRequirementDto, 'moduleId' | 'iterationId' | 'milestoneId' | 'versionId'>) {
+    await Promise.all([
+      this.assertModule(projectId, dto.moduleId),
+      this.assertIteration(projectId, dto.iterationId),
+      this.assertMilestone(projectId, dto.milestoneId),
+      this.assertVersion(projectId, dto.versionId),
+    ])
+  }
+
+  private async assertModule(projectId: bigint, id?: string) {
+    if (!id) return
+    const row = await this.prisma.bugProjectModule.findFirst({
+      where: { moduleId: BigInt(id), projectId, delFlag: '0' },
+      select: { moduleId: true },
+    })
+    if (!row) throw BusinessException.invalidParams('模块不属于所选项目')
+  }
+
+  private async assertIteration(projectId: bigint, id?: string) {
+    if (!id) return
+    const row = await this.prisma.projectIteration.findFirst({
+      where: { iterationId: BigInt(id), projectId, delFlag: '0' },
+      select: { iterationId: true },
+    })
+    if (!row) throw BusinessException.invalidParams('迭代不属于所选项目')
+  }
+
+  private async assertMilestone(projectId: bigint, id?: string) {
+    if (!id) return
+    const row = await this.prisma.projectMilestone.findFirst({
+      where: { milestoneId: BigInt(id), projectId, delFlag: '0' },
+      select: { milestoneId: true },
+    })
+    if (!row) throw BusinessException.invalidParams('里程碑不属于所选项目')
+  }
+
+  private async assertVersion(projectId: bigint, id?: string) {
+    if (!id) return
+    const row = await this.prisma.bugProjectVersion.findFirst({
+      where: { versionId: BigInt(id), projectId, delFlag: '0' },
+      select: { versionId: true },
+    })
+    if (!row) throw BusinessException.invalidParams('版本不属于所选项目')
+  }
+
   private bigIntOrUndefined(value?: string) { return value ? BigInt(value) : undefined }
   private bigIntOrNull(value?: string) { return value ? BigInt(value) : null }
+  private nextUserId(value: string | undefined, current: bigint | null) {
+    if (value !== undefined) return value || undefined
+    return current ? String(current) : undefined
+  }
 }

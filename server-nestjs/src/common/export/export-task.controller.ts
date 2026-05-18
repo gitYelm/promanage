@@ -1,24 +1,36 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, Res, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Body, Param, Query, Res, UseGuards, Request } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import type { Response } from 'express'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { CurrentUser } from '../decorators/current-user.decorator'
 import { Log, BusinessType } from '../decorators/log.decorator'
 import { ExportTaskService } from './export-task.service'
+import { ExportPermissionService } from './export-permission.service'
 import { CreateExportTaskDto } from './dto/create-export-task.dto'
 import { QueryExportTaskDto } from './dto/query-export-task.dto'
+
+type RequestWithUser = { user: { userId: string; username: string } }
 
 @ApiTags('导出任务')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('export')
 export class ExportTaskController {
-  constructor(private readonly exportTaskService: ExportTaskService) {}
+  constructor(
+    private readonly exportTaskService: ExportTaskService,
+    private readonly exportPermissionService: ExportPermissionService,
+  ) {}
 
   @Post('task')
   @Log('导出任务', BusinessType.INSERT)
   @ApiOperation({ summary: '创建导出任务' })
-  create(@Body() dto: CreateExportTaskDto, @CurrentUser('username') username: string) {
+  async create(
+    @Body() dto: CreateExportTaskDto,
+    @Request() req: RequestWithUser,
+    @CurrentUser('username') username: string,
+  ) {
+    await this.exportPermissionService.assertCanExportModule(req.user.userId, dto.module)
+    dto.queryParams = { ...(dto.queryParams || {}), __operatorId: req.user.userId }
     return this.exportTaskService.createTask(dto, username)
   }
 
@@ -30,7 +42,8 @@ export class ExportTaskController {
 
   @Get('task/:taskId')
   @ApiOperation({ summary: '获取任务详情' })
-  findOne(@Param('taskId') taskId: string) {
+  async findOne(@Param('taskId') taskId: string, @CurrentUser('username') username: string) {
+    await this.exportPermissionService.assertCanAccessTask(taskId, username)
     return this.exportTaskService.findOne(taskId)
   }
 
@@ -38,9 +51,12 @@ export class ExportTaskController {
   @ApiOperation({ summary: '下载导出文件' })
   async download(
     @Param('taskId') taskId: string,
+    @Request() req: RequestWithUser,
     @CurrentUser('username') username: string,
     @Res() res: Response,
   ) {
+    const task = await this.exportPermissionService.assertCanAccessTask(taskId, username)
+    await this.exportPermissionService.assertCanExportModule(req.user.userId, task.module)
     const { filePath, filename } = await this.exportTaskService.getDownloadPath(taskId, username)
 
     // 根据扩展名设置 Content-Type
@@ -59,13 +75,15 @@ export class ExportTaskController {
   @Delete('task/:taskId')
   @Log('导出任务', BusinessType.DELETE)
   @ApiOperation({ summary: '删除导出任务' })
-  remove(@Param('taskId') taskId: string, @CurrentUser('username') username: string) {
+  async remove(@Param('taskId') taskId: string, @CurrentUser('username') username: string) {
+    await this.exportPermissionService.assertCanAccessTask(taskId, username)
     return this.exportTaskService.remove(taskId, username)
   }
 
   @Get('columns/:module')
   @ApiOperation({ summary: '获取模块可导出列' })
-  getColumns(@Param('module') module: string) {
+  async getColumns(@Param('module') module: string, @Request() req: RequestWithUser) {
+    await this.exportPermissionService.assertCanExportModule(req.user.userId, module)
     return this.exportTaskService.getModuleColumns(module)
   }
 

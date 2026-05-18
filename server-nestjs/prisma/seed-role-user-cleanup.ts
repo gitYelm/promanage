@@ -7,13 +7,13 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) })
 
 const roleNames = [
-  ['bug_project_owner', '项目负责人', 20, '负责项目配置、成员维护、缺陷分派、项目进度和统计'],
-  ['bug_product_owner', '产品负责人', 21, '负责需求确认、缺陷有效性判断、优先级和业务验收'],
-  ['bug_reviewer', '审核人员', 22, '负责缺陷审核、驳回、标记重复和分派开发'],
-  ['bug_developer', '开发人员', 23, '处理分派给自己的缺陷并提交验证'],
-  ['bug_tester', '测试人员', 24, '提交、验证、关闭或重新打开缺陷'],
-  ['bug_submitter', '提交人', 25, '提交并跟踪本人缺陷'],
-  ['pm_executive', '管理层', 26, '查看项目仪表盘和项目进度摘要'],
+  ['bug_project_owner', '项目负责人', 20, 600, '负责项目配置、成员维护、缺陷分派、项目进度和统计'],
+  ['bug_product_owner', '产品负责人', 21, 550, '负责需求确认、缺陷有效性判断、优先级和业务验收'],
+  ['bug_reviewer', '审核人员', 22, 520, '负责缺陷审核、驳回、标记重复和分派开发'],
+  ['bug_developer', '开发人员', 23, 400, '处理分派给自己的缺陷并提交验证'],
+  ['bug_tester', '测试人员', 24, 350, '提交、验证、关闭或重新打开缺陷'],
+  ['bug_submitter', '提交人', 25, 100, '提交并跟踪本人缺陷'],
+  ['pm_executive', '管理层', 26, 700, '查看项目仪表盘和项目进度摘要'],
 ] as const
 
 const workspaceConfigs = [
@@ -49,10 +49,10 @@ async function main() {
 }
 
 async function renameKeptRoles() {
-  for (const [roleKey, roleName, roleSort, remark] of roleNames) {
+  for (const [roleKey, roleName, roleSort, securityLevel, remark] of roleNames) {
     await prisma.sysRole.updateMany({
       where: { roleKey, delFlag: '0' },
-      data: { roleName, roleSort, remark, status: '0' },
+      data: { roleName, roleSort, securityLevel, remark, status: '0' },
     })
   }
 }

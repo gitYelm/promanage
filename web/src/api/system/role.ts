@@ -7,6 +7,7 @@ export interface RoleForm {
   roleName?: string
   roleKey?: string
   roleSort?: number
+  securityLevel?: number
   dataScope?: string
   menuCheckStrictly?: boolean
   deptCheckStrictly?: boolean

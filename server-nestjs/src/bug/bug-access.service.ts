@@ -31,7 +31,7 @@ export class BugAccessService {
 
   async isAdmin(userId: string): Promise<boolean> {
     const roles = await this.prisma.sysUserRole.findMany({
-      where: { userId: BigInt(userId) },
+      where: { userId: BigInt(userId), role: { delFlag: '0', status: '0' } },
       include: { role: true },
     })
     return roles.some((item) => item.role.roleKey === 'admin')
@@ -43,9 +43,10 @@ export class BugAccessService {
       include: { roles: { include: { role: true } } },
     })
     if (!user) return []
-    if (user.roles.some((item) => item.role.roleKey === 'admin')) return ['*:*:*']
+    const activeRoles = user.roles.filter((item) => item.role.delFlag === '0' && item.role.status === '0')
+    if (activeRoles.some((item) => item.role.roleKey === 'admin')) return ['*:*:*']
 
-    const roleIds = user.roles.map((item) => item.roleId)
+    const roleIds = activeRoles.map((item) => item.roleId)
     const menus = await this.prisma.sysMenu.findMany({
       where: { roles: { some: { roleId: { in: roleIds } } }, status: '0', perms: { not: '' } },
       select: { perms: true },
@@ -64,7 +65,7 @@ export class BugAccessService {
   async getVisibleProjectIds(userId: string): Promise<bigint[]> {
     if (await this.isAdmin(userId)) {
       const projects = await this.prisma.bugProject.findMany({
-        where: { delFlag: '0' },
+        where: { delFlag: '0', status: '0' },
         select: { projectId: true },
       })
       return projects.map((item) => item.projectId)
@@ -72,7 +73,7 @@ export class BugAccessService {
 
     const [memberProjects, ownedProjects] = await Promise.all([
       this.prisma.bugProjectMember.findMany({
-        where: { userId: BigInt(userId), status: '0' },
+        where: { userId: BigInt(userId), status: '0', project: { delFlag: '0', status: '0' } },
         select: { projectId: true },
       }),
       this.prisma.bugProject.findMany({
@@ -115,7 +116,7 @@ export class BugAccessService {
   private async getProjectWideProjectIds(userId: string): Promise<bigint[]> {
     const [memberProjects, ownedProjects] = await Promise.all([
       this.prisma.bugProjectMember.findMany({
-        where: { userId: BigInt(userId), memberRole: { in: PROJECT_WIDE_ROLES }, status: '0' },
+        where: { userId: BigInt(userId), memberRole: { in: PROJECT_WIDE_ROLES }, status: '0', project: { delFlag: '0', status: '0' } },
         select: { projectId: true },
       }),
       this.prisma.bugProject.findMany({
@@ -128,7 +129,7 @@ export class BugAccessService {
 
   private async getTesterProjectIds(userId: string): Promise<bigint[]> {
     const members = await this.prisma.bugProjectMember.findMany({
-      where: { userId: BigInt(userId), memberRole: BUG_MEMBER_ROLE.TESTER, status: '0' },
+      where: { userId: BigInt(userId), memberRole: BUG_MEMBER_ROLE.TESTER, status: '0', project: { delFlag: '0', status: '0' } },
       select: { projectId: true },
     })
     return [...new Set(members.map((item) => item.projectId))]

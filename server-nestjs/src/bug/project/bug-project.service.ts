@@ -7,6 +7,7 @@ import { ErrorCode } from '../../common/enums/error-code.enum'
 import { BugProjectHelperService } from './bug-project-helper.service'
 import { BUG_MEMBER_ROLE } from '../constants/bug.constants'
 import { BugUserOptionQueryDto } from '../dto/common.dto'
+import { RoleSecurityService } from '../security/role-security.service'
 import {
   CreateBugModuleDto,
   CreateBugProjectDto,
@@ -28,6 +29,7 @@ export class BugProjectService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly helper: BugProjectHelperService,
+    private readonly roleSecurity: RoleSecurityService,
   ) {}
 
   async listProjects(query: QueryBugProjectDto, userId?: string) {
@@ -43,30 +45,9 @@ export class BugProjectService {
     return this.paginateProjects(where, query.pageNum, query.pageSize)
   }
 
-  async userOptions(query: BugUserOptionQueryDto = {}) {
-    const memberUserIds = query.projectId && query.memberRole
-      ? await this.projectMemberUserIds(query.projectId, query.memberRole)
-      : undefined
-    return this.prisma.sysUser.findMany({
-      where: {
-        delFlag: '0',
-        status: '0',
-        ...(query.keyword ? { userName: { contains: query.keyword } } : {}),
-        ...(memberUserIds ? { userId: { in: memberUserIds } } : {}),
-      },
-      orderBy: { userId: 'asc' },
-      select: { userId: true, userName: true, nickName: true },
-      take: 100,
-    })
-  }
-
-  private async projectMemberUserIds(projectId: string, memberRole: string) {
-    await this.helper.ensureProject(projectId)
-    const members = await this.prisma.bugProjectMember.findMany({
-      where: { projectId: BigInt(projectId), memberRole, status: '0' },
-      select: { userId: true },
-    })
-    return members.map((member) => member.userId)
+  async userOptions(query: BugUserOptionQueryDto = {}, operatorId?: string) {
+    if (query.projectId) await this.helper.ensureProject(query.projectId)
+    return this.roleSecurity.assignableUserOptions(operatorId, query)
   }
 
   async optionsForUser(userId: string) {
@@ -83,11 +64,11 @@ export class BugProjectService {
       where: { projectKey: dto.projectKey, delFlag: '0' },
     })
     if (existed) throw new BusinessException(ErrorCode.BUG_PROJECT_EXISTS, '项目标识已存在')
-    if (!(await this.isAdmin(user.userId)) && dto.ownerId && dto.ownerId !== user.userId) {
+    if (!(await this.roleSecurity.isAdmin(user.userId)) && dto.ownerId && dto.ownerId !== user.userId) {
       throw BusinessException.forbidden('项目负责人只能创建自己负责的项目')
     }
     const ownerId = dto.ownerId ? BigInt(dto.ownerId) : BigInt(user.userId)
-    await this.helper.ensureUser(String(ownerId))
+    await this.roleSecurity.assertTargetHasRole(user.userId, ownerId, ['bug_project_owner'], '项目负责人')
     this.logger.log(`创建 Bug 项目: ${dto.projectName}`, 'BugProjectService')
     return this.prisma.$transaction(async (tx) => {
       const project = await tx.bugProject.create({
@@ -117,6 +98,10 @@ export class BugProjectService {
   async updateProject(projectId: string, dto: UpdateBugProjectDto, operatorId?: string) {
     const project = await this.helper.ensureProject(projectId)
     if (operatorId) await this.assertProjectManageAllowed(operatorId, project.projectId)
+    if (operatorId && dto.ownerId !== undefined && dto.ownerId !== String(project.ownerId ?? '')) {
+      if (!(await this.roleSecurity.isAdmin(operatorId))) throw BusinessException.forbidden('项目负责人不允许直接变更项目负责人，请联系管理员执行负责人交接')
+      if (dto.ownerId) await this.roleSecurity.assertTargetHasRole(operatorId, dto.ownerId, ['bug_project_owner'], '项目负责人')
+    }
     return this.prisma.bugProject.update({
       where: { projectId: BigInt(projectId) },
       data: this.projectUpdateData(dto),
@@ -161,15 +146,25 @@ export class BugProjectService {
     return { in: visibleProjectIds }
   }
 
-  async createModule(dto: CreateBugModuleDto) {
+  async createModule(dto: CreateBugModuleDto, operatorId?: string) {
     await this.helper.ensureProject(dto.projectId)
+    if (operatorId) {
+      await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
+      await this.assertModuleAssigneeAllowed(operatorId, dto.projectId, dto.defaultAssigneeId)
+    }
     await this.helper.assertUniqueModule(dto.projectId, dto.moduleName)
     return this.prisma.bugProjectModule.create({ data: this.moduleCreateData(dto) })
   }
 
-  async updateModule(moduleId: string, dto: UpdateBugModuleDto) {
+  async updateModule(moduleId: string, dto: UpdateBugModuleDto, operatorId?: string) {
     const module = await this.helper.ensureModule(moduleId)
+    const projectId = dto.projectId ?? String(module.projectId)
     if (dto.projectId) await this.helper.ensureProject(dto.projectId)
+    if (operatorId) {
+      await this.assertProjectManageAllowed(operatorId, module.projectId)
+      if (dto.projectId && dto.projectId !== String(module.projectId)) await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
+      if (dto.defaultAssigneeId !== undefined) await this.assertModuleAssigneeAllowed(operatorId, projectId, dto.defaultAssigneeId)
+    }
     if (dto.moduleName) {
       await this.helper.assertUniqueModule(
         dto.projectId ?? String(module.projectId),
@@ -216,15 +211,20 @@ export class BugProjectService {
     return { total, rows }
   }
 
-  async createVersion(dto: CreateBugVersionDto) {
+  async createVersion(dto: CreateBugVersionDto, operatorId?: string) {
     await this.helper.ensureProject(dto.projectId)
+    if (operatorId) await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
     await this.helper.assertUniqueVersion(dto.projectId, dto.versionNo)
     return this.prisma.bugProjectVersion.create({ data: this.versionCreateData(dto) })
   }
 
-  async updateVersion(versionId: string, dto: UpdateBugVersionDto) {
+  async updateVersion(versionId: string, dto: UpdateBugVersionDto, operatorId?: string) {
     const version = await this.helper.ensureVersion(versionId)
     if (dto.projectId) await this.helper.ensureProject(dto.projectId)
+    if (operatorId) {
+      await this.assertProjectManageAllowed(operatorId, version.projectId)
+      if (dto.projectId && dto.projectId !== String(version.projectId)) await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
+    }
     if (dto.versionNo) {
       await this.helper.assertUniqueVersion(
         dto.projectId ?? String(version.projectId),
@@ -261,6 +261,7 @@ export class BugProjectService {
     await this.assertProjectManageAllowed(operatorId, project.projectId)
     await this.helper.ensureUser(dto.userId)
     await this.assertMemberChangeAllowed(operatorId, project, BigInt(dto.userId), dto.status)
+    await this.roleSecurity.assertAssignableProjectMember(operatorId, dto.userId, dto.memberRole)
     if (dto.memberRole === BUG_MEMBER_ROLE.DEVELOPER) await this.assertReviewerExists(projectId)
     return this.prisma.bugProjectMember.upsert({
       where: {
@@ -294,7 +295,7 @@ export class BugProjectService {
   }
 
   private async assertProjectManageAllowed(userId: string, projectId: bigint) {
-    if (await this.isAdmin(userId)) return
+    if (await this.roleSecurity.isAdmin(userId)) return
     const [ownedProject, ownerMember] = await Promise.all([
       this.prisma.bugProject.findFirst({
         where: { projectId, ownerId: BigInt(userId), delFlag: '0', status: '0' },
@@ -314,21 +315,19 @@ export class BugProjectService {
     targetUserId: bigint,
     targetStatus?: string,
   ) {
-    if (await this.isAdmin(operatorId)) return
-    if (await this.userHasRole(targetUserId, 'admin')) throw BusinessException.forbidden('项目负责人不能维护超级管理员的项目成员关系')
+    if (await this.roleSecurity.isAdmin(operatorId)) return
+    await this.roleSecurity.assertNotHigher(operatorId, targetUserId, '项目负责人不能维护权限高于自己的项目成员关系')
     if (targetStatus === '1' && project.ownerId === targetUserId) throw BusinessException.forbidden('不能移除或停用项目负责人字段对应的用户')
   }
 
-  private async isAdmin(userId: string) {
-    return this.userHasRole(BigInt(userId), 'admin')
-  }
-
-  private async userHasRole(userId: bigint, roleKey: string) {
-    const role = await this.prisma.sysUserRole.findFirst({
-      where: { userId, role: { roleKey, delFlag: '0', status: '0' } },
-      select: { userId: true },
+  private async assertModuleAssigneeAllowed(operatorId: string, projectId: string, assigneeId?: string | null) {
+    await this.roleSecurity.assertAssignableProjectFieldUser({
+      operatorId,
+      projectId,
+      targetUserId: assigneeId,
+      allowedMemberRoles: [BUG_MEMBER_ROLE.DEVELOPER],
+      label: '默认负责人',
     })
-    return Boolean(role)
   }
 
   private async assertReviewerExists(projectId: string) {

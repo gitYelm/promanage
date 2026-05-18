@@ -8,13 +8,17 @@ import { WorkspaceConfigService } from './workspace-config.service'
 import { QueryWorkspaceConfigDto } from './dto/query-workspace-config.dto'
 import { CreateWorkspaceConfigDto } from './dto/create-workspace-config.dto'
 import { UpdateWorkspaceConfigDto } from './dto/update-workspace-config.dto'
+import { SystemRoleSecurityService } from '../security/system-role-security.service'
 
 @ApiTags('工作台配置')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('system/workspace-config')
 export class WorkspaceConfigController {
-  constructor(private readonly service: WorkspaceConfigService) {}
+  constructor(
+    private readonly service: WorkspaceConfigService,
+    private readonly roleSecurity: SystemRoleSecurityService,
+  ) {}
 
   @Get('current')
   @ApiOperation({ summary: '获取当前用户工作台配置' })
@@ -25,8 +29,9 @@ export class WorkspaceConfigController {
   @Get('role-options')
   @RequirePermission('system:workspace:list')
   @ApiOperation({ summary: '工作台配置角色选项' })
-  roleOptions() {
-    return this.service.roleOptions()
+  async roleOptions(@Request() req: { user: { userId: string } }) {
+    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
+    return this.service.roleOptions(maxSecurityLevel)
   }
 
   @Get('menu-options')
@@ -39,22 +44,25 @@ export class WorkspaceConfigController {
   @Get()
   @RequirePermission('system:workspace:list')
   @ApiOperation({ summary: '查询角色工作台配置列表' })
-  list(@Query() query: QueryWorkspaceConfigDto) {
-    return this.service.findAll(query)
+  async list(@Request() req: { user: { userId: string } }, @Query() query: QueryWorkspaceConfigDto) {
+    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
+    return this.service.findAll(query, maxSecurityLevel)
   }
 
   @Get(':configId')
   @RequirePermission('system:workspace:query')
   @ApiOperation({ summary: '查询角色工作台配置详情' })
-  detail(@Param('configId') configId: string) {
-    return this.service.findOne(configId)
+  async detail(@Request() req: { user: { userId: string } }, @Param('configId') configId: string) {
+    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
+    return this.service.findOne(configId, maxSecurityLevel)
   }
 
   @Post()
   @RequirePermission('system:workspace:add')
   @Log('工作台配置', BusinessType.INSERT)
   @ApiOperation({ summary: '新增角色工作台配置' })
-  create(@Body() dto: CreateWorkspaceConfigDto) {
+  async create(@Request() req: { user: { userId: string } }, @Body() dto: CreateWorkspaceConfigDto) {
+    await this.roleSecurity.assertCanMaintainRoleKey(req.user.userId, dto.roleKey)
     return this.service.create(dto)
   }
 
@@ -62,15 +70,21 @@ export class WorkspaceConfigController {
   @RequirePermission('system:workspace:edit')
   @Log('工作台配置', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改角色工作台配置' })
-  update(@Param('configId') configId: string, @Body() dto: UpdateWorkspaceConfigDto) {
-    return this.service.update(configId, dto)
+  async update(@Request() req: { user: { userId: string } }, @Param('configId') configId: string, @Body() dto: UpdateWorkspaceConfigDto) {
+    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
+    const current = await this.service.findOne(configId, maxSecurityLevel)
+    await this.roleSecurity.assertCanMaintainRoleKey(req.user.userId, current.roleKey)
+    if (dto.roleKey) await this.roleSecurity.assertCanMaintainRoleKey(req.user.userId, dto.roleKey)
+    return this.service.update(configId, dto, current)
   }
 
   @Delete()
   @RequirePermission('system:workspace:remove')
   @Log('工作台配置', BusinessType.DELETE)
   @ApiOperation({ summary: '删除角色工作台配置' })
-  remove(@Query('ids') ids: string) {
+  async remove(@Request() req: { user: { userId: string } }, @Query('ids') ids: string) {
+    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
+    await Promise.all((ids ? ids.split(',') : []).map((id) => this.service.findOne(id, maxSecurityLevel)))
     return this.service.remove(ids ? ids.split(',') : [])
   }
 }

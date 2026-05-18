@@ -20,6 +20,8 @@ export interface WorkspaceConfigRow {
   updateTime: Date | null
 }
 
+export type WorkspaceConfigVo = Omit<WorkspaceConfigRow, 'configId'> & { configId: string }
+
 @Injectable()
 export class WorkspaceConfigService {
   constructor(
@@ -27,11 +29,11 @@ export class WorkspaceConfigService {
     private readonly logger: LoggerService,
   ) {}
 
-  async findAll(query: QueryWorkspaceConfigDto) {
+  async findAll(query: QueryWorkspaceConfigDto, maxSecurityLevel?: number) {
     const pageNum = Number(query.pageNum ?? 1)
     const pageSize = Number(query.pageSize ?? 20)
     const offset = (pageNum - 1) * pageSize
-    const where = this.buildWhere(query)
+    const where = this.buildWhere(query, maxSecurityLevel)
     const rows = await this.prisma.$queryRawUnsafe<WorkspaceConfigRow[]>(
       `${this.selectSql()} ${where.sql} order by c.config_id asc limit $${where.params.length + 1} offset $${where.params.length + 2}`,
       ...where.params,
@@ -45,9 +47,13 @@ export class WorkspaceConfigService {
     return { total: Number(totalRows[0]?.count ?? 0), rows: rows.map((row) => this.toVo(row)) }
   }
 
-  async roleOptions() {
+  async roleOptions(maxSecurityLevel?: number) {
     return this.prisma.sysRole.findMany({
-      where: { delFlag: '0', status: '0' },
+      where: {
+        delFlag: '0',
+        status: '0',
+        ...(maxSecurityLevel !== undefined ? { securityLevel: { lte: maxSecurityLevel } } : {}),
+      },
       orderBy: [{ roleSort: 'asc' }, { roleId: 'asc' }],
       select: { roleId: true, roleName: true, roleKey: true },
     })
@@ -69,10 +75,11 @@ export class WorkspaceConfigService {
     }))
   }
 
-  async findOne(configId: string) {
+  async findOne(configId: string, maxSecurityLevel?: number) {
     const rows = await this.prisma.$queryRawUnsafe<WorkspaceConfigRow[]>(
-      `${this.selectSql()} where c.config_id = $1 limit 1`,
+      `${this.selectSql()} where c.config_id = $1 ${this.securitySql(maxSecurityLevel, 2)} limit 1`,
       BigInt(configId),
+      ...(maxSecurityLevel !== undefined ? [maxSecurityLevel] : []),
     )
     if (!rows[0]) throw BusinessException.notFound('工作台配置不存在')
     return this.toVo(rows[0])
@@ -84,7 +91,9 @@ export class WorkspaceConfigService {
       include: { role: true },
       orderBy: { role: { roleSort: 'asc' } },
     })
-    const roleKeys = roles.map((item) => item.role.roleKey)
+    const roleKeys = roles
+      .filter((item) => item.role.delFlag === '0' && item.role.status === '0')
+      .map((item) => item.role.roleKey)
     if (roleKeys.length === 0) return this.defaultConfig()
     const rows = await this.prisma.$queryRawUnsafe<WorkspaceConfigRow[]>(
       `${this.selectSql()} where c.status = '0' and c.role_key = any($1) order by c.config_id asc`,
@@ -114,8 +123,8 @@ export class WorkspaceConfigService {
     return this.findOne(rows[0].configId.toString())
   }
 
-  async update(configId: string, dto: UpdateWorkspaceConfigDto) {
-    const current = await this.findOne(configId)
+  async update(configId: string, dto: UpdateWorkspaceConfigDto, current?: WorkspaceConfigVo) {
+    current = current ?? await this.findOne(configId)
     const nextRoleKey = dto.roleKey ?? current.roleKey
     await this.assertRoleExists(nextRoleKey)
     const existed = await this.findByRoleKey(nextRoleKey)
@@ -171,7 +180,7 @@ export class WorkspaceConfigService {
       left join sys_role r on r.role_key = c.role_key and r.del_flag = '0'`
   }
 
-  private buildWhere(query: QueryWorkspaceConfigDto) {
+  private buildWhere(query: QueryWorkspaceConfigDto, maxSecurityLevel?: number) {
     const conditions: string[] = []
     const params: unknown[] = []
     if (query.roleKey) {
@@ -182,7 +191,15 @@ export class WorkspaceConfigService {
       params.push(query.status)
       conditions.push(`c.status = $${params.length}`)
     }
+    if (maxSecurityLevel !== undefined) {
+      params.push(maxSecurityLevel)
+      conditions.push(`coalesce(r.security_level, 0) <= $${params.length}`)
+    }
     return { sql: conditions.length ? `where ${conditions.join(' and ')}` : '', params }
+  }
+
+  private securitySql(maxSecurityLevel: number | undefined, paramIndex: number) {
+    return maxSecurityLevel === undefined ? '' : `and coalesce(r.security_level, 0) <= $${paramIndex}`
   }
 
   private async assertRoleExists(roleKey: string) {
@@ -235,6 +252,7 @@ export class WorkspaceConfigService {
   private normalizeMenuPath(path: string) {
     return path.startsWith('/') ? path : `/${path}`
   }
+
 
   private toVo(row: WorkspaceConfigRow) {
     return { ...row, configId: row.configId.toString() }

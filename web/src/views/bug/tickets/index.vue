@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/components/ui/toast/use-toast'
@@ -14,6 +14,7 @@ import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
 import SemanticActionButton from '@/components/common/SemanticActionButton.vue'
 import SeverityBadge from '@/components/common/SeverityBadge.vue'
@@ -90,7 +91,7 @@ async function openAction(action: BugActionOption, row?: BugTicket) {
   currentAction.value = action
   Object.assign(actionForm, { remark: '', assigneeId: detail.value.assigneeId || '', dueTime: '', duplicateOfId: '' })
   if (action.action === 'assign') {
-    developerUsers.value = await bugUserOptions('', { projectId: detail.value.projectId, memberRole: 'developer' })
+    developerUsers.value = await bugUserOptions('', { projectId: detail.value.projectId, assignContext: 'bugAssignee', assignableOnly: true })
   }
   showAction.value = true
 }
@@ -209,7 +210,69 @@ onBeforeUnmount(() => {
     <div v-else class="rounded-md border"><Table><TableHeader><TableRow><TableHead>编号</TableHead><TableHead>标题</TableHead><TableHead>项目</TableHead><TableHead>模块</TableHead><TableHead class="text-center">状态</TableHead><TableHead class="text-center">严重</TableHead><TableHead class="text-center">优先级</TableHead><TableHead>负责人</TableHead><TableHead>创建时间</TableHead><TableHead class="min-w-48 text-left">快捷操作</TableHead><TableHead class="w-24 text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.ticketId" class="cursor-pointer" @click="openDetail(row)"><TableCell>{{ row.ticketNo }}</TableCell><TableCell>{{ row.title }}</TableCell><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.module?.moduleName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="bug" :value="row.status" /></TableCell><TableCell class="text-center"><SeverityBadge :value="row.severity" /></TableCell><TableCell class="text-center"><PriorityBadge :value="row.priority" /></TableCell><TableCell>{{ row.assignee?.nickName || '-' }}</TableCell><TableCell>{{ formatDate(row.createTime) }}</TableCell><TableCell><BugQuickActions :ticket="row" @run="openAction" /></TableCell><TableCell class="text-right"><div class="flex justify-end"><Button size="sm" variant="outline" @click.stop="openDetail(row)">详情</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!rows.length" title="暂无 Bug" /></div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
     <Dialog v-model:open="showDetail"><DialogContent class="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogHeader><DialogTitle>{{ detail?.ticketNo }} {{ detail?.title }}</DialogTitle></DialogHeader><div v-if="detail" class="space-y-4"><div class="flex flex-wrap gap-2"><StatusBadge domain="bug" :value="detail.status" /><PriorityBadge :value="detail.priority" /><SeverityBadge :value="detail.severity" /><Badge variant="outline">{{ detail.project?.projectName }} / {{ detail.module?.moduleName || '-' }}</Badge></div><div class="grid gap-4 md:grid-cols-2"><div><h4 class="font-medium">问题描述</h4><p class="whitespace-pre-wrap text-sm">{{ detail.description }}</p></div><div><h4 class="font-medium">复现步骤</h4><p class="whitespace-pre-wrap text-sm">{{ detail.reproduceSteps }}</p></div><div><h4 class="font-medium">期望结果</h4><p class="whitespace-pre-wrap text-sm">{{ detail.expectedResult }}</p></div><div><h4 class="font-medium">实际结果</h4><p class="whitespace-pre-wrap text-sm">{{ detail.actualResult }}</p></div></div><div><h4 class="mb-2 font-medium">附件</h4><AttachmentList :attachments="detail.attachments || []" empty-text="暂无附件" /></div><div><h4 class="font-medium">评论</h4><div v-for="c in detail.comments" :key="c.commentId" class="border-b py-2 text-sm"><b>{{ c.user?.nickName }}</b>：{{ c.content }} <span class="text-muted-foreground">{{ formatDate(c.createTime) }}</span></div><div class="mt-2 flex gap-2"><Textarea v-model="commentText" placeholder="补充评论" /><Button v-hasPermi="['bug:comment:add']" @click="comment">评论</Button></div></div><div><h4 class="font-medium">操作历史</h4><div v-for="h in detail.histories" :key="h.historyId" class="text-sm text-muted-foreground">{{ formatDate(h.createTime) }} {{ h.operator?.nickName }} {{ actionLabel(h.action) }} {{ h.fromValue }} → {{ h.toValue }} {{ h.remark }}</div></div></div><DialogFooter class="flex flex-wrap gap-2"><Button v-if="detail?.canEdit" v-hasPermi="['bug:ticket:edit', 'bug:ticket:add', 'bug:ticket:my']" variant="outline" @click="openEdit">编辑</Button><SemanticActionButton v-for="a in detail?.availableActions" :key="a.action" :action="a.action" @click="openAction(a)">{{ a.label || BUG_ACTION_LABELS[a.action] || a.action }}</SemanticActionButton></DialogFooter></DialogContent></Dialog>
-    <Dialog v-model:open="editOpen"><DialogContent class="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogHeader><DialogTitle>编辑 Bug</DialogTitle></DialogHeader><div class="grid gap-3 md:grid-cols-2"><Input v-model="editForm.title" class="md:col-span-2" placeholder="标题" /><Select v-model="editForm.type"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select><Select v-model="editForm.environment"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_ENVIRONMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select><Select v-model="editForm.severity"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_SEVERITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select><Select v-model="editForm.priority"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_PRIORITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select><Textarea v-model="editForm.description" class="md:col-span-2" placeholder="问题描述" /><Textarea v-model="editForm.reproduceSteps" class="md:col-span-2" placeholder="复现步骤" /><Textarea v-model="editForm.expectedResult" placeholder="期望结果" /><Textarea v-model="editForm.actualResult" placeholder="实际结果" /><Textarea v-model="editForm.deviceInfo" class="md:col-span-2" placeholder="设备信息" /></div><DialogFooter><Button @click="submitEdit">保存</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog v-model:open="showAction"><DialogContent><DialogHeader><DialogTitle>执行操作：{{ currentAction?.label }}</DialogTitle></DialogHeader><div class="space-y-3"><Select v-if="currentAction?.action === 'assign'" v-model="actionForm.assigneeId"><SelectTrigger><SelectValue placeholder="选择开发负责人" /></SelectTrigger><SelectContent><SelectItem v-for="u in developerUsers" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><DuplicateBugSelector v-if="currentAction?.action === 'duplicate'" v-model="actionForm.duplicateOfId" :current-ticket-id="detail?.ticketId" /><Input v-if="currentAction?.action === 'assign'" v-model="actionForm.dueTime" type="datetime-local" placeholder="预计完成时间" /><Textarea v-model="actionForm.remark" placeholder="操作说明（选填）" /></div><DialogFooter><Button @click="submitAction">确认</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog v-model:open="editOpen">
+      <DialogContent class="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>编辑 Bug</DialogTitle>
+          <DialogDescription>请更新缺陷基础信息和复现材料，清晰字段有助于后续确认、分派和修复。</DialogDescription>
+        </DialogHeader>
+        <div class="grid gap-4 md:grid-cols-2">
+          <FormFieldBlock label="标题" field-id="bug-edit-title" required class="md:col-span-2" description="用一句话描述问题现象，便于列表中快速识别。">
+            <Input id="bug-edit-title" v-model="editForm.title" placeholder="例如：需求管理新增弹窗无法保存" />
+          </FormFieldBlock>
+          <FormFieldBlock label="类型" field-id="bug-edit-type" description="用于统计缺陷来源和分类处理。">
+            <Select v-model="editForm.type"><SelectTrigger id="bug-edit-type"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="运行环境" field-id="bug-edit-environment" description="说明问题出现在哪类环境，便于复现和定位。">
+            <Select v-model="editForm.environment"><SelectTrigger id="bug-edit-environment"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_ENVIRONMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="严重程度" field-id="bug-edit-severity" description="表示对业务和用户的影响程度，会影响处理关注度。">
+            <Select v-model="editForm.severity"><SelectTrigger id="bug-edit-severity"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_SEVERITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="优先级" field-id="bug-edit-priority" description="表示建议排期顺序，高优先级需要优先关注。">
+            <Select v-model="editForm.priority"><SelectTrigger id="bug-edit-priority"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_PRIORITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="问题描述" field-id="bug-edit-description" optional class="md:col-span-2" description="说明问题现象、影响范围和发生频率。">
+            <Textarea id="bug-edit-description" v-model="editForm.description" placeholder="例如：点击保存后没有响应，控制台出现接口错误" />
+          </FormFieldBlock>
+          <FormFieldBlock label="复现步骤" field-id="bug-edit-steps" optional class="md:col-span-2" description="按步骤描述如何稳定复现，便于开发和测试验证。">
+            <Textarea id="bug-edit-steps" v-model="editForm.reproduceSteps" placeholder="1. 打开...&#10;2. 点击...&#10;3. 出现..." />
+          </FormFieldBlock>
+          <FormFieldBlock label="期望结果" field-id="bug-edit-expected" optional description="描述正确情况下用户应该看到或得到的结果。">
+            <Textarea id="bug-edit-expected" v-model="editForm.expectedResult" placeholder="例如：保存成功并刷新列表" />
+          </FormFieldBlock>
+          <FormFieldBlock label="实际结果" field-id="bug-edit-actual" optional description="描述当前真实发生的错误结果，用于和期望结果对比。">
+            <Textarea id="bug-edit-actual" v-model="editForm.actualResult" placeholder="例如：弹窗未关闭且数据未保存" />
+          </FormFieldBlock>
+          <FormFieldBlock label="设备信息" field-id="bug-edit-device" optional class="md:col-span-2" description="记录浏览器、系统、设备或网络信息，便于排查环境相关问题。">
+            <Textarea id="bug-edit-device" v-model="editForm.deviceInfo" placeholder="例如：Chrome 版本、macOS、屏幕尺寸或接口环境" />
+          </FormFieldBlock>
+        </div>
+        <DialogFooter><Button @click="submitEdit">保存</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog v-model:open="showAction">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>执行操作：{{ currentAction?.label }}</DialogTitle>
+          <DialogDescription>操作会推进 Bug 状态流转，请根据当前动作补充必要信息。</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <FormFieldBlock v-if="currentAction?.action === 'assign'" label="开发负责人" field-id="bug-action-assignee" required description="负责当前 Bug 的修复承接，只能选择当前项目可分派的开发人员。">
+            <Select v-model="actionForm.assigneeId"><SelectTrigger id="bug-action-assignee"><SelectValue placeholder="请选择开发负责人" /></SelectTrigger><SelectContent><SelectItem v-for="u in developerUsers" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select>
+          </FormFieldBlock>
+          <FormFieldBlock v-if="currentAction?.action === 'duplicate'" label="重复的原 Bug" required description="选择已存在的原始 Bug，当前 Bug 将作为重复问题关联到它。">
+            <DuplicateBugSelector v-model="actionForm.duplicateOfId" :current-ticket-id="detail?.ticketId" />
+          </FormFieldBlock>
+          <FormFieldBlock v-if="currentAction?.action === 'assign'" label="预计完成时间" field-id="bug-action-due-time" optional description="用于提醒和超期判断；不确定时可先留空，后续再补充。">
+            <Input id="bug-action-due-time" v-model="actionForm.dueTime" type="datetime-local" />
+          </FormFieldBlock>
+          <FormFieldBlock label="操作说明" field-id="bug-action-remark" optional description="建议记录分派原因、修复说明、验证结论或退回原因，便于后续追溯。">
+            <Textarea id="bug-action-remark" v-model="actionForm.remark" placeholder="例如：已确认复现，指派给对应模块负责人处理" />
+          </FormFieldBlock>
+        </div>
+        <DialogFooter><Button @click="submitAction">确认</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

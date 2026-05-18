@@ -55,6 +55,8 @@
 1. 演示账号初始化脚本曾把 `project_owner`、`product_owner`、`reviewer01`、`developer01`、`developer02`、`tester01` 自动加入所有项目，导致 `bug_project_member` 中存在错误 active 成员关系。
 2. 项目管理模块和缺陷模块曾存在多个 `visibleProjectIds` 实现，容易出现一个入口已修、另一个入口仍按旧逻辑判断的情况。
 3. 系统角色 `bug_project_owner` 只是功能权限角色，不能理解成“所有项目负责人”；数据范围必须另看 `BugProject.ownerId` 和 active 项目成员关系。
+4. 过去曾把 `roleSort` 当成角色上下级依据，但 `roleSort` 只是展示排序，不能表达安全等级，容易导致普通角色和业务角色高低误判。
+5. 曾只在前端下拉过滤候选人，后端字段级校验不足，存在绕过前端直接传 `ownerId`、`assigneeId`、`developerId`、`testerId` 的风险。
 
 #### 防重复规则
 
@@ -63,10 +65,26 @@
 - `bug_project_owner`、`bug_product_owner`、`bug_reviewer` 等系统角色只控制菜单/按钮能力，不直接扩大项目数据范围。
 - 项目/模块/版本、项目管理仪表盘、需求、迭代、里程碑、项目概览都必须复用服务端项目可见范围，不能只在前端过滤。
 - 查询时即使传入不可见 `projectId`，列表接口也只能返回空数据；详情/概览类接口必须返回无权访问。
+- 角色上下级必须使用 `sys_role.security_level`，不得使用 `roleSort` 判断权限高低；多角色用户按最高安全等级计算。
 - 项目负责人可以新增项目，但普通项目负责人新增时项目负责人只能是自己，不能指定超级管理员或其他用户作为负责人。
 - 项目负责人只能维护自己负责或自己是 `owner` 成员的项目配置；后端必须校验，不能只靠菜单权限。
-- 项目负责人不能维护超级管理员的项目成员关系，不能把超级管理员加入/移除/停用为项目成员。
+- 项目负责人不能维护权限高于自己的项目成员关系，不能把超级管理员、系统管理员、管理层或其他更高权限用户加入/移除/停用为项目成员。
 - 项目负责人不能移除或停用 `BugProject.ownerId` 对应的项目负责人成员；如需更换负责人，必须先走明确的项目负责人变更逻辑。
+- 普通项目负责人不能直接变更 `BugProject.ownerId`；负责人交接必须由超级管理员或专门交接流程处理。
+- 系统用户管理也必须接入角色安全等级：非 `admin` 不能给用户分配高于自己的角色，用户列表/详情/导出不能暴露权限高于自己的用户，不能编辑、停用、删除、重置密码权限高于自己的用户。
+- 系统角色管理必须接入同一套安全等级：非 `admin` 的角色列表/详情不能暴露权限高于自己的角色，不能编辑、停用、删除权限高于自己的角色；新增/编辑角色只能设置小于等于自己安全等级的 `securityLevel`。
+- 系统角色授权菜单时，非 `admin` 只能授予自己已经拥有的菜单/按钮权限，不能通过编辑低等级角色间接创造更高系统权限。
+- 菜单授权树、工作台配置角色选项、工作台配置列表/详情/编辑/删除都必须接入同一套角色安全等级，不能成为绕过角色管理页面的旁路入口。
+- 菜单授权树只能返回操作者已有的菜单/按钮；保存角色授权时也必须再次校验，不能把自己没有的权限授给别人。
+- `/system/user/getInfo` 只能返回启用且未删除角色推导出的角色列表和按钮权限，避免停用角色导致前端菜单/按钮误显示。
+- 通用导出任务 `/export/task` 不能只校验登录态；创建任务、读取导出列必须按模块校验导出权限，用户导出还必须按操作者安全等级过滤数据。
+- 缺陷统计导出必须按操作者可见项目过滤；导出任务详情、下载、删除只能操作本人创建的任务，下载时还要重新校验当前导出权限，避免降权后继续下载旧敏感文件。
+- 历史角色或未知角色也必须有 `security_level`；非 `admin` 能否分配、维护或作为候选人出现，统一按 `security_level` 判断。
+- 项目成员角色必须和系统角色匹配：`owner -> bug_project_owner`、`product -> bug_product_owner`、`reviewer -> bug_reviewer`、`developer -> bug_developer`、`tester -> bug_tester`。
+- 缺陷指派、模块默认负责人、需求负责人/开发/测试负责人、迭代负责人、里程碑负责人都必须做后端字段级校验：目标用户必须是当前项目有效成员，并且权限等级不能高于操作者。
+- 缺陷创建或编辑时传入 `projectId` 必须属于当前用户可见项目；关联的模块、版本、需求、迭代、里程碑必须属于同一项目，禁止通过接口构造跨项目关联。
+- 前端候选人下拉必须传明确分配场景：`assignContext`、必要时传 `projectId`，并传 `assignableOnly=true`；但禁止把前端下拉当作唯一权限控制。
+- 当需求、迭代、里程碑切换项目时，不能把旧项目负责人/开发/测试负责人或旧项目模块/版本/迭代/里程碑等关联对象静默带入新项目；后端必须校验保留字段在新项目中仍然合法。
 - 项目删除权限默认仅超级管理员拥有，项目负责人不应拥有 `bug:project:remove`。
 - 后端 `/getRouters` 必须过滤没有可见子菜单的目录；按钮权限带出的上级目录不能作为空菜单显示，例如只有通知按钮权限时不能显示空的“系统管理”。
 
@@ -74,6 +92,19 @@
 
 - `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/bug-access.service.ts`
 - `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/project/bug-project-helper.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/security/role-security.config.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/security/role-security.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/ticket/bug-ticket.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/project-management/project-requirement.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/project-management/project-iteration.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/bug/project-management/project-milestone.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/common/security/role-level.config.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/system/security/system-role-security.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/system/user/user.controller.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/system/role/role.controller.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/system/menu/system-menu.controller.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/system/workspace/workspace-config.controller.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/system/workspace/workspace-config.service.ts`
 - `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/scripts/ensure-bug-team-roles.mjs`
 - `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/prisma/seed-role-user-cleanup.ts`
 - `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/prisma/seed-bug-workflow-permissions.ts`
@@ -86,7 +117,22 @@
 - `project_owner` 调 `/api/bug/projects` 可新增自己负责的项目，但指定 `ownerId=admin` 必须返回无权访问。
 - `project_owner` 修改“后台管理系统”或维护超级管理员项目成员关系必须返回无权访问。
 - `project_owner` 删除自己负责项目的 owner 成员必须返回无权访问。
+- `project_owner` 在成员管理中不能添加、移除、停用权限高于自己的用户；目标用户系统角色与项目成员角色不匹配时必须失败。
+- `project_owner` 如果拥有系统用户管理权限，也不能在用户列表/详情中看到更高权限用户，不能给用户分配 `admin/system_admin/pm_executive` 等更高角色，不能查询、编辑、停用、删除、重置密码更高权限用户。
+- `project_owner` 如果拥有系统角色管理权限，也不能在角色列表/详情中看到更高权限角色，不能查询、编辑、停用、删除更高权限角色，不能新增或分配未纳入安全等级配置的角色 key。
+- `project_owner` 如果拥有系统用户导出权限，导出的用户数据也不能包含更高权限用户。
+- `project_owner` 通过通用导出任务导出用户时，也不能导出更高权限用户；没有 `system:user:export` 时不能创建用户导出任务或读取用户导出列。
+- 有 `bug:statistics:export` 的非管理员导出缺陷统计时，只能导出自己可见项目的数据。
+- `project_owner` 如果拥有系统角色管理权限，给角色勾选菜单时不能授予自己未拥有的菜单/按钮权限。
+- `project_owner` 打开角色授权菜单树时，也只能看到自己已有的菜单/按钮。
+- `project_owner` 如果拥有工作台配置权限，也不能在角色选项、列表、详情、编辑、删除中维护更高权限角色的工作台配置。
+- `project_owner` 分派缺陷时只能选择当前项目有效开发人员，不能指派给权限高于自己的用户。
+- `project_owner` 创建缺陷时指定不可见 `projectId` 必须返回无权访问；编辑缺陷时不能把项目切到不可见项目。
+- 缺陷关联需求、迭代、里程碑或模块/版本时，目标对象不属于当前缺陷项目必须返回参数错误。
+- `project_owner` 编辑需求、迭代、里程碑或模块默认负责人时，只能选择当前项目有效成员，且不能选择权限高于自己的用户。
+- 编辑需求、迭代、里程碑时切换项目，如果原负责人不属于新项目有效成员，或原模块/版本/迭代/里程碑不属于新项目，必须返回参数错误，不能静默保留。
 - `project_owner` 调 `/api/getRouters` 不应返回空的“系统管理”目录；返回的每个目录都必须至少有一个可见子菜单。
+- 停用或逻辑删除某个角色后，`/system/user/getInfo` 不应再把该角色的 `roleKey` 或按钮权限返回给前端。
 
 ## 写入前检查
 
@@ -406,3 +452,95 @@
 5. 本地开发数据库和 Docker 内测数据库必须分开管理，禁止未经确认互相覆盖。
 
 相关正式文档：`docs/部署运维/分支与数据管理约定.md`
+
+## 角色等级展示防误读规则
+
+### 现象
+
+角色管理页面过去只展示“显示顺序”，没有展示真正用于权限上下级判断的安全等级，容易让管理员误以为 `roleSort` 就是角色等级。
+
+### 根因
+
+安全等级最初只在后端 `ROLE_SECURITY_LEVEL` 配置中参与校验，导致新增角色无法设置安全等级，也容易把安全等级误解为只读推导字段。
+
+### 防重复规则
+
+1. 角色上下级只能使用 `sys_role.security_level`，不能使用 `roleSort`。
+2. 角色列表、新增/编辑弹窗、角色详情和权限预览必须展示“安全等级”。
+3. 新增/编辑角色可以填写安全等级，但后端必须校验：非 `admin` 只能设置小于等于自己安全等级的值。
+4. 用户分配角色、角色维护、工作台配置角色选择、项目负责人/成员/缺陷/需求/迭代/里程碑候选人都必须按 `security_level` 判断上下级。
+5. 内置角色默认等级可由迁移初始化；运行时以后端数据库字段为准。
+
+### 相关文件路径
+
+- `server-nestjs/src/common/security/role-level.config.ts`
+- `server-nestjs/src/system/role/role.service.ts`
+- `web/src/views/system/role/index.vue`
+- `web/src/views/system/role/components/RoleTable.vue`
+- `web/src/views/system/role/components/RoleFormDialog.vue`
+- `web/src/views/system/role/components/RolePreviewDialog.vue`
+- `web/src/api/system/types.ts`
+
+## 表单字段说明缺失防重复规则
+
+### 现象
+
+新增/编辑需求等弹窗表单曾只展示输入框、下拉框和日期控件，字段缺少可见标签和帮助说明。多个下拉框同时显示“暂不指定”，日期控件只显示“年/月/日”，用户无法判断字段用途、默认值含义和不填写的后果。
+
+### 根因
+
+1. 表单实现过度依赖 placeholder 和默认选项，误把 placeholder 当成字段标签。
+2. 人员、日期、分类等业务字段没有说明其在流程、统计、提醒或权限中的作用。
+3. 同类表单缺少全局可用性规范，导致新增页面时只追求排版紧凑，忽略用户理解成本。
+4. 对“暂不指定”这类空值选项没有解释业务后果，多个字段同时出现时尤其容易误导。
+
+### 错误决策链路
+
+- 不能只把 placeholder 改长来代替标签。
+- 不能只给第一个字段加标签，其他字段继续裸露。
+- 不能把所有“暂不指定”都当作通用文案，不区分需求负责人、开发负责人、项目负责人等角色差异。
+- 不能把日期字段只交给浏览器默认格式显示，必须说明日期用途。
+
+### 防重复规则
+
+1. 新增或改造表单时，每个可编辑字段必须有可见标签。
+2. 出现“暂不指定”“默认”“无”等空值选项时，必须在字段说明中解释不指定的后果。
+3. 人员字段必须说明角色职责，例如需求负责人负责澄清与验收、开发负责人负责开发承接。
+4. 日期字段必须说明用途，例如计划开始/完成用于排期、统计和逾期判断。
+5. placeholder 只能作为示例或输入提示，不能替代字段名称和帮助说明。
+6. 优先把规则写入 `docs/开发规范/前端页面交互与视觉规范.md`，不要只在单点页面修复。
+
+### 写入前检查
+
+- 检查弹窗或表单是否存在无标签的 `Input`、`Select`、`Textarea`、日期控件。
+- 检查是否存在多个相同“暂不指定”但用户无法区分含义的字段。
+- 检查日期/时间字段是否说明用途。
+- 检查必填与可选是否清楚。
+- 检查相关自有代码文件行数，接近 500 行时先拆分或优先抽公共组件。
+
+### 写入后验收
+
+- 用户只看界面即可理解每个字段是什么、为何填写、不填会怎样。
+- 表单字段标签、说明、错误提示在浅色/深色模式下均可读。
+- 同类角色、日期、分类字段在不同页面文案一致。
+- 需求管理、迭代计划、里程碑、项目概览、Bug 提交/编辑/执行操作、项目/模块/版本配置等表单应按该规范分批改造。
+
+### 已沉淀的复用措施
+
+- 正式规范写入 `docs/开发规范/前端页面交互与视觉规范.md#8-表单可用性规范`。
+- 新增统一字段结构组件 `web/src/components/common/FormFieldBlock.vue`，用于收敛“标签 + 控件 + 必填/可选 + 帮助说明”。
+- 后续同类页面出现 3 个以上业务字段时，应优先复用该组件或同等级公共组件，不应继续复制裸 `Input` / `Select` / `Textarea`。
+
+### 相关文件路径
+
+- `docs/开发规范/前端页面交互与视觉规范.md`
+- `web/src/components/common/FormFieldBlock.vue`
+- `web/src/views/project-management/requirements/index.vue`
+- `web/src/views/project-management/iterations/index.vue`
+- `web/src/views/project-management/milestones/index.vue`
+- `web/src/views/project-management/overview/index.vue`
+- `web/src/views/bug/tickets/create.vue`
+- `web/src/views/bug/tickets/index.vue`
+- `web/src/views/bug/projects/index.vue`
+- `web/src/views/bug/modules/index.vue`
+- `web/src/views/bug/versions/index.vue`

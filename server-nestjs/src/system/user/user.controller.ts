@@ -32,6 +32,9 @@ import { UpdateUserDto } from './dto/update-user.dto'
 import { QueryUserDto } from './dto/query-user.dto'
 import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { ExcelService } from '../../common/excel/excel.service'
+import { SystemRoleSecurityService } from '../security/system-role-security.service'
+import { UserInfoService } from './user-info.service'
+import { UserImportService } from './user-import.service'
 
 // 用户导出列配置
 const USER_EXPORT_COLUMNS = [
@@ -57,6 +60,8 @@ const USER_IMPORT_COLUMN_MAP: Record<string, string> = {
   状态: 'status',
 }
 
+type RequestWithUser = { user: { userId: string; username: string } }
+
 @ApiTags('用户管理')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -64,15 +69,18 @@ const USER_IMPORT_COLUMN_MAP: Record<string, string> = {
 export class UserController {
   constructor(
     private userService: UserService,
+    private userInfoService: UserInfoService,
+    private userImportService: UserImportService,
     private excelService: ExcelService,
+    private roleSecurity: SystemRoleSecurityService,
   ) {}
 
   @Get('getInfo')
   @ApiOperation({ summary: '获取当前用户信息' })
   @ApiResponse({ status: 200, description: '获取成功' })
-  async getInfo(@Request() req: any) {
+  async getInfo(@Request() req: RequestWithUser) {
     const userId = req.user.userId as string
-    return this.userService.getUserInfo(userId)
+    return this.userInfoService.getUserInfo(userId)
   }
 
   @Put('profile')
@@ -80,7 +88,7 @@ export class UserController {
   @ApiOperation({ summary: '更新个人信息' })
   @ApiResponse({ status: 200, description: '更新成功' })
   async updateProfile(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Body()
     body: {
       nickName?: string
@@ -99,7 +107,7 @@ export class UserController {
   @ApiOperation({ summary: '修改个人密码' })
   @ApiResponse({ status: 200, description: '修改成功' })
   async updatePassword(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Body() body: { oldPassword: string; newPassword: string },
   ) {
     const userId = req.user.userId as string
@@ -112,7 +120,8 @@ export class UserController {
   @ApiOperation({ summary: '新增用户' })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 201, description: '创建成功' })
-  create(@Body() createUserDto: CreateUserDto) {
+  async create(@Request() req: RequestWithUser, @Body() createUserDto: CreateUserDto) {
+    await this.roleSecurity.assertCanAssignRoles(req.user.userId as string, createUserDto.roleIds)
     return this.userService.create(createUserDto)
   }
 
@@ -120,8 +129,8 @@ export class UserController {
   @RequirePermission('system:user:list')
   @ApiOperation({ summary: '查询用户列表' })
   @ApiResponse({ status: 200, description: '查询成功' })
-  findAll(@Query() query: QueryUserDto) {
-    return this.userService.findAll(query)
+  async findAll(@Request() req: RequestWithUser, @Query() query: QueryUserDto) {
+    return this.roleSecurity.listAccessibleUsers(req.user.userId as string, query)
   }
 
   @Get(':userId')
@@ -129,7 +138,8 @@ export class UserController {
   @ApiOperation({ summary: '查询用户详情' })
   @ApiParam({ name: 'userId', description: '用户ID' })
   @ApiResponse({ status: 200, description: '查询成功' })
-  findOne(@Param('userId') userId: string) {
+  async findOne(@Request() req: RequestWithUser, @Param('userId') userId: string) {
+    await this.roleSecurity.assertCanMaintainUser(req.user.userId as string, userId)
     return this.userService.findOne(userId)
   }
 
@@ -138,7 +148,8 @@ export class UserController {
   @Log('用户管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '重置用户密码' })
   @ApiResponse({ status: 200, description: '重置成功' })
-  resetPassword(@Body() body: { userId: string; password: string }) {
+  async resetPassword(@Request() req: RequestWithUser, @Body() body: { userId: string; password: string }) {
+    await this.roleSecurity.assertCanMaintainUser(req.user.userId as string, body.userId)
     return this.userService.resetPassword(body.userId, body.password)
   }
 
@@ -147,7 +158,8 @@ export class UserController {
   @Log('用户管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改用户状态' })
   @ApiResponse({ status: 200, description: '修改成功' })
-  changeStatus(@Body() body: { userId: string; status: string }) {
+  async changeStatus(@Request() req: RequestWithUser, @Body() body: { userId: string; status: string }) {
+    await this.roleSecurity.assertCanMaintainUser(req.user.userId as string, body.userId)
     return this.userService.changeStatus(body.userId, body.status)
   }
 
@@ -158,7 +170,9 @@ export class UserController {
   @ApiParam({ name: 'userId', description: '用户ID' })
   @ApiBody({ type: UpdateUserDto })
   @ApiResponse({ status: 200, description: '修改成功' })
-  update(@Param('userId') userId: string, @Body() updateUserDto: UpdateUserDto) {
+  async update(@Request() req: RequestWithUser, @Param('userId') userId: string, @Body() updateUserDto: UpdateUserDto) {
+    await this.roleSecurity.assertCanMaintainUser(req.user.userId as string, userId)
+    await this.roleSecurity.assertCanAssignRoles(req.user.userId as string, updateUserDto.roleIds)
     return this.userService.update(userId, updateUserDto)
   }
 
@@ -168,7 +182,8 @@ export class UserController {
   @ApiOperation({ summary: '删除用户' })
   @ApiParam({ name: 'userId', description: '用户ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
-  remove(@Param('userId') userId: string) {
+  async remove(@Request() req: RequestWithUser, @Param('userId') userId: string) {
+    await this.roleSecurity.assertCanMaintainUser(req.user.userId as string, userId)
     return this.userService.remove(userId)
   }
 
@@ -176,8 +191,8 @@ export class UserController {
   @RequirePermission('system:user:export')
   @Log('用户管理', BusinessType.EXPORT)
   @ApiOperation({ summary: '导出用户数据' })
-  async exportExcel(@Query() query: QueryUserDto, @Res() res: Response) {
-    const data = await this.userService.getExportData(query)
+  async exportExcel(@Request() req: RequestWithUser, @Query() query: QueryUserDto, @Res() res: Response) {
+    const data = await this.roleSecurity.listAccessibleUsersForExport(req.user.userId as string, query)
     const filename = `用户数据_${Date.now()}`
     await this.excelService.exportExcel(res, data, USER_EXPORT_COLUMNS, filename, '用户列表')
   }
@@ -235,7 +250,7 @@ export class UserController {
       return { code: 400, msg: 'Excel 文件中没有数据' }
     }
 
-    const result = await this.userService.importUsers(users, updateSupport === 'true')
+    const result = await this.userImportService.importUsers(users, updateSupport === 'true')
     return result
   }
 }

@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -11,6 +11,7 @@ import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
 import {
   addBugProject,
   bugUserOptions,
@@ -28,6 +29,7 @@ const { toast } = useToast()
 const loading = ref(false)
 const rows = ref<BugProject[]>([])
 const users = ref<BugUserRef[]>([])
+const memberUsers = ref<BugUserRef[]>([])
 const members = ref<BugMember[]>([])
 const total = ref(0)
 const open = ref(false)
@@ -77,9 +79,14 @@ async function remove(row: BugProject) {
 
 async function openMembers(row: BugProject) {
   currentProject.value = row
-  await refreshMembers()
   Object.assign(memberForm, { userId: '', memberRole: 'developer', isDefault: false, status: '0' })
+  await Promise.all([refreshMembers(), refreshMemberUsers(row.projectId, memberForm.memberRole)])
   memberOpen.value = true
+}
+
+async function refreshMemberUsers(projectId = currentProject.value?.projectId, memberRole = memberForm.memberRole) {
+  if (!projectId) return
+  memberUsers.value = await bugUserOptions('', { projectId, memberRole, assignableOnly: true })
 }
 
 async function refreshMembers() {
@@ -92,17 +99,17 @@ async function saveMember() {
   await upsertBugMember(currentProject.value.projectId, memberForm)
   toast({ title: '成员已保存' })
   Object.assign(memberForm, { userId: '', memberRole: 'developer', isDefault: false, status: '0' })
-  refreshMembers()
+  await Promise.all([refreshMembers(), refreshMemberUsers()])
 }
 
 async function removeMember(row: BugMember) {
   await deleteBugMember(row.memberId)
   toast({ title: '成员已移除' })
-  refreshMembers()
+  await Promise.all([refreshMembers(), refreshMemberUsers()])
 }
 
 onMounted(async () => {
-  users.value = await bugUserOptions()
+  users.value = await bugUserOptions('', { assignContext: 'projectOwner', assignableOnly: true })
   await getList()
 })
 </script>
@@ -122,7 +129,66 @@ onMounted(async () => {
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
-    <Dialog v-model:open="open"><DialogContent><DialogHeader><DialogTitle>项目</DialogTitle></DialogHeader><div class="space-y-3"><Input v-model="form.projectName" placeholder="项目名称" /><Input v-model="form.projectKey" placeholder="项目标识，如 ADMIN" /><Select v-model="form.ownerId"><SelectTrigger><SelectValue placeholder="项目负责人" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不指定</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><Select v-model="form.status"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="0">启用</SelectItem><SelectItem value="1">停用</SelectItem></SelectContent></Select><Input v-model="form.description" placeholder="项目描述" /></div><DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog v-model:open="memberOpen"><DialogContent class="max-w-3xl"><DialogHeader><DialogTitle>{{ currentProject?.projectName }} 成员</DialogTitle></DialogHeader><div class="grid gap-3 md:grid-cols-4"><Select v-model="memberForm.userId"><SelectTrigger><SelectValue placeholder="成员" /></SelectTrigger><SelectContent><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><Select v-model="memberForm.memberRole"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="r in BUG_MEMBER_ROLE_OPTIONS" :key="r.value" :value="r.value">{{ r.label }}</SelectItem></SelectContent></Select><label class="flex items-center gap-2 text-sm"><Checkbox :model-value="memberForm.isDefault" @update:model-value="(v) => memberForm.isDefault = !!v" />默认负责人</label><Button :disabled="!canSaveMember" @click="saveMember">添加/更新</Button></div><div class="rounded-md border"><Table><TableHeader><TableRow><TableHead>成员</TableHead><TableHead>角色</TableHead><TableHead class="text-center">默认</TableHead><TableHead class="text-center">状态</TableHead><TableHead class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="m in members" :key="m.memberId"><TableCell>{{ m.user?.nickName || m.user?.userName }}</TableCell><TableCell>{{ optionLabel(BUG_MEMBER_ROLE_OPTIONS, m.memberRole) }}</TableCell><TableCell class="text-center">{{ m.isDefault ? '是' : '否' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="m.status" /></TableCell><TableCell class="text-right"><div class="flex justify-end"><Button size="sm" variant="destructive" @click="removeMember(m)">移除</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!members.length" /></div></DialogContent></Dialog>
+    <Dialog v-model:open="open">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{{ form.projectId ? '编辑项目' : '新增项目' }}</DialogTitle>
+          <DialogDescription>请填写项目基础信息；带 * 的字段为必填。</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <FormFieldBlock label="项目名称" field-id="bug-project-name" required description="展示给使用者选择和识别的项目名称。">
+            <Input id="bug-project-name" v-model="form.projectName" placeholder="例如：后台管理系统" />
+          </FormFieldBlock>
+          <FormFieldBlock label="项目标识" field-id="bug-project-key" required description="用于接口、权限和唯一识别，保存后应避免频繁变更。">
+            <Input id="bug-project-key" v-model="form.projectKey" placeholder="例如：ADMIN" />
+          </FormFieldBlock>
+          <FormFieldBlock label="项目负责人" field-id="bug-project-owner" optional description="负责项目维护和进度跟进；暂不指定时后续需补齐负责人。">
+            <Select v-model="form.ownerId">
+              <SelectTrigger id="bug-project-owner"><SelectValue placeholder="请选择项目负责人" /></SelectTrigger>
+              <SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不指定项目负责人</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent>
+            </Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="项目状态" field-id="bug-project-status" description="停用后该项目不再作为新增 Bug、模块或版本的默认可选项目。">
+            <Select v-model="form.status">
+              <SelectTrigger id="bug-project-status"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="0">启用</SelectItem><SelectItem value="1">停用</SelectItem></SelectContent>
+            </Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="项目描述" field-id="bug-project-description" optional description="补充项目范围、业务背景或维护说明，便于成员理解项目边界。">
+            <Input id="bug-project-description" v-model="form.description" placeholder="例如：后台权限、菜单和配置管理" />
+          </FormFieldBlock>
+        </div>
+        <DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog v-model:open="memberOpen">
+      <DialogContent class="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{{ currentProject?.projectName }} 成员</DialogTitle>
+          <DialogDescription>配置项目成员角色和默认负责人；带 * 的字段为必填。</DialogDescription>
+        </DialogHeader>
+        <div class="grid gap-4 md:grid-cols-2">
+          <FormFieldBlock label="成员" field-id="bug-member-user" required description="只能选择当前角色可分派的项目成员。">
+            <Select v-model="memberForm.userId">
+              <SelectTrigger id="bug-member-user"><SelectValue placeholder="请选择成员" /></SelectTrigger>
+              <SelectContent><SelectItem v-for="u in memberUsers" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent>
+            </Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="成员角色" field-id="bug-member-role" required description="角色决定该成员在 Bug 分派、处理或审核中的可选范围。">
+            <Select v-model="memberForm.memberRole" @update:model-value="(v) => { memberForm.memberRole = String(v); memberForm.userId = ''; refreshMemberUsers(currentProject?.projectId, memberForm.memberRole) }">
+              <SelectTrigger id="bug-member-role"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem v-for="r in BUG_MEMBER_ROLE_OPTIONS" :key="r.value" :value="r.value">{{ r.label }}</SelectItem></SelectContent>
+            </Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="默认负责人" field-id="bug-member-default" optional description="同角色默认承接自动分派或默认候选；一个角色建议只保留必要的默认负责人。">
+            <label class="flex items-center gap-2 text-sm"><Checkbox id="bug-member-default" :model-value="memberForm.isDefault" @update:model-value="(v) => memberForm.isDefault = !!v" />设为默认负责人</label>
+          </FormFieldBlock>
+          <div class="flex items-end">
+            <Button :disabled="!canSaveMember" @click="saveMember">添加/更新成员</Button>
+          </div>
+        </div>
+        <div class="rounded-md border"><Table><TableHeader><TableRow><TableHead>成员</TableHead><TableHead>角色</TableHead><TableHead class="text-center">默认</TableHead><TableHead class="text-center">状态</TableHead><TableHead class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="m in members" :key="m.memberId"><TableCell>{{ m.user?.nickName || m.user?.userName }}</TableCell><TableCell>{{ optionLabel(BUG_MEMBER_ROLE_OPTIONS, m.memberRole) }}</TableCell><TableCell class="text-center">{{ m.isDefault ? '是' : '否' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="m.status" /></TableCell><TableCell class="text-right"><div class="flex justify-end"><Button size="sm" variant="destructive" @click="removeMember(m)">移除</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!members.length" /></div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

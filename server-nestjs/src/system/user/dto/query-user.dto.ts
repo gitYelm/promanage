@@ -22,6 +22,11 @@ export class QueryUserDto {
   @IsString()
   deptId?: string
 
+  @ApiPropertyOptional({ description: '角色ID', example: '2' })
+  @IsOptional()
+  @IsString()
+  roleId?: string
+
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()
   pageNum?: number

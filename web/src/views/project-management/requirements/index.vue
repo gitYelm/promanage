@@ -3,9 +3,10 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Label } from '@/components/ui/label'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
@@ -13,28 +14,30 @@ import PriorityBadge from '@/components/common/PriorityBadge.vue'
 import SemanticActionButton from '@/components/common/SemanticActionButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { bugProjectOptions, bugUserOptions } from '@/api/bug'
 import { addRequirement, deleteRequirements, listRequirements, runRequirementAction, updateRequirement } from '@/api/project-management'
 import type { Requirement, RequirementForm } from '@/api/project-management/types'
 import type { BugProject, BugUserRef } from '@/api/bug/types'
 import { PM_ALL_OPTION_VALUE, PM_NONE_OPTION_VALUE, PM_PRIORITY_OPTIONS, PM_REQUIREMENT_ACTION_OPTIONS, PM_REQUIREMENT_STATUS_OPTIONS, PM_REQUIREMENT_TYPE_OPTIONS, formatDate, pmAvailableActions, pmNormalizeAll, pmNormalizeOptional, toDateInput } from '../shared/options'
-import { loadPmBasicResources } from '../shared/resource-loader'
 
 const { toast } = useToast()
 const loading = ref(false); const open = ref(false); const rows = ref<Requirement[]>([]); const total = ref(0)
-const projects = ref<BugProject[]>([]); const users = ref<BugUserRef[]>([])
+const projects = ref<BugProject[]>([]); const ownerUsers = ref<BugUserRef[]>([]); const developerUsers = ref<BugUserRef[]>([])
 const query = reactive({ pageNum: 1, pageSize: 20, keyword: '', projectId: PM_ALL_OPTION_VALUE, status: PM_ALL_OPTION_VALUE })
 const form = reactive<RequirementForm>({ title: '', projectId: '', type: 'feature', priority: 'medium', status: 'draft', ownerId: PM_NONE_OPTION_VALUE, developerId: PM_NONE_OPTION_VALUE })
 const canSave = computed(() => Boolean(form.title && form.projectId))
 
 async function getList() { loading.value = true; try { const res = await listRequirements({ ...query, projectId: pmNormalizeAll(query.projectId), status: pmNormalizeAll(query.status) }); rows.value = res.rows; total.value = res.total } finally { loading.value = false } }
-function add() { Object.assign(form, { requirementId: undefined, title: '', projectId: projects.value[0]?.projectId || '', type: 'feature', priority: 'medium', description: '', acceptanceCriteria: '', ownerId: PM_NONE_OPTION_VALUE, developerId: PM_NONE_OPTION_VALUE, plannedStartTime: '', plannedEndTime: '', status: 'draft' }); open.value = true }
-function edit(row: Requirement) { Object.assign(form, row, { ownerId: row.ownerId || PM_NONE_OPTION_VALUE, developerId: row.developerId || PM_NONE_OPTION_VALUE, plannedStartTime: toDateInput(row.plannedStartTime), plannedEndTime: toDateInput(row.plannedEndTime) }); open.value = true }
+async function refreshAssignableUsers(projectId = form.projectId) { if (!projectId) return; [ownerUsers.value, developerUsers.value] = await Promise.all([loadUsers(projectId, 'requirementOwner'), loadUsers(projectId, 'requirementDeveloper')]) }
+function loadUsers(projectId: string, assignContext: string) { return bugUserOptions('', { projectId, assignContext, assignableOnly: true }) }
+function add() { Object.assign(form, { requirementId: undefined, title: '', projectId: projects.value[0]?.projectId || '', type: 'feature', priority: 'medium', description: '', acceptanceCriteria: '', ownerId: PM_NONE_OPTION_VALUE, developerId: PM_NONE_OPTION_VALUE, plannedStartTime: '', plannedEndTime: '', status: 'draft' }); refreshAssignableUsers(); open.value = true }
+function edit(row: Requirement) { Object.assign(form, row, { ownerId: row.ownerId || PM_NONE_OPTION_VALUE, developerId: row.developerId || PM_NONE_OPTION_VALUE, plannedStartTime: toDateInput(row.plannedStartTime), plannedEndTime: toDateInput(row.plannedEndTime) }); refreshAssignableUsers(row.projectId); open.value = true }
 async function save() { const payload = { ...form, ownerId: pmNormalizeOptional(form.ownerId), developerId: pmNormalizeOptional(form.developerId) }; form.requirementId ? await updateRequirement(payload) : await addRequirement(payload); toast({ title: '保存成功' }); open.value = false; getList() }
 async function remove(row: Requirement) { await deleteRequirements([row.requirementId]); toast({ title: '删除成功' }); getList() }
 async function action(row: Requirement, act: string) { await runRequirementAction(row.requirementId, act); toast({ title: '状态已更新' }); getList() }
 function quickActions(row: Requirement) { return pmAvailableActions(PM_REQUIREMENT_ACTION_OPTIONS, row.status) }
 
-onMounted(async () => { const res = await loadPmBasicResources(); projects.value = res.projects; users.value = res.users; await getList() })
+onMounted(async () => { projects.value = await bugProjectOptions(); await getList() })
 </script>
 
 <template>
@@ -91,6 +94,79 @@ onMounted(async () => { const res = await loadPmBasicResources(); projects.value
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
-    <Dialog v-model:open="open"><DialogContent class="max-w-2xl"><DialogHeader><DialogTitle>需求</DialogTitle></DialogHeader><div class="grid gap-3 md:grid-cols-2"><Input v-model="form.title" class="md:col-span-2" placeholder="需求标题" /><Select v-model="form.projectId"><SelectTrigger><SelectValue placeholder="项目" /></SelectTrigger><SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select><Select v-model="form.type"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="t in PM_REQUIREMENT_TYPE_OPTIONS" :key="t.value" :value="t.value">{{ t.label }}</SelectItem></SelectContent></Select><Select v-model="form.priority"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="p in PM_PRIORITY_OPTIONS" :key="p.value" :value="p.value">{{ p.label }}</SelectItem></SelectContent></Select><Select v-model="form.ownerId"><SelectTrigger><SelectValue placeholder="需求负责人" /></SelectTrigger><SelectContent><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><Select v-model="form.developerId"><SelectTrigger><SelectValue placeholder="开发负责人" /></SelectTrigger><SelectContent><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><Input v-model="form.plannedStartTime" type="date" /><Input v-model="form.plannedEndTime" type="date" /><Textarea v-model="form.description" class="md:col-span-2" placeholder="需求描述" /><Textarea v-model="form.acceptanceCriteria" class="md:col-span-2" placeholder="验收标准" /></div><DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog v-model:open="open">
+      <DialogContent class="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{{ form.requirementId ? '编辑需求' : '新增需求' }}</DialogTitle>
+          <DialogDescription>请补充需求基础信息、人员分工和计划时间；带 * 的字段为必填。</DialogDescription>
+        </DialogHeader>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="space-y-2 md:col-span-2">
+            <Label for="requirement-title">需求标题 <span class="text-destructive">*</span></Label>
+            <Input id="requirement-title" v-model="form.title" placeholder="例如：后台管理系统新增数据导出能力" />
+            <p class="text-xs text-muted-foreground">用一句话说明要交付的功能或问题，保存后会作为列表主标题。</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="requirement-project">所属项目 <span class="text-destructive">*</span></Label>
+            <Select v-model="form.projectId" @update:model-value="(v) => { form.projectId = String(v); form.ownerId = PM_NONE_OPTION_VALUE; form.developerId = PM_NONE_OPTION_VALUE; refreshAssignableUsers(form.projectId) }">
+              <SelectTrigger id="requirement-project"><SelectValue placeholder="请选择所属项目" /></SelectTrigger>
+              <SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent>
+            </Select>
+            <p class="text-xs text-muted-foreground">决定需求归属和可选择的负责人范围，切换项目会重置人员分工。</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="requirement-type">需求分类</Label>
+            <Select v-model="form.type">
+              <SelectTrigger id="requirement-type"><SelectValue placeholder="请选择需求分类" /></SelectTrigger>
+              <SelectContent><SelectItem v-for="t in PM_REQUIREMENT_TYPE_OPTIONS" :key="t.value" :value="t.value">{{ t.label }}</SelectItem></SelectContent>
+            </Select>
+            <p class="text-xs text-muted-foreground">用于统计和后续筛选，不影响优先级或负责人。</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="requirement-priority">优先级</Label>
+            <Select v-model="form.priority">
+              <SelectTrigger id="requirement-priority"><SelectValue placeholder="请选择优先级" /></SelectTrigger>
+              <SelectContent><SelectItem v-for="p in PM_PRIORITY_OPTIONS" :key="p.value" :value="p.value">{{ p.label }}</SelectItem></SelectContent>
+            </Select>
+            <p class="text-xs text-muted-foreground">表示排期和处理紧急程度，默认“中”适用于常规需求。</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="requirement-owner">需求负责人（可选）</Label>
+            <Select v-model="form.ownerId">
+              <SelectTrigger id="requirement-owner"><SelectValue placeholder="请选择需求负责人" /></SelectTrigger>
+              <SelectContent><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定需求负责人</SelectItem><SelectItem v-for="u in ownerUsers" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent>
+            </Select>
+            <p class="text-xs text-muted-foreground">负责需求澄清、范围确认和验收；暂不指定表示稍后再补充，不会自动分派。</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="requirement-developer">开发负责人（可选）</Label>
+            <Select v-model="form.developerId">
+              <SelectTrigger id="requirement-developer"><SelectValue placeholder="请选择开发负责人" /></SelectTrigger>
+              <SelectContent><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定开发负责人</SelectItem><SelectItem v-for="u in developerUsers" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent>
+            </Select>
+            <p class="text-xs text-muted-foreground">负责排期后的开发承接；暂不指定时需求仍可保存，但后续需补齐承接人。</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="requirement-start">计划开始（可选）</Label>
+            <Input id="requirement-start" v-model="form.plannedStartTime" type="date" />
+            <p class="text-xs text-muted-foreground">用于排期和进度统计；不确定时可先留空。</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="requirement-end">计划完成（可选）</Label>
+            <Input id="requirement-end" v-model="form.plannedEndTime" type="date" />
+            <p class="text-xs text-muted-foreground">用于判断延期和统计交付计划；不确定时可先留空。</p>
+          </div>
+          <div class="space-y-2 md:col-span-2">
+            <Label for="requirement-description">需求描述（可选）</Label>
+            <Textarea id="requirement-description" v-model="form.description" placeholder="描述用户场景、业务价值或问题背景" />
+          </div>
+          <div class="space-y-2 md:col-span-2">
+            <Label for="requirement-acceptance">验收标准（可选）</Label>
+            <Textarea id="requirement-acceptance" v-model="form.acceptanceCriteria" placeholder="描述完成后如何判断需求已达成" />
+          </div>
+        </div>
+        <DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

@@ -9,6 +9,7 @@ interface RoleInfo {
   roleId: string
   roleName: string
   roleKey: string
+  securityLevel?: number
 }
 
 interface UserState {

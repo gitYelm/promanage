@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsArray, IsBoolean } from 'class-validator'
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsArray, IsBoolean, Min, Max, IsInt } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateRoleDto {
@@ -16,6 +16,14 @@ export class CreateRoleDto {
   @IsNotEmpty({ message: '显示顺序不能为空' })
   @IsNumber()
   roleSort: number
+
+  @ApiProperty({ description: '安全等级', example: 100 })
+  @IsNotEmpty({ message: '安全等级不能为空' })
+  @IsNumber()
+  @IsInt({ message: '安全等级必须是整数' })
+  @Min(0, { message: '安全等级不能小于0' })
+  @Max(1000, { message: '安全等级不能大于1000' })
+  securityLevel: number
 
   @ApiPropertyOptional({
     description: '数据范围',

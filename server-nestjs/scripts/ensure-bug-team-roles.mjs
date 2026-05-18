@@ -11,6 +11,7 @@ const defaultPassword = 'admin123'
 const roles = [
   {
     roleKey: 'bug_tester',
+    securityLevel: 350,
     roleName: '测试人员',
     roleSort: 24,
     remark: '提交缺陷、补充评论、验证和关闭缺陷',
@@ -26,6 +27,7 @@ const roles = [
   },
   {
     roleKey: 'bug_developer',
+    securityLevel: 400,
     roleName: '开发人员',
     roleSort: 23,
     remark: '查看缺陷、开始修复、提交验证并补充修复说明',
@@ -39,6 +41,7 @@ const roles = [
   },
   {
     roleKey: 'bug_reviewer',
+    securityLevel: 520,
     roleName: '审核人员',
     roleSort: 22,
     remark: '确认、驳回、标记重复并审核缺陷流程',
@@ -54,6 +57,7 @@ const roles = [
   },
   {
     roleKey: 'bug_submitter',
+    securityLevel: 100,
     roleName: '提交人',
     roleSort: 25,
     remark: '提交并跟踪本人缺陷',
@@ -66,6 +70,7 @@ const roles = [
   },
   {
     roleKey: 'bug_project_owner',
+    securityLevel: 600,
     roleName: '项目负责人',
     roleSort: 20,
     remark: '管理项目内缺陷、成员、分派和统计',
@@ -90,6 +95,7 @@ const roles = [
   },
   {
     roleKey: 'bug_product_owner',
+    securityLevel: 550,
     roleName: '产品负责人',
     roleSort: 21,
     remark: '确认缺陷有效性并参与分派处理',
@@ -184,6 +190,7 @@ async function ensureRole(role) {
   const data = {
     roleName: role.roleName,
     roleSort: role.roleSort,
+    securityLevel: role.securityLevel,
     status: '0',
     dataScope: '2',
     menuCheckStrictly: true,

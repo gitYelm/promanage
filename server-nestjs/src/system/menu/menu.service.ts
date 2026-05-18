@@ -38,6 +38,10 @@ export class MenuService {
    * 查询菜单列表
    */
   async findAll(query: QueryMenuDto) {
+    return this.findAllWithScope(query)
+  }
+
+  async findAllWithScope(query: QueryMenuDto, userId?: string) {
     const { menuName, status } = query
     const where: Prisma.SysMenuWhereInput = {}
 
@@ -46,6 +50,17 @@ export class MenuService {
     }
     if (status) {
       where.status = status
+    }
+    if (userId && !(await this.isAdmin(userId))) {
+      where.roles = {
+        some: {
+          role: {
+            delFlag: '0',
+            status: '0',
+            users: { some: { userId: BigInt(userId) } },
+          },
+        },
+      }
     }
 
     const menus = await this.prisma.sysMenu.findMany({
@@ -145,7 +160,12 @@ export class MenuService {
    * 获取菜单树 (用于下拉选择)
    */
   async listTree(query: QueryMenuDto) {
-    const menus = await this.findAll(query)
+    const menus = await this.findAllWithScope(query)
+    return this.handleTree(menus, null)
+  }
+
+  async listTreeWithScope(query: QueryMenuDto, userId?: string) {
+    const menus = await this.findAllWithScope(query, userId)
     return this.handleTree(menus, null)
   }
 
@@ -165,8 +185,10 @@ export class MenuService {
 
     if (!user) return []
 
-    const roles = user.roles.map((ur: { role: { roleId: bigint; roleKey: string } }) => ur.role)
-    const isAdmin = roles.some((r: { roleId: bigint; roleKey: string }) => r.roleKey === 'admin')
+    const roles = user.roles
+      .map((ur) => ur.role)
+      .filter((role) => role.delFlag === '0' && role.status === '0')
+    const isAdmin = roles.some((role) => role.roleKey === 'admin')
 
     let menus: SysMenu[] = []
 
@@ -183,7 +205,7 @@ export class MenuService {
       })
     } else {
       // 普通用户查询关联菜单
-      const roleIds = roles.map((r: { roleId: bigint; roleKey: string }) => r.roleId)
+      const roleIds = roles.map((role) => role.roleId)
       menus = await this.prisma.sysMenu.findMany({
         where: {
           menuType: { in: ['M', 'C'] },
@@ -316,5 +338,13 @@ export class MenuService {
     })
 
     return {}
+  }
+
+  private async isAdmin(userId: string) {
+    const role = await this.prisma.sysUserRole.findFirst({
+      where: { userId: BigInt(userId), role: { roleKey: 'admin', delFlag: '0', status: '0' } },
+      select: { userId: true },
+    })
+    return Boolean(role)
   }
 }

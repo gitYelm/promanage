@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards, Request } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -15,13 +15,19 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
 import { Log, BusinessType } from '../../common/decorators/log.decorator'
+import { SystemRoleSecurityService } from '../security/system-role-security.service'
+
+type RequestWithUser = { user: { userId: string; username: string } }
 
 @ApiTags('角色管理')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('system/role')
 export class RoleController {
-  constructor(private readonly roleService: RoleService) {}
+  constructor(
+    private readonly roleService: RoleService,
+    private readonly roleSecurity: SystemRoleSecurityService,
+  ) {}
 
   @Post()
   @RequirePermission('system:role:add')
@@ -29,7 +35,9 @@ export class RoleController {
   @ApiOperation({ summary: '新增角色' })
   @ApiBody({ type: CreateRoleDto })
   @ApiResponse({ status: 201, description: '创建成功' })
-  create(@Body() createRoleDto: CreateRoleDto) {
+  async create(@Request() req: RequestWithUser, @Body() createRoleDto: CreateRoleDto) {
+    await this.roleSecurity.assertCanSetRoleLevel(req.user.userId as string, createRoleDto.securityLevel)
+    await this.roleSecurity.assertCanGrantMenus(req.user.userId as string, createRoleDto.menuIds)
     return this.roleService.create(createRoleDto)
   }
 
@@ -37,8 +45,9 @@ export class RoleController {
   @RequirePermission('system:role:list')
   @ApiOperation({ summary: '查询角色列表' })
   @ApiResponse({ status: 200, description: '查询成功' })
-  findAll(@Query() query: QueryRoleDto) {
-    return this.roleService.findAll(query)
+  async findAll(@Request() req: RequestWithUser, @Query() query: QueryRoleDto) {
+    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId as string)
+    return this.roleService.findAll(query, maxSecurityLevel)
   }
 
   @Put('changeStatus')
@@ -46,7 +55,8 @@ export class RoleController {
   @Log('角色管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改角色状态' })
   @ApiResponse({ status: 200, description: '修改成功' })
-  changeStatus(@Body() body: { roleId: string; status: string }) {
+  async changeStatus(@Request() req: RequestWithUser, @Body() body: { roleId: string; status: string }) {
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, body.roleId)
     return this.roleService.changeStatus(body.roleId, body.status)
   }
 
@@ -55,7 +65,8 @@ export class RoleController {
   @ApiOperation({ summary: '查询角色详情' })
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiResponse({ status: 200, description: '查询成功' })
-  findOne(@Param('roleId') roleId: string) {
+  async findOne(@Request() req: RequestWithUser, @Param('roleId') roleId: string) {
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, roleId)
     return this.roleService.findOne(roleId)
   }
 
@@ -66,7 +77,12 @@ export class RoleController {
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiBody({ type: UpdateRoleDto })
   @ApiResponse({ status: 200, description: '修改成功' })
-  update(@Param('roleId') roleId: string, @Body() updateRoleDto: UpdateRoleDto) {
+  async update(@Request() req: RequestWithUser, @Param('roleId') roleId: string, @Body() updateRoleDto: UpdateRoleDto) {
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, roleId)
+    if (updateRoleDto.securityLevel !== undefined) {
+      await this.roleSecurity.assertCanSetRoleLevel(req.user.userId as string, updateRoleDto.securityLevel)
+    }
+    await this.roleSecurity.assertCanGrantMenus(req.user.userId as string, updateRoleDto.menuIds)
     return this.roleService.update(roleId, updateRoleDto)
   }
 
@@ -76,7 +92,8 @@ export class RoleController {
   @ApiOperation({ summary: '删除角色' })
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
-  remove(@Param('roleId') roleId: string) {
+  async remove(@Request() req: RequestWithUser, @Param('roleId') roleId: string) {
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, roleId)
     return this.roleService.remove(roleId)
   }
 }

@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { ExcelColumn } from '../../common/excel/excel.service'
 import { ExportDataProvider, ExportTaskService } from '../../common/export/export-task.service'
 import { PrismaService } from '../../prisma/prisma.service'
+import { BugAccessService } from '../bug-access.service'
 
 const BUG_STATISTICS_EXPORT_COLUMNS: ExcelColumn[] = [
   { key: 'ticketNo', header: 'Bug编号', width: 24 },
@@ -22,6 +23,7 @@ export class BugStatisticsExportProvider implements ExportDataProvider, OnModule
   constructor(
     private readonly prisma: PrismaService,
     private readonly exportTaskService: ExportTaskService,
+    private readonly access: BugAccessService,
   ) {}
 
   onModuleInit() {
@@ -37,12 +39,12 @@ export class BugStatisticsExportProvider implements ExportDataProvider, OnModule
   }
 
   async getTotal(query: Record<string, any>): Promise<number> {
-    return this.prisma.bugTicket.count({ where: this.buildWhere(query) })
+    return this.prisma.bugTicket.count({ where: await this.buildWhere(query) })
   }
 
   async getData(query: Record<string, any>, skip: number, take: number) {
     const rows = await this.prisma.bugTicket.findMany({
-      where: this.buildWhere(query),
+      where: await this.buildWhere(query),
       skip,
       take,
       include: { project: true, module: true, submitter: true, assignee: true },
@@ -62,12 +64,17 @@ export class BugStatisticsExportProvider implements ExportDataProvider, OnModule
     }))
   }
 
-  private buildWhere(query: Record<string, any>): Prisma.BugTicketWhereInput {
+  private async buildWhere(query: Record<string, any>): Promise<Prisma.BugTicketWhereInput> {
     const where: Prisma.BugTicketWhereInput = { delFlag: '0' }
     if (query.projectId) where.projectId = BigInt(String(query.projectId))
     if (query.status) where.status = String(query.status)
     if (query.severity) where.severity = String(query.severity)
     if (query.priority) where.priority = String(query.priority)
+    const operatorId = typeof query.__operatorId === 'string' ? query.__operatorId : undefined
+    if (operatorId) {
+      const visibleProjectIds = await this.access.getVisibleProjectIds(operatorId)
+      where.AND = [{ projectId: { in: visibleProjectIds } }]
+    }
     return where
   }
 }

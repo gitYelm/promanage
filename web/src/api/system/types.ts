@@ -15,6 +15,7 @@ export interface UserQuery extends PageQuery {
   phonenumber?: string
   status?: string
   deptId?: string | number
+  roleId?: string | number
   beginTime?: string
   endTime?: string
 }
@@ -135,6 +136,7 @@ export interface SysRole extends BaseEntity {
   menuIds?: string[] // 菜单权限ID列表，用于表单
   deptIds?: string[] // 部门权限ID列表，用于表单
   userCount?: number // 用户数统计
+  securityLevel?: number // 安全等级，用于限制角色维护、用户分配和候选人范围
 }
 
 // 5. 菜单表 sys_menu

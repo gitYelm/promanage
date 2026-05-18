@@ -4,11 +4,12 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { LoggerService } from '../../common/logger/logger.service'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { ErrorCode } from '../../common/enums/error-code.enum'
-import { BUG_ACTION, BUG_PENDING_STATUSES, BUG_STATUS, type BugAction } from '../constants/bug.constants'
+import { BUG_ACTION, BUG_MEMBER_ROLE, BUG_PENDING_STATUSES, BUG_STATUS, type BugAction } from '../constants/bug.constants'
 import { getBugTransition, getBugTransitions } from '../constants/bug-workflow.config'
 import { buildBugNo } from '../utils/bug-number.util'
 import { BugAccessService, type RequestUserLike } from '../bug-access.service'
 import { BugNotificationService } from '../bug-notification.service'
+import { RoleSecurityService } from '../security/role-security.service'
 import {
   BugActionDto,
   CreateBugCommentDto,
@@ -24,6 +25,7 @@ export class BugTicketService {
     private readonly logger: LoggerService,
     private readonly access: BugAccessService,
     private readonly bugNotification: BugNotificationService,
+    private readonly roleSecurity: RoleSecurityService,
   ) {}
 
   async list(query: QueryBugTicketDto, user: RequestUserLike) {
@@ -88,6 +90,9 @@ export class BugTicketService {
       String(project.projectId),
       dto.moduleId,
       dto.versionId,
+      dto.requirementId,
+      dto.iterationId,
+      dto.milestoneId,
     )
     const sequence = await this.prisma.bugTicket.count({ where: { projectId: project.projectId } })
     const ticket = await this.prisma.bugTicket.create({
@@ -106,10 +111,14 @@ export class BugTicketService {
     if (!(await this.canEditTicket(ticket, user))) {
       throw BusinessException.denied('当前状态不允许修改 Bug 核心信息')
     }
+    if (dto.projectId && dto.projectId !== String(ticket.projectId)) await this.assertProjectVisible(dto.projectId, user)
     await this.assertRelations(
       dto.projectId ?? String(ticket.projectId),
       this.resolveNextRelationId(dto.moduleId, ticket.moduleId),
       this.resolveNextRelationId(dto.versionId, ticket.versionId),
+      this.resolveNextRelationId(dto.requirementId, ticket.requirementId),
+      this.resolveNextRelationId(dto.iterationId, ticket.iterationId),
+      this.resolveNextRelationId(dto.milestoneId, ticket.milestoneId),
     )
     const result = await this.prisma.bugTicket.update({
       where: { ticketId: BigInt(ticketId) },
@@ -131,7 +140,13 @@ export class BugTicketService {
     const data: Prisma.BugTicketUncheckedUpdateInput = { status: transition.to, updateBy: user.username }
     if (action === BUG_ACTION.ASSIGN) {
       const assigneeId = this.requiredBigInt(dto.assigneeId, '负责人必填')
-      await this.assertProjectDeveloper(ticket.projectId, assigneeId)
+      await this.roleSecurity.assertAssignableProjectFieldUser({
+        operatorId: user.userId,
+        projectId: ticket.projectId,
+        targetUserId: String(assigneeId),
+        allowedMemberRoles: [BUG_MEMBER_ROLE.DEVELOPER],
+        label: '开发负责人',
+      })
       data.assigneeId = assigneeId
     }
     if (dto.dueTime) data.dueTime = new Date(dto.dueTime)
@@ -192,17 +207,17 @@ export class BugTicketService {
     if (query.keyword) {
       where.OR = [{ title: { contains: query.keyword } }, { ticketNo: { contains: query.keyword } }]
     }
-    if (query.projectId) where.projectId = { equals: BigInt(query.projectId) }
-    if (query.moduleId) where.moduleId = BigInt(query.moduleId)
+    if (query.projectId) where.projectId = { equals: this.parseBigInt(query.projectId, '项目ID格式不正确') }
+    if (query.moduleId) where.moduleId = this.parseBigInt(query.moduleId, '模块ID格式不正确')
     if (query.status) where.status = query.status
     if (query.pending === 'true') where.status = { in: [...BUG_PENDING_STATUSES] }
     if (query.priority) where.priority = query.priority
     if (query.severity) where.severity = query.severity
-    if (query.assigneeId) where.assigneeId = BigInt(query.assigneeId)
-    if (query.submitterId) where.submitterId = BigInt(query.submitterId)
-    if (query.requirementId) where.requirementId = BigInt(query.requirementId)
-    if (query.iterationId) where.iterationId = BigInt(query.iterationId)
-    if (query.milestoneId) where.milestoneId = BigInt(query.milestoneId)
+    if (query.assigneeId) where.assigneeId = this.parseBigInt(query.assigneeId, '负责人ID格式不正确')
+    if (query.submitterId) where.submitterId = this.parseBigInt(query.submitterId, '提交人ID格式不正确')
+    if (query.requirementId) where.requirementId = this.parseBigInt(query.requirementId, '需求ID格式不正确')
+    if (query.iterationId) where.iterationId = this.parseBigInt(query.iterationId, '迭代ID格式不正确')
+    if (query.milestoneId) where.milestoneId = this.parseBigInt(query.milestoneId, '里程碑ID格式不正确')
     if (query.beginTime || query.endTime) {
       where.createTime = {
         ...(query.beginTime ? { gte: new Date(query.beginTime) } : {}),
@@ -287,18 +302,31 @@ export class BugTicketService {
     return checks.filter((check) => check.allowed).map((check) => check.item)
   }
 
-  private async assertRelations(projectId: string, moduleId?: string, versionId?: string) {
+  private async assertRelations(
+    projectId: string,
+    moduleId?: string,
+    versionId?: string,
+    requirementId?: string,
+    iterationId?: string,
+    milestoneId?: string,
+  ) {
     if (moduleId) await this.assertModule(projectId, moduleId)
     if (versionId) await this.assertVersion(projectId, versionId)
+    if (requirementId) await this.assertRequirement(projectId, requirementId)
+    if (iterationId) await this.assertIteration(projectId, iterationId)
+    if (milestoneId) await this.assertMilestone(projectId, milestoneId)
   }
 
   private async resolveCreateProject(projectId: string | undefined, user: RequestUserLike) {
     const normalizedProjectId = projectId?.trim()
+    const visibleProjectIds = await this.access.getVisibleProjectIds(user.userId)
     const where: Prisma.BugProjectWhereInput = { delFlag: '0', status: '0' }
     if (normalizedProjectId) {
-      where.projectId = this.parseBigInt(normalizedProjectId, '项目ID格式不正确')
+      const parsedProjectId = this.parseBigInt(normalizedProjectId, '项目ID格式不正确')
+      if (!visibleProjectIds.some((id) => id === parsedProjectId)) throw BusinessException.forbidden('无权访问该项目')
+      where.projectId = parsedProjectId
     } else {
-      where.projectId = { in: await this.access.getVisibleProjectIds(user.userId) }
+      where.projectId = { in: visibleProjectIds }
     }
     const project = await this.prisma.bugProject.findFirst({ where, orderBy: { projectId: 'asc' } })
     if (!project) {
@@ -320,6 +348,33 @@ export class BugTicketService {
       where: { versionId: BigInt(versionId), projectId: BigInt(projectId), delFlag: '0' },
     })
     if (!version) throw BusinessException.invalidParams('版本不属于所选项目')
+  }
+
+  private async assertRequirement(projectId: string, requirementId: string) {
+    const requirement = await this.prisma.projectRequirement.findFirst({
+      where: { requirementId: BigInt(requirementId), projectId: BigInt(projectId), delFlag: '0' },
+    })
+    if (!requirement) throw BusinessException.invalidParams('需求不属于所选项目')
+  }
+
+  private async assertIteration(projectId: string, iterationId: string) {
+    const iteration = await this.prisma.projectIteration.findFirst({
+      where: { iterationId: BigInt(iterationId), projectId: BigInt(projectId), delFlag: '0' },
+    })
+    if (!iteration) throw BusinessException.invalidParams('迭代不属于所选项目')
+  }
+
+  private async assertMilestone(projectId: string, milestoneId: string) {
+    const milestone = await this.prisma.projectMilestone.findFirst({
+      where: { milestoneId: BigInt(milestoneId), projectId: BigInt(projectId), delFlag: '0' },
+    })
+    if (!milestone) throw BusinessException.invalidParams('里程碑不属于所选项目')
+  }
+
+  private async assertProjectVisible(projectId: string, user: RequestUserLike) {
+    const projectIds = await this.access.getVisibleProjectIds(user.userId)
+    const parsedProjectId = this.parseBigInt(projectId, '项目ID格式不正确')
+    if (!projectIds.some((id) => id === parsedProjectId)) throw BusinessException.forbidden('无权访问该项目')
   }
 
   private async ensureTicket(ticketId: string) {
@@ -359,14 +414,6 @@ export class BugTicketService {
   private requiredBigInt(value: string | undefined, message: string): bigint {
     if (!value) throw BusinessException.invalidParams(message)
     return this.parseBigInt(value, message)
-  }
-
-  private async assertProjectDeveloper(projectId: bigint, assigneeId: bigint) {
-    const member = await this.prisma.bugProjectMember.findFirst({
-      where: { projectId, userId: assigneeId, memberRole: 'developer', status: '0' },
-      select: { memberId: true },
-    })
-    if (!member) throw BusinessException.invalidParams('负责人必须是当前项目的开发人员')
   }
 
   private parseBigInt(value: string, message: string): bigint {

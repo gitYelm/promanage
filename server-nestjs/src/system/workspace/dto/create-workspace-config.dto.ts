@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class CreateWorkspaceConfigDto {
-  @ApiProperty({ description: '角色权限字符串', example: 'developer' })
+  @ApiProperty({ description: '角色权限字符串', example: 'bug_developer' })
   @IsNotEmpty({ message: '角色标识不能为空' })
   @IsString()
   roleKey!: string

@@ -3,14 +3,16 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { BugAccessService, type RequestUserLike } from '../bug-access.service'
+import { BUG_MEMBER_ROLE } from '../constants/bug.constants'
 import { MILESTONE_STATUS, PM_ACTIVITY_ACTION, PM_ACTIVITY_TARGET } from '../constants/project-management.constants'
 import { MILESTONE_TRANSITIONS, findTransition } from '../constants/project-management-workflow.config'
 import { CreateMilestoneDto, PmStatusActionDto, QueryMilestoneDto, UpdateMilestoneDto } from '../dto/project-management.dto'
+import { RoleSecurityService } from '../security/role-security.service'
 import { ProjectActivityService } from './project-activity.service'
 
 @Injectable()
 export class ProjectMilestoneService {
-  constructor(private readonly prisma: PrismaService, private readonly access: BugAccessService, private readonly activity: ProjectActivityService) {}
+  constructor(private readonly prisma: PrismaService, private readonly access: BugAccessService, private readonly roleSecurity: RoleSecurityService, private readonly activity: ProjectActivityService) {}
 
   async list(query: QueryMilestoneDto, user: RequestUserLike) {
     const where = await this.where(query, user)
@@ -25,6 +27,7 @@ export class ProjectMilestoneService {
 
   async create(dto: CreateMilestoneDto, user: RequestUserLike) {
     await this.assertProjectVisible(user.userId, BigInt(dto.projectId))
+    await this.assertOwnerAllowed(user, BigInt(dto.projectId), dto.ownerId)
     const row = await this.prisma.projectMilestone.create({ data: this.createData(dto) })
     await this.activity.record({ projectId: row.projectId, targetType: PM_ACTIVITY_TARGET.MILESTONE, targetId: row.milestoneId, action: PM_ACTIVITY_ACTION.CREATE, operatorId: BigInt(user.userId), toValue: row.status })
     return row
@@ -32,6 +35,9 @@ export class ProjectMilestoneService {
 
   async update(milestoneId: string, dto: UpdateMilestoneDto, user: RequestUserLike) {
     const row = await this.ensure(milestoneId, user)
+    const projectId = dto.projectId ? BigInt(dto.projectId) : row.projectId
+    await this.assertProjectVisible(user.userId, projectId)
+    await this.assertOwnerAllowed(user, projectId, this.nextUserId(dto.ownerId, row.ownerId))
     const updated = await this.prisma.projectMilestone.update({ where: { milestoneId: row.milestoneId }, data: this.updateData(dto) })
     await this.activity.record({ projectId: updated.projectId, targetType: PM_ACTIVITY_TARGET.MILESTONE, targetId: updated.milestoneId, action: PM_ACTIVITY_ACTION.UPDATE, operatorId: BigInt(user.userId) })
     return updated
@@ -97,5 +103,19 @@ export class ProjectMilestoneService {
     if (!ids.some((id) => id === projectId)) throw BusinessException.forbidden('无权访问该项目')
   }
 
+  private async assertOwnerAllowed(user: RequestUserLike, projectId: bigint, ownerId?: string) {
+    await this.roleSecurity.assertAssignableProjectFieldUser({
+      operatorId: user.userId,
+      projectId,
+      targetUserId: ownerId,
+      allowedMemberRoles: Object.values(BUG_MEMBER_ROLE),
+      label: '里程碑负责人',
+    })
+  }
+
   private bigIntOrUndefined(value?: string) { return value ? BigInt(value) : undefined }
+  private nextUserId(value: string | undefined, current: bigint | null) {
+    if (value !== undefined) return value || undefined
+    return current ? String(current) : undefined
+  }
 }

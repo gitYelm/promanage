@@ -6,6 +6,7 @@ import type {
   BugProject,
   BugStatisticsResult,
   BugTicket,
+  BugUserOptionParams,
   BugUserRef,
   BugVersion,
   PageResult,
@@ -209,7 +210,7 @@ export function deleteBugMember(memberId: string) {
   return request({ url: `/bug/projects/members/${memberId}`, method: 'delete' })
 }
 
-export function bugUserOptions(keyword = '', params: Record<string, unknown> = {}): Promise<BugUserRef[]> {
+export function bugUserOptions(keyword = '', params: BugUserOptionParams = {}): Promise<BugUserRef[]> {
   return request({ url: '/bug/users/options', method: 'get', params: { ...params, keyword } }).then(
     unwrap<BugUserRef[]>,
   )

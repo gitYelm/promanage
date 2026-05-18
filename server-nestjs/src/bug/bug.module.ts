@@ -22,6 +22,7 @@ import { ProjectActivityService } from './project-management/project-activity.se
 import { ProjectOverviewService } from './project-management/project-overview.service'
 import { ExecutiveDashboardService } from './project-management/executive-dashboard.service'
 import { ProjectDashboardQueryService } from './project-management/project-dashboard-query.service'
+import { RoleSecurityService } from './security/role-security.service'
 
 @Module({
   imports: [PrismaModule, LoggerModule, UploadModule, NotificationModule],
@@ -30,6 +31,7 @@ import { ProjectDashboardQueryService } from './project-management/project-dashb
     BugAccessService,
     BugProjectService,
     BugProjectHelperService,
+    RoleSecurityService,
     BugTicketService,
     BugAttachmentService,
     BugStatisticsService,

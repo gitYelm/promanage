@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import { LoggerService } from '../../common/logger/logger.service'
 import { BusinessException } from '../../common/exceptions'
 import { ErrorCode } from '../../common/enums'
+import { defaultRoleSecurityLevel } from '../../common/security/role-level.config'
 
 @Injectable()
 export class RoleService {
@@ -18,9 +19,10 @@ export class RoleService {
   /**
    * 查询角色列表
    */
-  async findAll(query: QueryRoleDto) {
+  async findAll(query: QueryRoleDto, maxSecurityLevel?: number) {
     const { roleName, roleKey, status, pageNum = 1, pageSize = 20 } = query
     const skip = (pageNum - 1) * pageSize
+    const andWhere: Prisma.SysRoleWhereInput[] = []
 
     const where: Prisma.SysRoleWhereInput = {
       delFlag: '0',
@@ -35,6 +37,10 @@ export class RoleService {
     if (status) {
       where.status = status
     }
+    if (maxSecurityLevel !== undefined) {
+      andWhere.push({ securityLevel: { lte: maxSecurityLevel } })
+    }
+    if (andWhere.length) where.AND = andWhere
 
     const [total, rows] = await Promise.all([
       this.prisma.sysRole.count({ where }),
@@ -55,11 +61,18 @@ export class RoleService {
             user: { delFlag: '0' }, // 只统计未删除的用户
           },
         })
-        return { ...role, userCount }
+        return { ...this.withSecurityLevel(role), userCount }
       }),
     )
 
     return { total, rows: rowsWithUserCount }
+  }
+
+  private withSecurityLevel<T extends { roleKey: string; securityLevel?: number | null }>(role: T) {
+    return {
+      ...role,
+      securityLevel: role.securityLevel ?? defaultRoleSecurityLevel(role.roleKey),
+    }
   }
 
   /**
@@ -86,7 +99,7 @@ export class RoleService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { menus, ...roleInfo } = role
 
-    return { ...roleInfo, menuIds }
+    return { ...this.withSecurityLevel(roleInfo), menuIds }
   }
 
   /**
@@ -112,6 +125,7 @@ export class RoleService {
       const role = await tx.sysRole.create({
         data: {
           ...roleData,
+          securityLevel: roleData.securityLevel ?? defaultRoleSecurityLevel(createRoleDto.roleKey),
           status: roleData.status || '0',
           createTime: new Date(),
         },

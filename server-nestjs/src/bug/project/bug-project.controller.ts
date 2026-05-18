@@ -35,13 +35,17 @@ export class BugProjectController {
     'bug:ticket:assign',
     'bug:project:add',
     'bug:project:edit',
+    'pm:requirement:create',
+    'pm:requirement:update',
+    'pm:iteration:manage',
+    'pm:milestone:manage',
     'bug:module:add',
     'bug:module:edit',
     'bug:project:member',
   )
   @ApiOperation({ summary: '获取 Bug 用户选项' })
-  userOptions(@Query() query: BugUserOptionQueryDto) {
-    return this.service.userOptions(query)
+  userOptions(@Query() query: BugUserOptionQueryDto, @Req() req: RequestWithUser) {
+    return this.service.userOptions(query, req.user.userId)
   }
 
   @Get('projects/options')
@@ -93,16 +97,16 @@ export class BugProjectController {
   @RequirePermission('bug:module:add')
   @Log('Bug 模块', BusinessType.INSERT)
   @ApiOperation({ summary: '新增项目模块' })
-  createModule(@Body() dto: CreateBugModuleDto) {
-    return this.service.createModule(dto)
+  createModule(@Body() dto: CreateBugModuleDto, @Req() req: RequestWithUser) {
+    return this.service.createModule(dto, req.user.userId)
   }
 
   @Put('modules/:moduleId')
   @RequirePermission('bug:module:edit')
   @Log('Bug 模块', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改项目模块' })
-  updateModule(@Param('moduleId') moduleId: string, @Body() dto: UpdateBugModuleDto) {
-    return this.service.updateModule(moduleId, dto)
+  updateModule(@Param('moduleId') moduleId: string, @Body() dto: UpdateBugModuleDto, @Req() req: RequestWithUser) {
+    return this.service.updateModule(moduleId, dto, req.user.userId)
   }
 
   @Delete('modules')
@@ -124,16 +128,16 @@ export class BugProjectController {
   @RequirePermission('bug:version:add')
   @Log('Bug 版本', BusinessType.INSERT)
   @ApiOperation({ summary: '新增项目版本' })
-  createVersion(@Body() dto: CreateBugVersionDto) {
-    return this.service.createVersion(dto)
+  createVersion(@Body() dto: CreateBugVersionDto, @Req() req: RequestWithUser) {
+    return this.service.createVersion(dto, req.user.userId)
   }
 
   @Put('versions/:versionId')
   @RequirePermission('bug:version:edit')
   @Log('Bug 版本', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改项目版本' })
-  updateVersion(@Param('versionId') versionId: string, @Body() dto: UpdateBugVersionDto) {
-    return this.service.updateVersion(versionId, dto)
+  updateVersion(@Param('versionId') versionId: string, @Body() dto: UpdateBugVersionDto, @Req() req: RequestWithUser) {
+    return this.service.updateVersion(versionId, dto, req.user.userId)
   }
 
   @Delete('versions')

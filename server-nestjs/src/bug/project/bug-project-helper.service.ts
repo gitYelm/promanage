@@ -41,19 +41,19 @@ export class BugProjectHelperService {
 
   async visibleProjectIds(userId: string) {
     const roles = await this.prisma.sysUserRole.findMany({
-      where: { userId: BigInt(userId) },
+      where: { userId: BigInt(userId), role: { delFlag: '0', status: '0' } },
       include: { role: true },
     })
     if (roles.some((item) => item.role.roleKey === 'admin')) {
       const projects = await this.prisma.bugProject.findMany({
-        where: { delFlag: '0' },
+        where: { delFlag: '0', status: '0' },
         select: { projectId: true },
       })
       return projects.map((item) => item.projectId)
     }
     const [members, ownedProjects] = await Promise.all([
       this.prisma.bugProjectMember.findMany({
-        where: { userId: BigInt(userId), status: '0' },
+        where: { userId: BigInt(userId), status: '0', project: { delFlag: '0', status: '0' } },
         select: { projectId: true },
       }),
       this.prisma.bugProject.findMany({

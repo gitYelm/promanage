@@ -2,13 +2,14 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { addBugModule, bugProjectOptions, bugUserOptions, deleteBugModules, listBugModules, updateBugModule } from '@/api/bug'
 import type { BugModule, BugProject, BugUserRef } from '@/api/bug/types'
@@ -36,6 +37,10 @@ async function getList() {
   }
 }
 
+async function refreshAssignableUsers(projectId = form.projectId) {
+  users.value = projectId ? await bugUserOptions('', { projectId, assignContext: 'moduleAssignee', assignableOnly: true }) : []
+}
+
 function add() {
   Object.assign(form, {
     moduleId: undefined,
@@ -45,11 +50,13 @@ function add() {
     status: '0',
     defaultAssigneeId: NONE_OPTION_VALUE,
   })
+  refreshAssignableUsers()
   open.value = true
 }
 
 function edit(row: BugModule) {
   Object.assign(form, row, { defaultAssigneeId: row.defaultAssigneeId || NONE_OPTION_VALUE })
+  refreshAssignableUsers(row.projectId)
   open.value = true
 }
 
@@ -69,7 +76,6 @@ async function remove(row: BugModule) {
 
 onMounted(async () => {
   projects.value = await bugProjectOptions()
-  users.value = await bugUserOptions()
   await getList()
 })
 </script>
@@ -93,6 +99,34 @@ onMounted(async () => {
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
-    <Dialog v-model:open="open"><DialogContent><DialogHeader><DialogTitle>模块</DialogTitle></DialogHeader><div class="space-y-3"><Select v-model="form.projectId"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select><Input v-model="form.moduleName" placeholder="模块名称" /><Select v-model="form.defaultAssigneeId"><SelectTrigger><SelectValue placeholder="默认负责人" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不指定</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select><Input v-model="form.orderNum" type="number" placeholder="排序" /></div><DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog v-model:open="open">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{{ form.moduleId ? '编辑模块' : '新增模块' }}</DialogTitle>
+          <DialogDescription>模块用于归类 Bug 和设置默认处理人；带 * 的字段为必填。</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <FormFieldBlock label="所属项目" field-id="bug-module-project" required description="决定模块归属和默认负责人候选范围，切换项目会重置默认负责人。">
+            <Select v-model="form.projectId" @update:model-value="(v) => { form.projectId = String(v); form.defaultAssigneeId = NONE_OPTION_VALUE; refreshAssignableUsers(form.projectId) }">
+              <SelectTrigger id="bug-module-project"><SelectValue placeholder="请选择所属项目" /></SelectTrigger>
+              <SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent>
+            </Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="模块名称" field-id="bug-module-name" required description="建议使用用户能理解的业务或功能名称，便于提交 Bug 时选择。">
+            <Input id="bug-module-name" v-model="form.moduleName" placeholder="例如：权限管理、需求管理" />
+          </FormFieldBlock>
+          <FormFieldBlock label="默认负责人" field-id="bug-module-assignee" optional description="提交该模块 Bug 时可自动带默认处理人；暂不指定时不会自动分派。">
+            <Select v-model="form.defaultAssigneeId">
+              <SelectTrigger id="bug-module-assignee"><SelectValue placeholder="请选择默认负责人" /></SelectTrigger>
+              <SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不指定默认负责人</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent>
+            </Select>
+          </FormFieldBlock>
+          <FormFieldBlock label="排序" field-id="bug-module-order" optional description="数字越小越靠前，用于模块下拉列表和管理页展示顺序。">
+            <Input id="bug-module-order" v-model="form.orderNum" type="number" placeholder="例如：0" />
+          </FormFieldBlock>
+        </div>
+        <DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

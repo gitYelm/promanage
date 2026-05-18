@@ -71,7 +71,8 @@ export class PermissionGuard implements CanActivate {
 
     if (!user) return []
 
-    const roleKeys = user.roles.map((ur) => ur.role.roleKey)
+    const activeRoles = user.roles.filter((ur) => ur.role.delFlag === '0' && ur.role.status === '0')
+    const roleKeys = activeRoles.map((ur) => ur.role.roleKey)
 
     // 超级管理员
     if (roleKeys.includes('admin')) {
@@ -79,7 +80,7 @@ export class PermissionGuard implements CanActivate {
     }
 
     // 查询角色关联的菜单权限
-    const roleIds = user.roles.map((ur) => ur.roleId)
+    const roleIds = activeRoles.map((ur) => ur.roleId)
     const menus = await this.prisma.sysMenu.findMany({
       where: {
         roles: {

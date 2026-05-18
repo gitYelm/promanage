@@ -154,10 +154,29 @@ async function main() {
   console.log('Initialized department hierarchy')
 
   // 2. Init Roles (管理后台角色体系 - 幂等,所有角色启用状态)
+
+  const defaultSecurityLevel = (roleKey: string) => {
+    const levels: Record<string, number> = {
+      admin: 1000,
+      system_admin: 900,
+      monitor_admin: 800,
+      pm_executive: 700,
+      bug_project_owner: 600,
+      bug_product_owner: 550,
+      bug_reviewer: 520,
+      bug_developer: 400,
+      bug_tester: 350,
+      common_user: 200,
+      bug_submitter: 100,
+    }
+    return levels[roleKey] ?? 100
+  }
+
   const ensureRole = async (data: {
     roleKey: string
     roleName: string
     roleSort: number
+    securityLevel?: number
     status?: '0' | '1'
     dataScope?: '1' | '2' | '3' | '4'
     menuCheckStrictly?: boolean
@@ -173,6 +192,7 @@ async function main() {
         data: {
           roleName: data.roleName,
           roleSort: data.roleSort,
+          securityLevel: data.securityLevel ?? defaultSecurityLevel(data.roleKey),
           status: data.status ?? '0',
           dataScope: data.dataScope ?? '1',
           menuCheckStrictly: data.menuCheckStrictly ?? true,
@@ -186,6 +206,7 @@ async function main() {
         roleName: data.roleName,
         roleKey: data.roleKey,
         roleSort: data.roleSort,
+        securityLevel: data.securityLevel ?? defaultSecurityLevel(data.roleKey),
         status: data.status ?? '0',
         dataScope: data.dataScope ?? '1',
         menuCheckStrictly: data.menuCheckStrictly ?? true,
@@ -1839,13 +1860,13 @@ async function main() {
 
   // 8. 初始化 Bug 反馈系统菜单、角色、字典和演示项目
   const bugRoles = [
-    { roleKey: 'bug_project_owner', roleName: '项目负责人', roleSort: 20, remark: '管理项目内缺陷、成员、分派和统计' },
-    { roleKey: 'bug_product_owner', roleName: '产品负责人', roleSort: 21, remark: '确认缺陷有效性并分派处理' },
-    { roleKey: 'bug_developer', roleName: '开发人员', roleSort: 22, remark: '处理分派给自己的缺陷' },
-    { roleKey: 'bug_tester', roleName: '测试人员', roleSort: 23, remark: '提交、验证和关闭缺陷' },
-    { roleKey: 'bug_submitter', roleName: '提交人', roleSort: 24, remark: '提交并跟踪本人缺陷' },
-    { roleKey: 'pm_manager', roleName: '项目管理负责人', roleSort: 25, remark: '管理需求、迭代、里程碑和项目进度' },
-    { roleKey: 'pm_executive', roleName: '管理层', roleSort: 26, remark: '查看项目仪表盘和项目进度摘要' },
+    { roleKey: 'bug_project_owner', roleName: '项目负责人', roleSort: 20, securityLevel: 600, remark: '管理项目内缺陷、成员、分派和统计' },
+    { roleKey: 'bug_product_owner', roleName: '产品负责人', roleSort: 21, securityLevel: 550, remark: '确认缺陷有效性并分派处理' },
+    { roleKey: 'bug_developer', roleName: '开发人员', roleSort: 22, securityLevel: 400, remark: '处理分派给自己的缺陷' },
+    { roleKey: 'bug_tester', roleName: '测试人员', roleSort: 23, securityLevel: 350, remark: '提交、验证和关闭缺陷' },
+    { roleKey: 'bug_submitter', roleName: '提交人', roleSort: 24, securityLevel: 100, remark: '提交并跟踪本人缺陷' },
+    { roleKey: 'pm_manager', roleName: '项目管理负责人', roleSort: 25, securityLevel: 650, remark: '管理需求、迭代、里程碑和项目进度' },
+    { roleKey: 'pm_executive', roleName: '管理层', roleSort: 26, securityLevel: 700, remark: '查看项目仪表盘和项目进度摘要' },
   ]
   const ensuredBugRoles = [] as Array<{ roleKey: string; roleId: bigint }>
   for (const role of bugRoles) {

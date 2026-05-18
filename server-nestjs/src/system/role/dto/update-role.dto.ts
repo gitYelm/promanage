@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, IsArray, IsBoolean } from 'class-validator'
+import { IsOptional, IsString, IsNumber, IsArray, IsBoolean, Min, Max, IsInt } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 
 export class UpdateRoleDto {
@@ -16,6 +16,14 @@ export class UpdateRoleDto {
   @IsOptional()
   @IsNumber()
   roleSort?: number
+
+  @ApiPropertyOptional({ description: '安全等级', example: 100 })
+  @IsOptional()
+  @IsNumber()
+  @IsInt({ message: '安全等级必须是整数' })
+  @Min(0, { message: '安全等级不能小于0' })
+  @Max(1000, { message: '安全等级不能大于1000' })
+  securityLevel?: number
 
   @ApiPropertyOptional({ description: '数据范围', example: '1' })
   @IsOptional()

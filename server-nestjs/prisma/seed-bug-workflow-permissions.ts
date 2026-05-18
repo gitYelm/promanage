@@ -161,14 +161,14 @@ async function ensureBugWorkflowPermissions() {
 
 async function ensureSupplementRoles() {
   const roles = [
-    ['bug_reviewer', '审核人员', 22, '审核缺陷、驳回或分派给开发'],
+    ['bug_reviewer', '审核人员', 22, 520, '审核缺陷、驳回或分派给开发'],
   ] as const
 
-  for (const [roleKey, roleName, roleSort, remark] of roles) {
+  for (const [roleKey, roleName, roleSort, securityLevel, remark] of roles) {
     await prisma.sysRole.upsert({
       where: { roleKey_delFlag: { roleKey, delFlag: '0' } },
-      update: { roleName, status: '0', remark },
-      create: { roleName, roleKey, roleSort, dataScope: '2', status: '0', remark },
+      update: { roleName, status: '0', securityLevel, remark },
+      create: { roleName, roleKey, roleSort, securityLevel, dataScope: '2', status: '0', remark },
     })
   }
 }

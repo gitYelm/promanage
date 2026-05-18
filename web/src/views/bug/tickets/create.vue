@@ -3,9 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { addBugTicket, bugProjectOptions, listBugModules, listBugVersions } from '@/api/bug'
 import { dispatchBugPendingCountRefresh } from '../shared/bug-events'
@@ -93,19 +93,19 @@ onMounted(loadBase)
     </div>
     <div class="grid gap-6 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(34rem,1.15fr)]">
       <section class="grid gap-4 rounded-lg border bg-background p-4 md:grid-cols-2">
-        <div class="space-y-2 md:col-span-2"><Label>标题 *</Label><Input v-model="form.title" placeholder="一句话描述问题" /></div>
-        <div class="space-y-2"><Label>项目</Label><Select v-model="form.projectId" @update:model-value="loadProjectData"><SelectTrigger><SelectValue placeholder="请选择项目" /></SelectTrigger><SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select></div>
-        <div class="space-y-2"><Label>模块</Label><Select v-model="form.moduleId"><SelectTrigger><SelectValue placeholder="请选择模块" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不选择</SelectItem><SelectItem v-for="m in modules" :key="m.moduleId" :value="m.moduleId">{{ m.moduleName }}</SelectItem></SelectContent></Select></div>
-        <div class="space-y-2"><Label>版本</Label><Select v-model="form.versionId"><SelectTrigger><SelectValue placeholder="请选择版本" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不选择</SelectItem><SelectItem v-for="v in versions" :key="v.versionId" :value="v.versionId">{{ v.versionNo }}</SelectItem></SelectContent></Select></div>
-        <div class="space-y-2"><Label>运行环境</Label><Select v-model="form.environment"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_ENVIRONMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></div>
-        <div class="space-y-2"><Label>类型</Label><Select v-model="form.type"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></div>
-        <div class="space-y-2"><Label>严重程度</Label><Select v-model="form.severity"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_SEVERITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></div>
-        <div class="space-y-2"><Label>优先级</Label><Select v-model="form.priority"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_PRIORITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></div>
-        <div class="space-y-2 md:col-span-2"><Label>问题描述</Label><Textarea v-model="form.description" rows="4" placeholder="说明问题现象、影响范围和发生频率" /></div>
-        <div class="space-y-2 md:col-span-2"><Label>复现步骤</Label><Textarea v-model="form.reproduceSteps" rows="4" placeholder="1. 打开...&#10;2. 点击...&#10;3. 出现..." /></div>
-        <div class="space-y-2"><Label>期望结果</Label><Textarea v-model="form.expectedResult" rows="3" /></div>
-        <div class="space-y-2"><Label>实际结果</Label><Textarea v-model="form.actualResult" rows="3" /></div>
-        <div class="space-y-2 md:col-span-2"><Label>设备信息</Label><Textarea v-model="form.deviceInfo" rows="2" /></div>
+        <FormFieldBlock label="标题" field-id="bug-create-title" required class="md:col-span-2" description="用一句话描述问题现象，是最少必填信息。"><Input id="bug-create-title" v-model="form.title" placeholder="例如：新增需求弹窗保存失败" /></FormFieldBlock>
+        <FormFieldBlock label="项目" field-id="bug-create-project" description="决定 Bug 归属、模块和版本候选范围。"><Select v-model="form.projectId" @update:model-value="loadProjectData"><SelectTrigger id="bug-create-project"><SelectValue placeholder="请选择项目" /></SelectTrigger><SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="模块" field-id="bug-create-module" optional description="用于定位功能范围；暂不选择时不会按模块自动带默认处理人。"><Select v-model="form.moduleId"><SelectTrigger id="bug-create-module"><SelectValue placeholder="请选择模块" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不选择模块</SelectItem><SelectItem v-for="m in modules" :key="m.moduleId" :value="m.moduleId">{{ m.moduleName }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="版本" field-id="bug-create-version" optional description="用于记录问题出现或修复的版本；暂不选择时后续可补充。"><Select v-model="form.versionId"><SelectTrigger id="bug-create-version"><SelectValue placeholder="请选择版本" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不选择版本</SelectItem><SelectItem v-for="v in versions" :key="v.versionId" :value="v.versionId">{{ v.versionNo }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="运行环境" field-id="bug-create-environment" description="说明问题出现在哪类环境，便于复现和定位。"><Select v-model="form.environment"><SelectTrigger id="bug-create-environment"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_ENVIRONMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="类型" field-id="bug-create-type" description="用于统计缺陷来源和分类处理。"><Select v-model="form.type"><SelectTrigger id="bug-create-type"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="严重程度" field-id="bug-create-severity" description="表示对业务和用户的影响程度。"><Select v-model="form.severity"><SelectTrigger id="bug-create-severity"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_SEVERITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="优先级" field-id="bug-create-priority" description="表示建议排期顺序，高优先级需要优先关注。"><Select v-model="form.priority"><SelectTrigger id="bug-create-priority"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_PRIORITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="问题描述" field-id="bug-create-description" optional class="md:col-span-2" description="说明问题现象、影响范围和发生频率。"><Textarea id="bug-create-description" v-model="form.description" rows="4" placeholder="说明问题现象、影响范围和发生频率" /></FormFieldBlock>
+        <FormFieldBlock label="复现步骤" field-id="bug-create-steps" optional class="md:col-span-2" description="按步骤描述如何稳定复现，便于开发和测试验证。"><Textarea id="bug-create-steps" v-model="form.reproduceSteps" rows="4" placeholder="1. 打开...&#10;2. 点击...&#10;3. 出现..." /></FormFieldBlock>
+        <FormFieldBlock label="期望结果" field-id="bug-create-expected" optional description="描述正确情况下用户应该看到或得到的结果。"><Textarea id="bug-create-expected" v-model="form.expectedResult" rows="3" placeholder="例如：保存成功并刷新列表" /></FormFieldBlock>
+        <FormFieldBlock label="实际结果" field-id="bug-create-actual" optional description="描述当前真实发生的错误结果，用于和期望结果对比。"><Textarea id="bug-create-actual" v-model="form.actualResult" rows="3" placeholder="例如：弹窗未关闭且数据未保存" /></FormFieldBlock>
+        <FormFieldBlock label="设备信息" field-id="bug-create-device" optional class="md:col-span-2" description="记录浏览器、系统、设备或网络信息，便于排查环境相关问题。"><Textarea id="bug-create-device" v-model="form.deviceInfo" rows="2" /></FormFieldBlock>
       </section>
       <aside class="rounded-lg border bg-background p-4 xl:sticky xl:top-4 xl:self-start">
         <AttachmentUploader v-model="attachments" @uploading-change="attachmentUploading = $event" />

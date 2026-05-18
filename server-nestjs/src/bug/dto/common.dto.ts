@@ -33,4 +33,16 @@ export class BugUserOptionQueryDto extends BugKeywordDto {
   @IsOptional()
   @IsString()
   memberRole?: string
+
+  /** 分配场景 */
+  @ApiPropertyOptional({ description: '分配场景，例如 projectOwner/bugAssignee/requirementDeveloper/moduleAssignee' })
+  @IsOptional()
+  @IsString()
+  assignContext?: string
+
+  /** 是否仅返回当前操作者可分配的用户 */
+  @ApiPropertyOptional({ description: '是否仅返回当前操作者可分配的用户' })
+  @IsOptional()
+  @IsString()
+  assignableOnly?: string
 }

@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { ExportTaskService, ExportDataProvider } from '../../common/export/export-task.service'
 import { ExcelColumn } from '../../common/excel/excel.service'
 import { Prisma } from '@prisma/client'
+import { SystemRoleSecurityService } from '../security/system-role-security.service'
 
 /** 用户导出列配置 */
 export const USER_EXPORT_COLUMNS: ExcelColumn[] = [
@@ -22,6 +23,7 @@ export class UserExportProvider implements ExportDataProvider, OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private exportTaskService: ExportTaskService,
+    private roleSecurity: SystemRoleSecurityService,
   ) {}
 
   onModuleInit() {
@@ -38,7 +40,7 @@ export class UserExportProvider implements ExportDataProvider, OnModuleInit {
   }
 
   async getTotal(query: Record<string, any>): Promise<number> {
-    const where = this.buildWhere(query)
+    const where = await this.scopedWhere(query)
     return this.prisma.sysUser.count({ where })
   }
 
@@ -47,7 +49,7 @@ export class UserExportProvider implements ExportDataProvider, OnModuleInit {
     skip: number,
     take: number,
   ): Promise<Record<string, any>[]> {
-    const where = this.buildWhere(query)
+    const where = await this.scopedWhere(query)
 
     const users = await this.prisma.sysUser.findMany({
       where,
@@ -68,6 +70,18 @@ export class UserExportProvider implements ExportDataProvider, OnModuleInit {
       status: user.status === '0' ? '正常' : '停用',
       createTime: user.createTime ? new Date(user.createTime).toLocaleString('zh-CN') : '',
     }))
+  }
+
+  private async scopedWhere(query: Record<string, any>) {
+    const baseWhere = this.buildWhere(query)
+    const operatorWhere = await this.operatorWhere(query)
+    return operatorWhere ? { AND: [baseWhere, operatorWhere] } : baseWhere
+  }
+
+  private async operatorWhere(query: Record<string, any>) {
+    const operatorId = typeof query.__operatorId === 'string' ? query.__operatorId : undefined
+    if (!operatorId) return undefined
+    return this.roleSecurity.accessibleUserWhere(operatorId)
   }
 
   private buildWhere(query: Record<string, any>): Prisma.SysUserWhereInput {
