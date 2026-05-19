@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Button } from '@/components/ui/button'
 import type { BugAttachment } from '@/api/bug/types'
 import { attachmentTypeLabel, attachmentUrl, formatFileSize, isImageAttachment, isVideoAttachment } from './attachment-utils'
 
@@ -80,7 +81,7 @@ function openFullscreen() {
       <div class="flex shrink-0 items-center gap-3">
         <button type="button" class="text-primary underline" @click="openFullscreen">查看全屏</button>
         <a :href="attachmentUrl(current)" target="_blank" class="text-primary underline">打开原文件</a>
-        <button v-if="removable" type="button" class="text-destructive" @click="emit('remove', current.attachmentId)">移除</button>
+        <Button v-if="removable" type="button" variant="link" class="h-auto p-0 text-destructive" permission="bug:attachment:remove" @click="emit('remove', current.attachmentId)">移除</Button>
       </div>
     </div>
   </div>

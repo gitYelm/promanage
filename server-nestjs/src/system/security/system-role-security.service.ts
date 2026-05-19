@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { PrismaService } from '../../prisma/prisma.service'
-import { defaultRoleSecurityLevel } from '../../common/security/role-level.config'
+import { defaultRoleSecurityLevel, isLegacyBusinessRole } from '../../common/security/role-level.config'
 
 @Injectable()
 export class SystemRoleSecurityService {
@@ -181,7 +181,12 @@ export class SystemRoleSecurityService {
       where: { userId: BigInt(userId), role: { delFlag: '0', status: '0' } },
       select: { role: { select: { roleKey: true, securityLevel: true } } },
     })
-    return Math.max(0, ...rows.map((row) => row.role.securityLevel ?? defaultRoleSecurityLevel(row.role.roleKey)))
+    return Math.max(
+      0,
+      ...rows
+        .filter((row) => !isLegacyBusinessRole(row.role.roleKey))
+        .map((row) => row.role.securityLevel ?? defaultRoleSecurityLevel(row.role.roleKey)),
+    )
   }
 
   private async roleIdsLevel(roleIds: string[]) {

@@ -34,6 +34,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { usePermission } from '@/composables/usePermission'
 import {
   addWorkspaceConfig,
   delWorkspaceConfig,
@@ -70,6 +71,7 @@ const form = reactive({
   remark: '',
 })
 
+const canShowOperationColumn = usePermission(['system:workspace:edit', 'system:workspace:remove'])
 const dialogTitle = computed(() => (form.configId ? '修改工作台配置' : '新增工作台配置'))
 const pathOptions = computed(() => {
   const configured = menus.value.map((item) => ({ label: `${item.menuName}（${item.path}）`, value: item.path }))
@@ -233,7 +235,7 @@ onMounted(async () => {
             <TableHead>默认展开菜单</TableHead>
             <TableHead>菜单策略</TableHead>
             <TableHead class="text-center">状态</TableHead>
-            <TableHead class="w-32 text-right">操作</TableHead>
+            <TableHead v-if="canShowOperationColumn" class="w-32 text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -244,7 +246,7 @@ onMounted(async () => {
             <TableCell>{{ row.defaultOpenMenu || '-' }}</TableCell>
             <TableCell>{{ menuScopeLabel(row.menuScope) }}</TableCell>
             <TableCell class="text-center"><Badge :variant="row.status === '0' ? 'default' : 'secondary'">{{ row.status === '0' ? '启用' : '停用' }}</Badge></TableCell>
-            <TableCell class="text-right">
+            <TableCell v-if="canShowOperationColumn" class="text-right">
               <div class="flex justify-end gap-2">
                 <Button v-hasPermi="['system:workspace:edit']" size="sm" variant="outline" @click="handleEdit(row)"><Edit class="h-4 w-4" /></Button>
                 <Button v-hasPermi="['system:workspace:remove']" size="sm" variant="destructive" @click="handleDelete(row)"><Trash2 class="h-4 w-4" /></Button>
@@ -274,6 +276,6 @@ onMounted(async () => {
       </DialogContent>
     </Dialog>
 
-    <ConfirmDialog v-model:open="deleteOpen" title="删除工作台配置" :description="`确定删除 ${current?.roleName || current?.roleKey} 的工作台配置吗？`" @confirm="confirmDelete" />
+    <ConfirmDialog v-model:open="deleteOpen" title="删除工作台配置" :description="`确定删除 ${current?.roleName || current?.roleKey} 的工作台配置吗？`" permission="system:workspace:remove" @confirm="confirmDelete" />
   </div>
 </template>

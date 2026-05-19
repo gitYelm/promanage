@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { LoggerService } from '../../common/logger/logger.service'
+import { isLegacyBusinessRole } from '../../common/security/role-level.config'
 
 @Injectable()
 export class UserInfoService {
@@ -28,7 +29,7 @@ export class UserInfoService {
     // 为什么只取启用角色：后端守卫已经只认启用角色，前端权限态也必须一致，
     // 避免停用/删除角色继续让页面按钮误显示。
     const activeRoles = user.roles.filter((ur) => {
-      return ur.role.delFlag === '0' && ur.role.status === '0'
+      return ur.role.delFlag === '0' && ur.role.status === '0' && !isLegacyBusinessRole(ur.role.roleKey)
     })
     const roleKeys = activeRoles.map((ur) => ur.role.roleKey)
     const roleList = activeRoles.map((ur) => ({

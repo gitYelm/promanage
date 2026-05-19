@@ -198,7 +198,7 @@ defineExpose({ loadFile })
       <Textarea v-model="text" class="h-9 min-h-9 w-56" placeholder="文字说明" />
       <Button type="button" variant="outline" @click="undo">撤销</Button>
       <Button type="button" variant="outline" @click="clearMarks">清空标注</Button>
-      <Button type="button" :disabled="saving" @click.stop.prevent="save">{{ saving ? '生成中...' : '保存并上传' }}</Button>
+      <Button type="button" permission="bug:attachment:upload" :disabled="saving" @click.stop.prevent="save">{{ saving ? '生成中...' : '保存并上传' }}</Button>
     </div>
     <div class="max-h-[60vh] overflow-auto rounded border bg-muted/30 p-2">
       <canvas ref="canvasRef" class="max-w-full touch-none cursor-crosshair" @mousedown="down" @mousemove="move" @mouseup="up" @mouseleave="up" @touchstart="down" @touchmove="move" @touchend="up" />

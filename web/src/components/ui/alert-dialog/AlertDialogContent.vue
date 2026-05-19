@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AlertDialogContentEmits, AlertDialogContentProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
+import { provide, ref } from 'vue'
 import { reactiveOmit } from '@vueuse/core'
 import {
   AlertDialogContent,
@@ -9,13 +10,17 @@ import {
   useForwardPropsEmits,
 } from 'reka-ui'
 import { cn } from '@/lib/utils'
+import { ALERT_DIALOG_CONTEXT_KEY } from './context'
 
 const props = defineProps<AlertDialogContentProps & { class?: HTMLAttributes['class'] }>()
 const emits = defineEmits<AlertDialogContentEmits>()
+const titleText = ref('')
 
 const delegatedProps = reactiveOmit(props, 'class')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
+
+provide(ALERT_DIALOG_CONTEXT_KEY, { titleText })
 </script>
 
 <template>

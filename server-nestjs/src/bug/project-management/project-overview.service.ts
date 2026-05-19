@@ -38,7 +38,8 @@ export class ProjectOverviewService {
     ])
     return {
       project,
-      progress: this.query.progress(requirementTotal, requirementDone),
+      // 项目进度以“更新进度”中维护的项目表进度为准；需求完成度单独用 requirementDone/requirementTotal 展示，避免口径混淆。
+      progress: project.progress ?? 0,
       requirementTotal,
       requirementDone,
       bugTotal,

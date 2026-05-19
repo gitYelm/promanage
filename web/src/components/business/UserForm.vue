@@ -225,7 +225,12 @@ defineExpose({
       </Avatar>
       <div>
         <Label class="cursor-pointer">
-          <Button variant="outline" size="sm" as="span">
+          <Button
+            variant="outline"
+            size="sm"
+            as="span"
+            :permission="isEdit ? 'system:user:edit' : 'system:user:add'"
+          >
             <Upload class="mr-2 h-4 w-4" />
             上传头像
           </Button>
@@ -335,7 +340,7 @@ defineExpose({
     <div class="grid gap-2">
       <div class="flex items-center justify-between">
         <Label>岗位</Label>
-        <Button variant="link" size="sm" class="h-auto p-0 text-xs" @click="toggleAllPosts">
+        <Button data-permission-neutral variant="link" size="sm" class="h-auto p-0 text-xs" @click="toggleAllPosts">
           {{ formData.postIds?.length === posts.length ? '取消全选' : '全选' }}
         </Button>
       </div>
@@ -359,7 +364,7 @@ defineExpose({
     <div class="grid gap-2">
       <div class="flex items-center justify-between">
         <Label>角色</Label>
-        <Button variant="link" size="sm" class="h-auto p-0 text-xs" @click="toggleAllRoles">
+        <Button data-permission-neutral variant="link" size="sm" class="h-auto p-0 text-xs" @click="toggleAllRoles">
           {{ formData.roleIds?.length === roles.length ? '取消全选' : '全选' }}
         </Button>
       </div>

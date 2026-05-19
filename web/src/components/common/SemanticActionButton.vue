@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'vue'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getSemanticStyle, type SemanticTone } from '@/utils/semantic-styles'
+import type { PermissionFlagInput } from '@/utils/permission-visibility'
 
 const ACTION_TONE_MAP: Record<string, SemanticTone> = {
   submit: 'info',
@@ -39,6 +40,7 @@ const props = withDefaults(
   defineProps<{
     action?: string
     tone?: SemanticTone
+    permissions?: PermissionFlagInput
     class?: HTMLAttributes['class']
   }>(),
   {
@@ -56,6 +58,7 @@ function actionTone(action?: string, tone?: SemanticTone) {
   <Button
     variant="outline"
     size="sm"
+    :permission="permissions"
     :class="cn(getSemanticStyle(actionTone(action, tone)).badgeClass, 'whitespace-nowrap shadow-none', props.class)"
   >
     <slot />

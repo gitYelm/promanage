@@ -11,17 +11,40 @@ const props = withDefaults(
     tone?: SemanticTone
     description?: string
     class?: HTMLAttributes['class']
+    interactive?: boolean
   }>(),
   {
     value: 0,
     tone: 'neutral',
     description: '',
+    interactive: false,
   },
 )
+const emit = defineEmits<{
+  activate: []
+}>()
+
+function activate() {
+  if (props.interactive) emit('activate')
+}
 </script>
 
 <template>
-  <Card :class="cn(getSemanticStyle(tone).cardClass, props.class)">
+  <Card
+    :class="
+      cn(
+        getSemanticStyle(tone).cardClass,
+        interactive &&
+          'cursor-pointer select-none transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        props.class,
+      )
+    "
+    :tabindex="interactive ? 0 : undefined"
+    :role="interactive ? 'button' : undefined"
+    :title="interactive ? '双击查看关联列表' : undefined"
+    @keyup.enter="activate"
+    @dblclick="activate"
+  >
     <CardHeader class="pb-2">
       <CardTitle class="text-sm text-muted-foreground">{{ title }}</CardTitle>
     </CardHeader>

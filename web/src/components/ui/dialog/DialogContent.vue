@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DialogContentEmits, DialogContentProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
+import { provide, ref } from 'vue'
 import { reactiveOmit } from '@vueuse/core'
 import { Cross2Icon } from '@radix-icons/vue'
 import {
@@ -11,13 +12,17 @@ import {
   useForwardPropsEmits,
 } from 'reka-ui'
 import { cn } from '@/lib/utils'
+import { DIALOG_CONTEXT_KEY } from './context'
 
 const props = defineProps<DialogContentProps & { class?: HTMLAttributes['class'] }>()
 const emits = defineEmits<DialogContentEmits>()
+const titleText = ref('')
 
 const delegatedProps = reactiveOmit(props, 'class')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
+
+provide(DIALOG_CONTEXT_KEY, { titleText })
 </script>
 
 <template>

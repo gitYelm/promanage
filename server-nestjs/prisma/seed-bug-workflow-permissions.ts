@@ -153,15 +153,32 @@ const rolePermissions: Record<string, string[]> = {
   pm_executive: pmExecutivePermissions,
 }
 
+const legacyRoleKeyMappings = [
+  ['project_owner', 'bug_project_owner'],
+  ['product_owner', 'bug_product_owner'],
+  ['reviewer', 'bug_reviewer'],
+  ['developer', 'bug_developer'],
+  ['tester', 'bug_tester'],
+  ['submitter', 'bug_submitter'],
+] as const
+
 async function ensureBugWorkflowPermissions() {
   await ensureSupplementRoles()
   await ensureMemberRoleDict()
+  await migrateLegacyRoleBindings()
   await bindRolePermissions()
+  await deactivateLegacyRoles()
 }
 
 async function ensureSupplementRoles() {
   const roles = [
+    ['bug_project_owner', '项目负责人', 20, 600, '负责项目配置、成员维护、缺陷分派、项目进度和统计'],
+    ['bug_product_owner', '产品负责人', 21, 550, '负责需求确认、缺陷有效性判断、优先级和业务验收'],
     ['bug_reviewer', '审核人员', 22, 520, '审核缺陷、驳回或分派给开发'],
+    ['bug_developer', '开发人员', 23, 400, '处理分派给自己的缺陷并提交验证'],
+    ['bug_tester', '测试人员', 24, 350, '提交、验证、关闭或重新打开缺陷'],
+    ['bug_submitter', '提交人', 25, 100, '提交并跟踪本人缺陷'],
+    ['pm_executive', '管理层', 26, 700, '查看项目仪表盘和项目进度摘要'],
   ] as const
 
   for (const [roleKey, roleName, roleSort, securityLevel, remark] of roles) {
@@ -220,6 +237,38 @@ async function bindRolePermissions() {
       skipDuplicates: true,
     })
   }
+}
+
+async function migrateLegacyRoleBindings() {
+  for (const [legacyRoleKey, standardRoleKey] of legacyRoleKeyMappings) {
+    const legacyRole = await prisma.sysRole.findFirst({
+      where: { roleKey: legacyRoleKey, delFlag: '0' },
+      select: { roleId: true },
+    })
+    const standardRole = await prisma.sysRole.findFirst({
+      where: { roleKey: standardRoleKey, delFlag: '0' },
+      select: { roleId: true },
+    })
+    if (!legacyRole || !standardRole) continue
+    const bindings = await prisma.sysUserRole.findMany({
+      where: { roleId: legacyRole.roleId },
+      select: { userId: true },
+    })
+    if (bindings.length) {
+      await prisma.sysUserRole.createMany({
+        data: bindings.map((binding) => ({ userId: binding.userId, roleId: standardRole.roleId })),
+        skipDuplicates: true,
+      })
+    }
+    await prisma.sysUserRole.deleteMany({ where: { roleId: legacyRole.roleId } })
+  }
+}
+
+async function deactivateLegacyRoles() {
+  await prisma.sysRole.updateMany({
+    where: { roleKey: { in: legacyRoleKeyMappings.map(([roleKey]) => roleKey) }, delFlag: '0' },
+    data: { status: '1', delFlag: '2', remark: '已由规范 bug_* 业务角色替代，禁止继续参与权限计算' },
+  })
 }
 
 async function collectDescendantMenuIds(rootPaths: string[]) {

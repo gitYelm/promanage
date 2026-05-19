@@ -5,6 +5,7 @@ import { CreateMenuDto } from './dto/create-menu.dto'
 import { UpdateMenuDto } from './dto/update-menu.dto'
 import { QueryMenuDto } from './dto/query-menu.dto'
 import { LoggerService } from '../../common/logger/logger.service'
+import { isLegacyBusinessRole } from '../../common/security/role-level.config'
 
 // 扩展 SysMenu 类型以包含 children
 export type SysMenuWithChildren = SysMenu & {
@@ -187,7 +188,7 @@ export class MenuService {
 
     const roles = user.roles
       .map((ur) => ur.role)
-      .filter((role) => role.delFlag === '0' && role.status === '0')
+      .filter((role) => role.delFlag === '0' && role.status === '0' && !isLegacyBusinessRole(role.roleKey))
     const isAdmin = roles.some((role) => role.roleKey === 'admin')
 
     let menus: SysMenu[] = []

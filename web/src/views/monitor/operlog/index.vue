@@ -47,8 +47,11 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import { usePermission } from '@/composables/usePermission'
+import { getBusinessTypeLabel } from './business-type'
 
 const { toast } = useToast()
+const canShowOperationColumn = usePermission(['monitor:operlog:query'])
 
 // State
 const loading = ref(true)
@@ -161,20 +164,6 @@ function handleView(row: SysOperLog) {
   showDetail.value = true
 }
 
-function getBusinessTypeLabel(type: number) {
-  const map: Record<number, string> = {
-    0: '其它',
-    1: '新增',
-    2: '修改',
-    3: '删除',
-    4: '授权',
-    5: '导出',
-    6: '导入',
-    7: '强退',
-    8: '清空',
-  }
-  return map[type] || '未知'
-}
 
 onMounted(() => {
   getList()
@@ -330,7 +319,7 @@ onMounted(() => {
             <TableHead>操作地点</TableHead>
             <TableHead>状态</TableHead>
             <TableHead>操作时间</TableHead>
-            <TableHead class="text-right">操作</TableHead>
+            <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -355,7 +344,7 @@ onMounted(() => {
               </Badge>
             </TableCell>
             <TableCell>{{ formatDate(item.operTime) }}</TableCell>
-            <TableCell class="text-right space-x-2">
+            <TableCell v-if="canShowOperationColumn" class="text-right space-x-2">
               <Button variant="ghost" size="icon" @click="handleView(item)">
                 <Eye class="w-4 h-4" />
               </Button>

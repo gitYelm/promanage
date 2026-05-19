@@ -16,6 +16,7 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import { formatDate } from '@/utils/format'
+import { usePermission } from '@/composables/usePermission'
 import { changeRoleStatus } from '@/api/system/role'
 import type { SysRole } from '@/api/system/types'
 
@@ -50,6 +51,7 @@ function getDataScopeText(dataScope?: string) {
   }
   return scopeMap[dataScope || '1'] || '全部数据'
 }
+const canShowOperationColumn = usePermission(['system:role:query', 'system:role:edit', 'system:role:remove'])
 </script>
 
 <template>
@@ -78,7 +80,7 @@ function getDataScopeText(dataScope?: string) {
           <TableHead>显示顺序</TableHead>
           <TableHead>状态</TableHead>
           <TableHead>创建时间</TableHead>
-          <TableHead class="text-right">操作</TableHead>
+          <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -119,14 +121,15 @@ function getDataScopeText(dataScope?: string) {
             />
           </TableCell>
           <TableCell>{{ formatDate(item.createTime) }}</TableCell>
-          <TableCell class="text-right space-x-2">
-            <Button variant="ghost" size="icon" title="查看权限" @click="emit('preview', item)">
+          <TableCell v-if="canShowOperationColumn" class="text-right space-x-2">
+            <Button permission="system:role:query" variant="ghost" size="icon" title="查看权限" @click="emit('preview', item)">
               <Eye class="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" title="修改" @click="emit('edit', item)">
+            <Button permission="system:role:edit" variant="ghost" size="icon" title="修改" @click="emit('edit', item)">
               <Edit class="w-4 h-4" />
             </Button>
             <Button
+              permission="system:role:remove"
               variant="ghost"
               size="icon"
               class="text-destructive"

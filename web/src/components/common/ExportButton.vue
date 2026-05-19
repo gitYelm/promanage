@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { DownloadIcon, Loader2Icon, CheckIcon } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import type { PermissionFlagInput } from '@/utils/permission-visibility'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,8 @@ interface Props {
   variant?: 'default' | 'outline' | 'secondary' | 'ghost'
   /** 按钮大小 */
   size?: 'default' | 'sm' | 'lg' | 'icon'
+  /** 导出权限 */
+  permission?: PermissionFlagInput
 }
 
 interface Emits {
@@ -74,6 +77,7 @@ const isSingleFormat = props.formats.length === 1
     v-if="isSingleFormat"
     :variant="variant"
     :size="size"
+    :permission="permission"
     :disabled="disabled || loading"
     @click="handleExport(formats[0]!)"
   >
@@ -86,7 +90,7 @@ const isSingleFormat = props.formats.length === 1
   <!-- 多格式：下拉菜单 -->
   <DropdownMenu v-else>
     <DropdownMenuTrigger as-child>
-      <Button :variant="variant" :size="size" :disabled="disabled || loading">
+      <Button :variant="variant" :size="size" :permission="permission" :disabled="disabled || loading">
         <Loader2Icon v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
         <CheckIcon v-else-if="success" class="mr-2 h-4 w-4 text-green-500" />
         <DownloadIcon v-else class="mr-2 h-4 w-4" />
@@ -94,7 +98,12 @@ const isSingleFormat = props.formats.length === 1
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end">
-      <DropdownMenuItem v-for="format in formats" :key="format" @click="handleExport(format)">
+      <DropdownMenuItem
+        v-for="format in formats"
+        :key="format"
+        :permission="permission"
+        @click="handleExport(format)"
+      >
         {{ formatLabels[format] }}
       </DropdownMenuItem>
     </DropdownMenuContent>

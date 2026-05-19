@@ -27,9 +27,9 @@ const emit = defineEmits<{
       <span class="text-sm">
         已选择 <span class="font-medium">{{ selectedCount }}</span> 项
       </span>
-      <Button variant="outline" size="sm" @click="emit('status', '0')"> 批量启用 </Button>
-      <Button variant="outline" size="sm" @click="emit('status', '1')"> 批量停用 </Button>
-      <Button variant="destructive" size="sm" @click="emit('delete')"> 批量删除 </Button>
+      <Button permission="system:role:edit" variant="outline" size="sm" @click="emit('status', '0')"> 批量启用 </Button>
+      <Button permission="system:role:edit" variant="outline" size="sm" @click="emit('status', '1')"> 批量停用 </Button>
+      <Button permission="system:role:remove" variant="destructive" size="sm" @click="emit('delete')"> 批量删除 </Button>
     </div>
   </Transition>
 </template>

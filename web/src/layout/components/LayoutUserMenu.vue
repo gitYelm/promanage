@@ -59,9 +59,9 @@ const { getAvatarUrl } = useLayoutHelpers()
         </div>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      <DropdownMenuItem @click="emit('profile')"><User class="mr-2 h-4 w-4" />个人中心</DropdownMenuItem>
+      <DropdownMenuItem data-permission-neutral @click="emit('profile')"><User class="mr-2 h-4 w-4" />个人中心</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem class="text-destructive focus:text-destructive" @click="emit('logout')">
+      <DropdownMenuItem data-permission-neutral class="text-destructive focus:text-destructive" @click="emit('logout')">
         <LogOut class="mr-2 h-4 w-4" />退出登录
       </DropdownMenuItem>
     </DropdownMenuContent>

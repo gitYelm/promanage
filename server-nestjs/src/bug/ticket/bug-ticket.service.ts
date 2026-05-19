@@ -59,7 +59,12 @@ export class BugTicketService {
         { status: { in: [...BUG_PENDING_STATUSES] } },
       ],
     }
-    return { count: await this.prisma.bugTicket.count({ where }) }
+    const tickets = await this.prisma.bugTicket.findMany({
+      where,
+      select: { ticketId: true, projectId: true, submitterId: true, assigneeId: true, verifierId: true, status: true },
+    })
+    const actionable = await Promise.all(tickets.map(async (ticket) => (await this.availableActions(ticket, user)).length > 0))
+    return { count: actionable.filter(Boolean).length }
   }
 
   async detail(ticketId: string, user: RequestUserLike) {

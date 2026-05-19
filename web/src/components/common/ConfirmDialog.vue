@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { PermissionFlagInput } from '@/utils/permission-visibility'
 
 interface Props {
   /** 是否显示 */
@@ -33,6 +34,8 @@ interface Props {
   confirmInputPlaceholder?: string
   /** 是否加载中 */
   loading?: boolean
+  /** 确认动作权限；不传时由 AlertDialogAction 按标题兜底推断 */
+  permission?: PermissionFlagInput
 }
 
 interface Emits {
@@ -123,6 +126,7 @@ function handleOpenChange(val: boolean) {
           {{ cancelText }}
         </AlertDialogCancel>
         <AlertDialogAction
+          :permission="permission"
           :disabled="!canConfirm"
           :class="
             destructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''

@@ -29,9 +29,11 @@ import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { listOnline, forceLogout, type SysUserOnline } from '@/api/monitor/online'
 import { useUserStore } from '@/stores/modules/user'
+import { usePermission } from '@/composables/usePermission'
 
 const { toast } = useToast()
 const userStore = useUserStore()
+const canShowOperationColumn = usePermission(['monitor:online:forceLogout'])
 
 // State
 const loading = ref(true)
@@ -328,7 +330,7 @@ onUnmounted(() => {
             <TableHead>操作系统</TableHead>
             <TableHead>登录时间</TableHead>
             <TableHead>在线时长</TableHead>
-            <TableHead class="text-right">操作</TableHead>
+            <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -387,7 +389,7 @@ onUnmounted(() => {
                 formatDuration(item.onlineDuration)
               }}</span>
             </TableCell>
-            <TableCell class="text-right">
+            <TableCell v-if="canShowOperationColumn" class="text-right">
               <Button
                 variant="ghost"
                 size="sm"

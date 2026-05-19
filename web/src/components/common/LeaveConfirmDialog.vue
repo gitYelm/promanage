@@ -51,7 +51,7 @@ const handleConfirm = () => {
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel @click="handleCancel">{{ cancelText }}</AlertDialogCancel>
-        <AlertDialogAction @click="handleConfirm">{{ confirmText }}</AlertDialogAction>
+        <AlertDialogAction data-permission-neutral @click="handleConfirm">{{ confirmText }}</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

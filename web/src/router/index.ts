@@ -96,19 +96,19 @@ const router = createRouter({
           path: 'bug/tickets',
           name: 'BugTickets',
           component: () => import('@/views/bug/tickets/index.vue'),
-          meta: { title: '缺陷列表', icon: 'bug' },
+          meta: { title: '缺陷列表', icon: 'bug', perms: ['bug:ticket:list'] },
         },
         {
           path: 'bug/my',
           name: 'MyBugTickets',
           component: () => import('@/views/bug/tickets/index.vue'),
-          meta: { title: '我的缺陷', icon: 'user-check' },
+          meta: { title: '我的缺陷', icon: 'user-check', perms: ['bug:ticket:my'] },
         },
         {
           path: 'bug/create',
           name: 'BugCreate',
           component: () => import('@/views/bug/tickets/create.vue'),
-          meta: { title: '提交缺陷', icon: 'plus-square' },
+          meta: { title: '提交缺陷', icon: 'plus-square', perms: ['bug:ticket:add'] },
         },
         {
           path: 'bug/projects',

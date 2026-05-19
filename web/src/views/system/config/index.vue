@@ -47,8 +47,10 @@ import {
   type SysConfig,
 } from '@/api/system/config'
 import { useUnsavedChanges } from '@/composables'
+import { usePermission } from '@/composables/usePermission'
 
 const { toast } = useToast()
+const canShowOperationColumn = usePermission(['system:config:edit', 'system:config:remove'])
 
 // 未保存更改提示（同时支持路由离开和弹窗关闭）
 const { isDirty, markClean, showLeaveDialog, confirmLeave, cancelLeave, tryLeave } =
@@ -301,7 +303,7 @@ onMounted(() => {
             <TableHead class="text-center">系统内置</TableHead>
             <TableHead>备注</TableHead>
             <TableHead>创建时间</TableHead>
-            <TableHead class="text-right">操作</TableHead>
+            <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -319,7 +321,7 @@ onMounted(() => {
             </TableCell>
             <TableCell class="max-w-[200px] truncate">{{ item.remark }}</TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>
-            <TableCell class="text-right">
+            <TableCell v-if="canShowOperationColumn" class="text-right">
               <div class="flex justify-end gap-2">
                 <Button variant="ghost" size="icon" @click="handleUpdate(item)">
                   <Edit class="w-4 h-4" />

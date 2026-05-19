@@ -1,6 +1,6 @@
 # 开发协作问题与防重复清单 - bug-feedback-system
 
-最后更新时间：2026-05-17
+最后更新时间：2026-05-19
 
 ## 当前项目事实
 
@@ -28,11 +28,76 @@
 3. 新代码必须模块化，任何自有代码文件接近 450 行必须拆分。
 4. 后端 Service 禁止 `throw new Error()` 和 `console.log`，必须使用 `BusinessException` / `LoggerService`。
 5. 新接口必须加 Swagger、JWT、PermissionGuard、权限标识。
-6. 前端按钮权限必须使用 `v-hasPermi`，后端仍需做权限校验。
+6. 前端按钮权限必须使用 `v-hasPermi`、`Button.permission`、`AlertDialogAction.permission`、`SemanticActionButton.permissions`、`StatusSwitch.permission`、`usePermission` 或公共权限映射；无权限按钮必须不渲染，后端仍需做权限校验。
 7. 状态流转必须集中管理，不允许页面直接写状态字段绕过流程。
 8. 数据库必须新建独立库或独立 schema，避免污染已有本地数据。
 9. Redis 必须使用独立 DB 或键前缀，避免污染已有缓存。
 10. 附件上传必须校验类型、大小和内容，图片标注优先在浏览器本地完成后再上传。
+
+### 前端无权限按钮与操作列防重复规则
+
+#### 现象
+
+- 用户没有编辑、删除、批量删除、批量启停、强退、清空、执行一次、上传、导出等权限时，页面仍可能看到按钮或空的“操作”表头。
+- 快捷操作里的状态流转动作全部无权限时，表格仍可能显示“快捷操作”表头或每行 `-`。
+- 只隐藏入口按钮但没有隐藏确认弹窗里的“确定/确认”按钮，容易造成误触或接口 403。
+
+#### 根因
+
+1. 过去部分页面只在单元格内部使用 `v-hasPermi` 隐藏按钮，没有在列级别计算“操作/快捷操作”是否整体可见。
+2. 很多确认弹窗按钮文案都是“确定/确认”，没有显式权限时很难从按钮本身判断动作权限。
+3. 图标按钮、下拉触发器、状态开关、上传和导出组件属于公共入口，如果不在公共组件兜底，容易在大页面中反复漏改。
+4. 普通交互按钮和业务权限按钮曾混在一起处理，容易把搜索、重置、刷新、取消、关闭、退出登录等中性操作误隐藏。
+
+#### 防重复规则
+
+- 所有受权限控制的业务按钮必须无权限不渲染，不能显示禁用态、空图标、空按钮、空占位或点击后再提示无权限。
+- 表格“操作”列必须按当前路由和该表管理动作权限整体判断；当前用户没有任何编辑、删除或管理动作权限时，连“操作”表头和整列都不显示。
+- 表格“快捷操作”列必须按快捷动作权限整体判断；当前用户没有任何快捷动作权限时，连“快捷操作”表头和整列都不显示。
+- 快捷操作配置必须携带 `permissions`，渲染前先按 `hasAnyPermission` 过滤；不能只依赖后端返回或单个按钮内部隐藏。
+- 确认弹窗里的确认按钮同样是权限按钮：确认删除、确认清空、确认强退、确认重置密码、确认批量启停、确认执行一次等都必须隐藏无权限确认按钮。
+- `Button`、`DropdownMenuItem`、`AlertDialogAction`、`SemanticActionButton`、`StatusSwitch`、`ImageUpload`、`ExportButton`、`ExportDialog`、`ExportTaskList`、附件上传/移除组件等公共入口必须优先承载权限兜底，不要继续在 500 行以上页面堆散点逻辑。
+- 业务下拉菜单项、导出格式菜单项、附件上传入口、附件移除入口也属于权限按钮；无权限时必须不渲染真实菜单项或按钮。
+- 搜索、重置筛选、刷新当前数据、翻页、展开/收起、取消、关闭、退出登录、放弃更改、复制、预览、全选/取消全选、个人中心、主题切换等普通交互不按权限按钮处理；必要时使用 `data-permission-neutral` 防止公共推断误判。
+- 前端 API 封装可加二次权限兜底以防误触，但不能替代后端 `@RequirePermission`、数据范围和字段级校验。
+- 看到无权限按钮时必须同时排查 `/system/user/getInfo` 返回的 `permissions`；如果后端把错误权限返回给前端，单纯修改按钮组件或 `v-if` 不是根治。
+- Bug 演示账号必须使用规范系统角色 `bug_project_owner`、`bug_product_owner`、`bug_reviewer`、`bug_developer`、`bug_tester`、`bug_submitter`；旧角色 `project_owner`、`product_owner`、`reviewer`、`developer`、`tester`、`submitter` 一律视为历史脏数据，不得参与前端权限、后端守卫、菜单、导出、工作台或数据范围计算。
+- `developer01` / 开发一号不应拥有 `bug:project:member`、`bug:project:add`、`bug:project:edit`、`bug:project:remove`；项目配置页不应显示“成员”快捷操作和“操作”列维护按钮。
+
+#### 写入前检查
+
+- 修改自有代码前先 `wc -l`；大页面接近或超过 500 行时，优先改公共组件、公共映射或提取小组件。
+- 先全局搜索 `<Button`、`<DropdownMenuItem`、`<AlertDialogAction`、`StatusSwitch`、`操作`、`快捷操作`、写接口 API，确认是否存在同类漏点。
+- 新增业务按钮前先确认对应后端权限标识和路由映射；动态文案或复杂动作必须显式传 `permission`。
+- 权限异常时执行数据库核对：确认当前用户绑定的 `sys_role.role_key` 是否为规范 `bug_*` 角色，并检查返回权限中是否含有不该出现的 `bug:project:member` 等按钮权限。
+
+#### 写入后验收
+
+- 用低权限账号验证：无权限业务按钮不可见，确认弹窗确认按钮不可见，表格不保留空“操作/快捷操作”表头。
+- 用有权限账号验证：按钮、确认弹窗、状态开关、导出/上传入口正常显示和可用。
+- 静态扫描重点命令：`rg --pcre2 "<AlertDialogAction(?![^>]*(permission|data-permission-neutral))" web/src -g '*.vue'`、`rg "<Button|<DropdownMenuItem" web/src -g '*.vue'`。
+- 低权限账号验收时必须重新登录或刷新用户信息，避免 Pinia 中旧 `permissions` 残留导致按钮误显示。
+
+#### 相关文件
+
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/components/ui/button/Button.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/components/ui/alert-dialog/AlertDialogAction.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/components/ui/dropdown-menu/DropdownMenuItem.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/components/common/StatusSwitch.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/components/common/SemanticActionButton.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/components/ui/table/table-align.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/views/bug/tickets/components/AttachmentUploader.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/views/bug/tickets/components/AttachmentList.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/views/bug/tickets/components/AttachmentPreviewPanel.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/views/bug/tickets/components/ImageAnnotator.vue`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/utils/permission-visibility.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/web/src/stores/modules/user.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/common/security/role-level.config.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/system/user/user-info.service.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/src/common/guards/permission.guard.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/prisma/seed-bug-workflow-permissions.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/prisma/seed-role-user-cleanup.ts`
+- `/Volumes/data/fzl/pro/bug-feedback-system/docs/开发规范/前端页面交互与视觉规范.md`
 
 ### Bug 角色权限防重复规则
 
@@ -42,6 +107,55 @@
 - 项目/模块/版本列表应按 `visibleProjectIds` 限制数据范围，不能因为有菜单权限就返回所有项目基础数据。
 - 种子链路必须包含 `server-nestjs/prisma/seed-bug-workflow-permissions.ts`，确保 reviewer 角色、项目成员字典和权限幂等补齐。
 - 演示/验收用户名不要带业务模块前缀，建议使用：`project_owner`、`product_owner`、`reviewer01`、`developer01`、`developer02`、`tester01`、`submitter01`；如需只读观察再启用 `viewer01`。
+- 旧系统角色 `project_owner`、`product_owner`、`reviewer`、`developer`、`tester`、`submitter` 必须迁移到对应 `bug_*` 角色后停用；代码层应通过 `isLegacyBusinessRole` 防止旧角色继续污染权限返回、菜单、工作台、导出和接口鉴权。
+
+### FLYCARD 项目数据更新与基础字段保护防重复规则
+
+#### 现象
+
+- FLYCARD/dev2 Git 记录整理导入时，曾把 Git 整理口径误当成项目主数据，存在覆盖项目名称、项目负责人、项目描述、进度和风险等基础字段的风险。
+- 用户已明确要求：后续如果更新 FLYCARD，只能更新可维护数据，不能乱改项目名称、负责人、项目标识和业务说明等基础信息。
+
+#### 当前已确认项目事实
+
+- 系统项目标识：`FLYCARD`。
+- 项目名称：`飞鸟探亲`。
+- 项目负责人：`project_owner`（当前数据库 `owner_id=8`）。
+- 展示模块：只保留 `小程序端` 与 `后台管理端` 两个启用模块。
+- 业务范围：小程序端承载信件服务、商品下单、订单/售后、回信/客服、律师服务、评价与消息订阅；后台管理端承载 FastAdmin 运营配置、订单审核、律师管理、支付退款、第三方登录和插件配置。
+
+#### 根因
+
+1. Git 提交记录只能证明需求、缺陷、迭代、里程碑、模块归并和证据 Commit，不能证明项目主数据应该被改名或换负责人。
+2. 导入脚本如果在 `upsert/update` 中写入 `projectName`、`ownerId`、`description`、`projectStage`、`progress`、`riskLevel` 等字段，会把“整理建议”错误提升为“主数据覆盖”。
+3. 文档若把 Flycard/dev2 描述写成系统项目名，后续会误导脚本和人工维护继续覆盖受保护字段。
+
+#### 防重复规则
+
+- 已存在的 FLYCARD 项目基础字段一律受保护：`projectName`、`projectKey`、`ownerId`、`description`、`projectStage`、`plannedStartTime`、`plannedEndTime`、`actualStartTime`、`actualEndTime`、`progress`、`riskLevel`、`riskNote` 等不得由 Git 导入脚本自动覆盖。
+- FLYCARD 可更新范围仅限：需求、缺陷、迭代、里程碑、版本、模块归并、证据 Commit、状态建议、验收建议、文档中的业务说明。
+- FLYCARD 模块只保留 `小程序端` 和 `后台管理端`；历史来源模块只能归并，不能重新扩展为多模块展示。
+- 文档中可以描述 `flycard-dev2` Git 来源和业务范围，但项目名称必须写当前系统确认名称 `飞鸟探亲`，不能写成临时整理标题或技术仓库名。
+- 若未来确实需要变更项目名称、负责人、标识、描述、阶段、计划时间、进度或风险，必须由用户单独明确确认，不能借“更新 FLYCARD Git 记录”顺带修改。
+
+#### 写入前检查
+
+- 先读取 `docs/项目管理/Flycard-dev2需求缺陷进度整合.md` 的“项目基础字段保护边界”。
+- 先备份数据库，或至少查询并记录当前 `bug_project.project_key='FLYCARD'` 的项目名称、负责人、描述、阶段、计划时间、进度和风险。
+- 修改导入脚本前必须检查自有代码文件行数；`server-nestjs/prisma/seed-flycard-dev2-project.ts` 不得接近或超过 500 行。
+- 搜索脚本中是否存在对 `bugProject.update/upsert` 覆盖基础字段的逻辑；已存在项目时应直接复用项目记录。
+
+#### 写入后验收
+
+- 数据库中 `FLYCARD` 项目名称仍为 `飞鸟探亲`。
+- 数据库中 `FLYCARD` 项目负责人仍为 `project_owner`（当前 `owner_id=8`）。
+- 启用模块只剩 `小程序端` 和 `后台管理端`。
+- 需求、缺陷、迭代、里程碑无未分配模块；新增/更新记录应能追溯到 Git Commit 或验收说明。
+
+#### 相关文件路径
+
+- `/Volumes/data/fzl/pro/bug-feedback-system/docs/项目管理/Flycard-dev2需求缺陷进度整合.md`
+- `/Volumes/data/fzl/pro/bug-feedback-system/server-nestjs/prisma/seed-flycard-dev2-project.ts`
 
 ### 项目数据权限越权防重复规则
 
@@ -66,7 +180,7 @@
 - 项目/模块/版本、项目管理仪表盘、需求、迭代、里程碑、项目概览都必须复用服务端项目可见范围，不能只在前端过滤。
 - 查询时即使传入不可见 `projectId`，列表接口也只能返回空数据；详情/概览类接口必须返回无权访问。
 - 角色上下级必须使用 `sys_role.security_level`，不得使用 `roleSort` 判断权限高低；多角色用户按最高安全等级计算。
-- 项目负责人可以新增项目，但普通项目负责人新增时项目负责人只能是自己，不能指定超级管理员或其他用户作为负责人。
+- 超级管理员维护项目配置时可指定任意启用用户为项目负责人；普通项目负责人新增时项目负责人只能是自己，不能指定超级管理员或其他用户作为负责人。
 - 项目负责人只能维护自己负责或自己是 `owner` 成员的项目配置；后端必须校验，不能只靠菜单权限。
 - 项目负责人不能维护权限高于自己的项目成员关系，不能把超级管理员、系统管理员、管理层或其他更高权限用户加入/移除/停用为项目成员。
 - 项目负责人不能移除或停用 `BugProject.ownerId` 对应的项目负责人成员；如需更换负责人，必须先走明确的项目负责人变更逻辑。
@@ -321,6 +435,7 @@
 - Bug 列表行应携带按当前用户和当前工单计算的 `availableActions`，列表快捷按钮复用服务端结果。
 - 快捷操作组件应独立维护，避免把列表页继续堆成长文件。
 - “我的 Bug”待处理数量通过后端 `pending-count` 接口获取；提交或状态变更后通过前端事件刷新徽标。
+- `pending-count` 的数量语义必须是“当前用户至少有一个可执行状态动作的 Bug 数”，不能退化成“我的相关 + 未关闭状态”数量；开发提交验证后进入 `pending_verify`，下一步由测试/审核处理，不应继续计入该开发者待处理角标。
 - 标记重复不要让用户手动填写重复 Bug ID；必须提供编号/标题搜索选择器，并在确认前校验已选择原 Bug。
 
 ### 写入后验收
@@ -588,3 +703,57 @@
 - `web/src/components/ui/checkbox/Checkbox.vue`
 - `web/src/components/ui/radio-group/RadioGroupItem.vue`
 - `web/src/views/system/role/components/RoleFormDialog.vue`
+## 长列表与看板滚动防重复规则
+
+### 现象
+
+项目看板、项目概览、仪表盘等页面中，同一列或同一卡片内的需求、缺陷、历史完成、项目动态等子项一多，页面就会被不断向下撑长。用户需要一直往下拉才能看完，页面头部、筛选器、刷新按钮和其他区块都变得难以回到和操作。
+
+### 根因
+
+1. 开发时只按少量演示数据设计，没有预设真实项目下几十条需求、缺陷、动态的情况。
+2. 看板列、卡片列表和详情子列表没有统一的限高、内部滚动、分页或加载更多规范。
+3. 同类页面分别手写列表结构，导致仪表盘修了限高，项目概览或项目看板又重复遗漏。
+4. 没有把“超过 5 条记录必须评估长列表方案”写入开发前检查清单。
+
+### 错误决策链路
+
+- 不能只在某一个页面加 `overflow-y-auto`，其他看板/卡片列表继续无限撑高。
+- 不能把页面整体滚动当作长列表解决方案；子列表很多时应优先让子列表内部滚动、分页或加载更多。
+- 不能只靠后端 `take: 20` 控制视觉高度；即使 20 条卡片也可能撑破页面。
+- 不能为了限高牺牲详情入口、空状态、加载状态和按钮可点击性。
+
+### 防重复规则
+
+1. 表格、列表、看板列、卡片组、项目动态、历史记录、评论、附件等区块，只要可能超过 5 条记录，就必须设计长列表处理方案。
+2. 卡片内容区默认采用 `max-h-[30rem] overflow-y-auto overscroll-contain pr-3` 或等效容器，避免子项无限撑高页面。
+3. 项目看板列必须列内滚动；横向看板只允许列容器横向滚动，单列内部仍要纵向限高。
+4. 弹窗内长列表必须限制在弹窗视口内滚动，避免弹窗撑出屏幕。
+5. 超过 10 条时应评估分页、加载更多、折叠或筛选；超过 100 条时优先服务端分页或虚拟列表。
+6. 子项如有详情能力，必须提供可见“详情”按钮；表格行可额外支持双击详情，但不能只依赖双击。
+7. 正式规范已经写入 `docs/开发规范/前端页面交互与视觉规范.md#7-长列表与看板滚动容器规范`，新增或改造页面必须先按该章节检查。
+
+### 写入前检查
+
+- 是否存在项目看板列、仪表盘列表、项目概览列表、详情子列表、动态流、历史记录等可能增长的区域。
+- 是否模拟过 20 条以上数据时的展示效果。
+- 是否有页面级刷新入口，并且刷新不重置筛选和滚动上下文。
+- 是否需要拆成子组件，避免页面文件因列表逻辑继续膨胀接近 500 行。
+
+### 写入后验收
+
+- 20 条以上子项不会把页面无限撑高。
+- 滚动条在列表内部，且不遮挡详情按钮、状态标签和文字。
+- 空状态、加载状态、错误状态仍在限高容器内可见。
+- 详情按钮、双击详情、刷新和筛选在长列表场景下仍可用。
+- 移动端和窄屏下不出现横向撑破或多个难以操作的嵌套滚动。
+
+### 相关文件路径
+
+- `docs/开发规范/前端页面交互与视觉规范.md`
+- `web/src/views/project-management/board/index.vue`
+- `web/src/views/project-management/overview/index.vue`
+- `web/src/views/project-management/overview/components/ProjectOverviewWorkGrid.vue`
+- `web/src/views/project-management/executive-dashboard/index.vue`
+- `web/src/components/common/MetricCard.vue`
+

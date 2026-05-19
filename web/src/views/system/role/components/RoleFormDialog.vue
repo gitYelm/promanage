@@ -164,7 +164,7 @@ const currentMaxSecurityLevel = computed(() => {
 
       <DialogFooter class="flex-shrink-0">
         <Button variant="outline" @click="open = false">取消</Button>
-        <Button :disabled="submitLoading" @click="emit('submit')">
+        <Button :permission="isEdit ? 'system:role:edit' : 'system:role:add'" :disabled="submitLoading" @click="emit('submit')">
           <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
           确定
         </Button>

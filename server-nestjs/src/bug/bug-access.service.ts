@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { BusinessException } from '../common/exceptions/business.exception'
+import { isLegacyBusinessRole } from '../common/security/role-level.config'
 import { PrismaService } from '../prisma/prisma.service'
 import { BUG_ACTION, BUG_MEMBER_ROLE, BUG_STATUS, type BugAction } from './constants/bug.constants'
 
@@ -43,7 +44,9 @@ export class BugAccessService {
       include: { roles: { include: { role: true } } },
     })
     if (!user) return []
-    const activeRoles = user.roles.filter((item) => item.role.delFlag === '0' && item.role.status === '0')
+    const activeRoles = user.roles.filter((item) =>
+      item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey),
+    )
     if (activeRoles.some((item) => item.role.roleKey === 'admin')) return ['*:*:*']
 
     const roleIds = activeRoles.map((item) => item.roleId)

@@ -36,11 +36,21 @@ const accountNameMappings = [
   ['bug_submitter01', 'submitter01', '提交人一号', 'submitter01@example.com', '提交人一号演示账号，初始密码可按需修改'],
 ] as const
 
+const legacyRoleKeyMappings = [
+  ['project_owner', 'bug_project_owner'],
+  ['product_owner', 'bug_product_owner'],
+  ['reviewer', 'bug_reviewer'],
+  ['developer', 'bug_developer'],
+  ['tester', 'bug_tester'],
+  ['submitter', 'bug_submitter'],
+] as const
+
 async function main() {
   await renameKeptRoles()
   await normalizeActiveAccountNames()
   await updateKeptUserProfiles()
   await migrateDuplicateUserReferences()
+  await migrateLegacyRoleBindings()
   await deactivateDuplicateRolesAndUsers()
   await removeAdminBusinessRoleBindings()
   await pruneDemoAccountProjectMemberships()
@@ -50,9 +60,10 @@ async function main() {
 
 async function renameKeptRoles() {
   for (const [roleKey, roleName, roleSort, securityLevel, remark] of roleNames) {
-    await prisma.sysRole.updateMany({
-      where: { roleKey, delFlag: '0' },
-      data: { roleName, roleSort, securityLevel, remark, status: '0' },
+    await prisma.sysRole.upsert({
+      where: { roleKey_delFlag: { roleKey, delFlag: '0' } },
+      update: { roleName, roleSort, securityLevel, remark, status: '0' },
+      create: { roleKey, roleName, roleSort, securityLevel, remark, status: '0', dataScope: '2' },
     })
   }
 }
@@ -161,6 +172,7 @@ async function mergeProjectMembers(fromUserId: bigint, toUserId: bigint) {
 }
 
 async function deactivateDuplicateRolesAndUsers() {
+  await migrateLegacyRoleBindings()
   await prisma.$executeRaw`
     update sys_role
        set role_key = concat(role_key, '_deprecated_', role_id),
@@ -168,7 +180,7 @@ async function deactivateDuplicateRolesAndUsers() {
            del_flag = '2',
            remark = '已由规范业务角色替代，逻辑删除以避免角色列表重复',
            update_time = now()
-     where role_key in ('developer', 'tester', 'reviewer', 'pm_manager', 'bug_operator', 'bug_viewer')
+     where role_key in ('project_owner', 'product_owner', 'reviewer', 'developer', 'tester', 'submitter', 'pm_manager', 'bug_operator', 'bug_viewer')
        and del_flag = '0'
   `
   await prisma.$executeRaw`
@@ -208,6 +220,31 @@ async function deactivateDuplicateRolesAndUsers() {
            update_time = now()
      where del_flag = '2'
   `
+}
+
+async function migrateLegacyRoleBindings() {
+  for (const [legacyRoleKey, standardRoleKey] of legacyRoleKeyMappings) {
+    const legacyRole = await prisma.sysRole.findFirst({
+      where: { roleKey: legacyRoleKey, delFlag: '0' },
+      select: { roleId: true },
+    })
+    const standardRole = await prisma.sysRole.findFirst({
+      where: { roleKey: standardRoleKey, delFlag: '0' },
+      select: { roleId: true },
+    })
+    if (!legacyRole || !standardRole) continue
+    const bindings = await prisma.sysUserRole.findMany({
+      where: { roleId: legacyRole.roleId },
+      select: { userId: true },
+    })
+    if (bindings.length) {
+      await prisma.sysUserRole.createMany({
+        data: bindings.map((binding) => ({ userId: binding.userId, roleId: standardRole.roleId })),
+        skipDuplicates: true,
+      })
+    }
+    await prisma.sysUserRole.deleteMany({ where: { roleId: legacyRole.roleId } })
+  }
 }
 
 async function removeAdminBusinessRoleBindings() {
@@ -271,7 +308,7 @@ async function ensureWorkspaceConfigs() {
   if (!table[0]?.name) return
   await prisma.$executeRaw`
     delete from sys_role_workspace_config
-     where role_key in ('developer', 'tester', 'reviewer', 'pm_manager', 'bug_operator', 'bug_viewer')
+     where role_key in ('project_owner', 'product_owner', 'reviewer', 'developer', 'tester', 'submitter', 'pm_manager', 'bug_operator', 'bug_viewer')
   `
   for (const [roleKey, defaultPath, dashboardPath, defaultOpenMenu, remark] of workspaceConfigs) {
     await prisma.$executeRaw`

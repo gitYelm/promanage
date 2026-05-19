@@ -22,28 +22,28 @@ export const PM_PRIORITY_OPTIONS = [
 export const PM_ALL_OPTION_VALUE = '__all__'
 export const PM_NONE_OPTION_VALUE = '__none__'
 export const PM_REQUIREMENT_ACTION_OPTIONS = [
-  { label: '提交评审', action: 'submit', from: ['draft', 'changed'] },
-  { label: '开始评审', action: 'review', from: ['submitted'] },
-  { label: '评审通过', action: 'approve', from: ['submitted', 'reviewing'] },
-  { label: '排期', action: 'plan', from: ['approved', 'deferred'] },
-  { label: '开始开发', action: 'start_dev', from: ['planned'] },
-  { label: '提交测试', action: 'submit_test', from: ['developing'] },
-  { label: '验收通过', action: 'accept', from: ['testing'] },
-  { label: '发布', action: 'release', from: ['accepted'] },
-  { label: '关闭', action: 'close', from: ['released', 'rejected'] },
+  { label: '提交评审', action: 'submit', from: ['draft', 'changed'], permissions: ['pm:requirement:status'] },
+  { label: '开始评审', action: 'review', from: ['submitted'], permissions: ['pm:requirement:review'] },
+  { label: '评审通过', action: 'approve', from: ['submitted', 'reviewing'], permissions: ['pm:requirement:review'] },
+  { label: '排期', action: 'plan', from: ['approved', 'deferred'], permissions: ['pm:requirement:status'] },
+  { label: '开始开发', action: 'start_dev', from: ['planned'], permissions: ['pm:requirement:status'] },
+  { label: '提交测试', action: 'submit_test', from: ['developing'], permissions: ['pm:requirement:status'] },
+  { label: '验收通过', action: 'accept', from: ['testing'], permissions: ['pm:requirement:status'] },
+  { label: '发布', action: 'release', from: ['accepted'], permissions: ['pm:requirement:status'] },
+  { label: '关闭', action: 'close', from: ['released', 'rejected'], permissions: ['pm:requirement:status'] },
 ]
 export const PM_ITERATION_ACTION_OPTIONS = [
-  { label: '开始', action: 'start', from: ['planned'] },
-  { label: '进入测试', action: 'test', from: ['active'] },
-  { label: '完成', action: 'complete', from: ['active', 'testing'] },
-  { label: '暂停', action: 'pause', from: ['active'] },
-  { label: '取消', action: 'cancel', from: ['planned', 'paused'] },
+  { label: '开始', action: 'start', from: ['planned'], permissions: ['pm:iteration:manage'] },
+  { label: '进入测试', action: 'test', from: ['active'], permissions: ['pm:iteration:manage'] },
+  { label: '完成', action: 'complete', from: ['active', 'testing'], permissions: ['pm:iteration:manage'] },
+  { label: '暂停', action: 'pause', from: ['active'], permissions: ['pm:iteration:manage'] },
+  { label: '取消', action: 'cancel', from: ['planned', 'paused'], permissions: ['pm:iteration:manage'] },
 ]
 export const PM_MILESTONE_ACTION_OPTIONS = [
-  { label: '开始', action: 'start', from: ['pending'] },
-  { label: '达成', action: 'achieve', from: ['pending', 'in_progress', 'delayed'] },
-  { label: '延期', action: 'delay', from: ['pending', 'in_progress'] },
-  { label: '取消', action: 'cancel', from: ['pending', 'in_progress', 'delayed'] },
+  { label: '开始', action: 'start', from: ['pending'], permissions: ['pm:milestone:manage'] },
+  { label: '达成', action: 'achieve', from: ['pending', 'in_progress', 'delayed'], permissions: ['pm:milestone:manage'] },
+  { label: '延期', action: 'delay', from: ['pending', 'in_progress'], permissions: ['pm:milestone:manage'] },
+  { label: '取消', action: 'cancel', from: ['pending', 'in_progress', 'delayed'], permissions: ['pm:milestone:manage'] },
 ]
 export const PM_REQUIREMENT_BOARD_COLUMNS = [
   { title: '待评审/确认', statuses: ['submitted', 'reviewing', 'approved'] },
@@ -63,5 +63,5 @@ export function pmLabel(options: Array<{ label: string; value: string }>, value?
 export function formatDate(value?: string) { return value ? value.slice(0, 10) : '-' }
 export function pmNormalizeAll(value?: string) { return value && value !== PM_ALL_OPTION_VALUE ? value : undefined }
 export function pmNormalizeOptional(value?: string) { return value && value !== PM_NONE_OPTION_VALUE ? value : undefined }
-export function pmAvailableActions(items: Array<{ action: string; label: string; from: string[] }>, status?: string) { return items.filter((item) => status && item.from.includes(status)) }
+export function pmAvailableActions(items: Array<{ action: string; label: string; from: string[]; permissions?: string[] }>, status?: string) { return items.filter((item) => status && item.from.includes(status)) }
 export function toDateInput(value?: string) { return value ? value.slice(0, 10) : '' }

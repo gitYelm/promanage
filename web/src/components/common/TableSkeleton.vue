@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -8,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { usePermission } from '@/composables/usePermission'
+import { actionColumnPermissionsForPath } from '@/components/ui/table/table-align'
 
 interface Props {
   /** 列数 */
@@ -18,14 +21,24 @@ interface Props {
   showCheckbox?: boolean
   /** 是否显示操作列 */
   showActions?: boolean
+  /** 操作列权限；不传时按当前路由兜底推断 */
+  actionPermissions?: string[]
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   columns: 5,
   rows: 10,
   showCheckbox: false,
   showActions: true,
 })
+
+const effectiveActionPermissions = computed(() => props.actionPermissions ?? actionColumnPermissionsForPath())
+const canShowInferredActionColumn = usePermission(effectiveActionPermissions)
+const showActionColumn = computed(
+  () =>
+    props.showActions &&
+    (effectiveActionPermissions.value.length === 0 || canShowInferredActionColumn.value),
+)
 </script>
 
 <template>
@@ -38,7 +51,7 @@ withDefaults(defineProps<Props>(), {
         <TableHead v-for="i in columns" :key="i">
           <Skeleton class="h-4 w-20" />
         </TableHead>
-        <TableHead v-if="showActions" class="w-32 text-right">
+        <TableHead v-if="showActionColumn" class="w-32 text-right">
           <Skeleton class="ml-auto h-4 w-12" />
         </TableHead>
       </TableRow>
@@ -51,7 +64,7 @@ withDefaults(defineProps<Props>(), {
         <TableCell v-for="col in columns" :key="col">
           <Skeleton class="h-4" :class="col === 1 ? 'w-16' : 'w-24'" />
         </TableCell>
-        <TableCell v-if="showActions">
+        <TableCell v-if="showActionColumn">
           <div class="flex justify-end gap-2">
             <Skeleton class="h-8 w-14" />
             <Skeleton class="h-8 w-14" />

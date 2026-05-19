@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Bug, Bell } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
+import { hasAnyPermission } from '@/composables/usePermission'
 import { formatRelativeTime } from '@/utils/format'
 import { cn } from '@/lib/utils'
 import { getNotificationTypeLabel, getNotificationTypeStyle, getSemanticStyle } from '@/utils/semantic-styles'
@@ -15,6 +16,7 @@ const notificationStatus = computed(() => props.notification.payload?.status)
 const tagLabel = computed(() => getNotificationTypeLabel(props.notification.notificationType, notificationStatus.value))
 const tagClass = computed(() => getNotificationTypeStyle(props.notification.notificationType, notificationStatus.value).badgeClass)
 const unreadClass = computed(() => getSemanticStyle('warning').badgeClass)
+const canMarkRead = computed(() => hasAnyPermission(['system:notification:read']))
 </script>
 
 <template>
@@ -29,7 +31,7 @@ const unreadClass = computed(() => getSemanticStyle('warning').badgeClass)
         <p class="min-w-0 flex-1 truncate text-sm font-medium">{{ notification.title }}</p>
         <div class="flex shrink-0 items-center gap-1">
           <Badge variant="outline" :class="cn('h-4 shrink-0 px-1 text-[10px]', tagClass)">{{ tagLabel }}</Badge>
-          <Badge v-if="unread" variant="outline" :class="cn('h-4 shrink-0 px-1 text-[10px]', unreadClass)">新</Badge>
+          <Badge v-if="unread && canMarkRead" variant="outline" :class="cn('h-4 shrink-0 px-1 text-[10px]', unreadClass)">新</Badge>
         </div>
       </div>
       <p class="line-clamp-2 break-words text-xs text-muted-foreground">{{ notification.content || '暂无通知内容' }}</p>

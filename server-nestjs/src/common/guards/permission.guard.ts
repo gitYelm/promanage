@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core'
 import { PERMISSION_KEY } from '../decorators/permission.decorator'
 import { PrismaService } from '../../prisma/prisma.service'
+import { isLegacyBusinessRole } from '../security/role-level.config'
 
 interface RequestUser {
   userId: string
@@ -71,7 +72,9 @@ export class PermissionGuard implements CanActivate {
 
     if (!user) return []
 
-    const activeRoles = user.roles.filter((ur) => ur.role.delFlag === '0' && ur.role.status === '0')
+    const activeRoles = user.roles.filter((ur) =>
+      ur.role.delFlag === '0' && ur.role.status === '0' && !isLegacyBusinessRole(ur.role.roleKey),
+    )
     const roleKeys = activeRoles.map((ur) => ur.role.roleKey)
 
     // 超级管理员

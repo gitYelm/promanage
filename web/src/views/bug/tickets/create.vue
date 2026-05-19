@@ -111,6 +111,6 @@ onMounted(loadBase)
         <AttachmentUploader v-model="attachments" @uploading-change="attachmentUploading = $event" />
       </aside>
     </div>
-    <div class="flex justify-end gap-2"><Button variant="outline" @click="router.back()">取消</Button><Button :disabled="submitLoading || attachmentUploading" @click="submit">提交</Button></div>
+    <div class="flex justify-end gap-2"><Button variant="outline" @click="router.back()">取消</Button><Button permission="bug:ticket:add" :disabled="submitLoading || attachmentUploading" @click="submit">提交</Button></div>
   </div>
 </template>

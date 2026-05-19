@@ -11,6 +11,7 @@ import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { usePermission } from '@/composables/usePermission'
 import { addBugVersion, bugProjectOptions, deleteBugVersions, listBugVersions, updateBugVersion } from '@/api/bug'
 import type { BugProject, BugVersion } from '@/api/bug/types'
 import { ALL_OPTION_VALUE, BUG_VERSION_STATUS_OPTIONS, normalizeAll } from '../shared/bug-options'
@@ -24,6 +25,7 @@ const open = ref(false)
 const query = reactive({ pageNum: 1, pageSize: 20, projectId: ALL_OPTION_VALUE, keyword: '' })
 const form = reactive<Partial<BugVersion>>({ projectId: '', versionNo: '', versionName: '', status: 'planning' })
 const canSave = computed(() => Boolean(form.projectId && form.versionNo))
+const canShowOperationColumn = usePermission(['bug:version:edit', 'bug:version:remove'])
 
 async function getList() {
   loading.value = true
@@ -86,7 +88,7 @@ onMounted(async () => {
       <Button @click="getList">搜索</Button>
     </div>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><TableHead>项目</TableHead><TableHead>版本号</TableHead><TableHead>版本名</TableHead><TableHead class="text-center">状态</TableHead><TableHead class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.versionId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.versionNo }}</TableCell><TableCell>{{ row.versionName }}</TableCell><TableCell class="text-center"><StatusBadge domain="bugVersion" :value="row.status" /></TableCell><TableCell class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:version:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:version:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><TableHead>项目</TableHead><TableHead>版本号</TableHead><TableHead>版本名</TableHead><TableHead class="text-center">状态</TableHead><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.versionId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.versionNo }}</TableCell><TableCell>{{ row.versionName }}</TableCell><TableCell class="text-center"><StatusBadge domain="bugVersion" :value="row.status" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:version:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:version:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />

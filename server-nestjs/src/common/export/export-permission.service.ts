@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { isLegacyBusinessRole } from '../security/role-level.config'
 
 const EXPORT_MODULE_PERMISSIONS: Record<string, string> = {
   user: 'system:user:export',
@@ -37,7 +38,7 @@ export class ExportPermissionService {
     })
     if (!user) return []
     const activeRoles = user.roles.filter((item) => {
-      return item.role.delFlag === '0' && item.role.status === '0'
+      return item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey)
     })
     if (activeRoles.some((item) => item.role.roleKey === 'admin')) return ['*:*:*']
     const roleIds = activeRoles.map((item) => item.roleId)

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +14,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { hasAnyPermission } from '@/composables/usePermission'
+import {
+  normalizePermissionFlags,
+  statusSwitchPermissionsForRoute,
+  type PermissionFlagInput,
+} from '@/utils/permission-visibility'
 
 const props = withDefaults(
   defineProps<{
@@ -27,6 +35,8 @@ const props = withDefaults(
     disabled?: boolean
     /** 是否需要确认弹窗 */
     confirm?: boolean
+    /** 操作所需权限；不传时按当前路由推断 */
+    permission?: PermissionFlagInput
     /** 确认弹窗标题（支持 {action} 占位符） */
     confirmTitle?: string
     /** 确认弹窗描述（支持 {action} 占位符） */
@@ -47,9 +57,20 @@ const emit = defineEmits<{
 }>()
 
 const { toast } = useToast()
+const route = useRoute()
 const loading = ref(false)
 const showConfirm = ref(false)
 const pendingStatus = ref('')
+const permissionFlags = computed(() => {
+  const explicitPermissions = normalizePermissionFlags(props.permission)
+  return explicitPermissions.length ? explicitPermissions : statusSwitchPermissionsForRoute(route.path)
+})
+const canRenderSwitch = computed(
+  () => permissionFlags.value.length === 0 || hasAnyPermission(permissionFlags.value),
+)
+const currentStatusLabel = computed(() =>
+  props.status === '0' ? props.labels.enable : props.labels.disable,
+)
 
 function getActionText(newStatus: string) {
   return newStatus === '0' ? props.labels.enable : props.labels.disable
@@ -100,11 +121,11 @@ function formatText(template: string, action: string) {
 </script>
 
 <template>
-  <div>
+  <div v-if="canRenderSwitch">
     <Switch
       :checked="status === '0'"
       :disabled="loading || disabled"
-      @click.prevent="handleClick"
+      @update:checked="handleClick"
     />
 
     <AlertDialog :open="showConfirm" @update:open="(v) => !v && handleCancel()">
@@ -119,9 +140,10 @@ function formatText(template: string, action: string) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel @click="handleCancel">取消</AlertDialogCancel>
-          <AlertDialogAction @click="handleConfirm">确定</AlertDialogAction>
+          <AlertDialogAction :permission="permissionFlags" @click="handleConfirm">确定</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   </div>
+  <Badge v-else variant="outline">{{ currentStatusLabel }}</Badge>
 </template>

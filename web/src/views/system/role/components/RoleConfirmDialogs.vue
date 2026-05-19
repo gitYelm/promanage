@@ -25,6 +25,7 @@ const emit = defineEmits<{
     title="确认删除"
     :description="`您确定要删除角色 &quot;${roleToDelete?.roleName}&quot; 吗？此操作无法撤销。`"
     confirm-text="删除"
+    permission="system:role:remove"
     destructive
     @confirm="emit('confirmDelete')"
   />
@@ -34,6 +35,7 @@ const emit = defineEmits<{
     title="确认批量删除"
     :description="`您确定要删除选中的 ${selectedCount} 个角色吗？此操作无法撤销。`"
     confirm-text="删除"
+    permission="system:role:remove"
     destructive
     @confirm="emit('confirmBatchDelete')"
   />
@@ -43,6 +45,7 @@ const emit = defineEmits<{
     :title="`确认批量${batchStatusType === '0' ? '启用' : '停用'}`"
     :description="`您确定要${batchStatusType === '0' ? '启用' : '停用'}选中的 ${selectedCount} 个角色吗？`"
     confirm-text="确定"
+    permission="system:role:edit"
     @confirm="emit('confirmBatchStatus')"
   />
 </template>

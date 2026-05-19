@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { uploadBugAttachment } from '@/api/bug'
 import type { BugAttachment } from '@/api/bug/types'
+import { hasAnyPermission } from '@/composables/usePermission'
 import ImageAnnotator from './ImageAnnotator.vue'
 import AttachmentList from './AttachmentList.vue'
 
@@ -26,6 +27,7 @@ const showAnnotator = ref(false)
 const pendingImage = ref<File | null>(null)
 const pendingQueue = ref<File[]>([])
 const keepOriginalImage = ref(false)
+const canUploadAttachment = computed(() => hasAnyPermission(['bug:attachment:upload']))
 
 const attachments = computed({
   get: () => props.modelValue,
@@ -44,6 +46,7 @@ function appendAttachments(items: BugAttachment[]) {
 }
 
 async function handleFiles(event: Event) {
+  if (!canUploadAttachment.value) return
   const input = event.target as HTMLInputElement
   const files = Array.from(input.files || [])
   if (!files.length) return
@@ -53,7 +56,7 @@ async function handleFiles(event: Event) {
 }
 
 function openFilePicker() {
-  if (uploading.value) return
+  if (uploading.value || !canUploadAttachment.value) return
   fileInputRef.value?.click()
 }
 
@@ -158,19 +161,19 @@ function removeAttachment(id: string) {
       type="file"
       multiple
       accept="image/*,video/mp4,video/webm,video/ogg,.txt,.log,.json"
-      :disabled="uploading"
+      :disabled="uploading || !canUploadAttachment"
       class="sr-only"
       aria-hidden="true"
       tabindex="-1"
       @change="handleFiles"
     >
-    <p class="text-xs text-muted-foreground">图片会先进入标注窗口，默认只上传标注图；点击附件列表末尾的 + 可继续添加附件。</p>
+    <p v-if="canUploadAttachment" class="text-xs text-muted-foreground">图片会先进入标注窗口，默认只上传标注图；点击附件列表末尾的 + 可继续添加附件。</p>
 
     <AttachmentList
       :attachments="attachments"
       :uploading="uploading"
       removable
-      uploadable
+      :uploadable="canUploadAttachment"
       @remove="removeAttachment"
       @upload="openFilePicker"
     />

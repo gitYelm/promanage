@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   Sheet,
   SheetContent,
@@ -32,10 +33,13 @@ import {
   getExportConfig,
   type ExportTask,
 } from '@/api/common/export'
+import { exportPermissionForRoute, normalizePermissionFlags } from '@/utils/permission-visibility'
+import { hasAnyPermission } from '@/composables/usePermission'
 
 const props = defineProps<{
   open: boolean
   watchTaskId?: string | null
+  permission?: string | string[]
 }>()
 
 const emit = defineEmits<{
@@ -43,11 +47,14 @@ const emit = defineEmits<{
 }>()
 
 const { toast } = useToast()
+const route = useRoute()
 
 const loading = ref(false)
 const tasks = ref<ExportTask[]>([])
 const fileExpireHours = ref(2) // 默认值
 let pollTimer: ReturnType<typeof setInterval> | null = null
+const effectivePermission = computed(() => props.permission || exportPermissionForRoute(route.path))
+const canLoadTasks = computed(() => !effectivePermission.value || hasAnyPermission(normalizePermissionFlags(effectivePermission.value)))
 
 // 格式图标
 const formatIcons = {
@@ -66,6 +73,10 @@ const statusConfig = {
 
 // 加载任务列表
 async function loadTasks() {
+  if (!canLoadTasks.value) {
+    tasks.value = []
+    return
+  }
   loading.value = true
   try {
     const [result, config] = await Promise.all([
@@ -171,7 +182,6 @@ onUnmounted(() => {
 })
 
 // 监听打开状态
-import { watch } from 'vue'
 watch(
   () => props.open,
   (val) => {
@@ -256,11 +266,11 @@ watch(
 
             <!-- 操作按钮 -->
             <div class="flex gap-2">
-              <Button v-if="task.status === 'completed'" size="sm" @click="handleDownload(task)">
+              <Button v-if="task.status === 'completed'" size="sm" :permission="effectivePermission" @click="handleDownload(task)">
                 <DownloadIcon class="h-4 w-4 mr-1" />
                 下载
               </Button>
-              <Button variant="ghost" size="sm" @click="handleDelete(task)">
+              <Button variant="ghost" size="sm" :permission="effectivePermission" @click="handleDelete(task)">
                 <Trash2Icon class="h-4 w-4 mr-1" />
                 删除
               </Button>

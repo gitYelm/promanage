@@ -4,14 +4,11 @@ import { Bell } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useNotificationStore } from '@/stores/modules/notification'
-import { useUserStore } from '@/stores/modules/user'
+import { hasAnyPermission } from '@/composables/usePermission'
 import NotificationPanel from './NotificationPanel.vue'
 
 const store = useNotificationStore()
-const userStore = useUserStore()
-const canUseNotification = computed(() => {
-  return userStore.permissions.includes('*:*:*') || userStore.permissions.includes('system:notification:list')
-})
+const canUseNotification = computed(() => hasAnyPermission(['system:notification:list']))
 
 onMounted(() => {
   if (!canUseNotification.value) return

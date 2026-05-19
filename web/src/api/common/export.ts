@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { hasAnyPermission } from '@/composables/usePermission'
 
 /** 导出格式 */
 export type ExportFormat = 'xlsx' | 'csv' | 'json'
@@ -27,6 +28,16 @@ export interface CreateExportTaskDto {
 /** 导出任务状态 */
 export type ExportTaskStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
+const EXPORT_PERMISSIONS: Record<string, string> = {
+  user: 'system:user:export',
+  'bug-statistics': 'bug:statistics:export',
+}
+
+function canExport(module?: string) {
+  const permission = module ? EXPORT_PERMISSIONS[module] : undefined
+  return !permission || hasAnyPermission([permission])
+}
+
 /** 导出任务 */
 export interface ExportTask {
   taskId: string
@@ -48,6 +59,7 @@ export interface ExportTask {
 
 /** 创建导出任务 */
 export function createExportTask(data: CreateExportTaskDto) {
+  if (!canExport(data.module)) return Promise.reject(new Error('无导出权限'))
   return request<{ data: { taskId: string; taskName: string } }>({
     url: '/export/task',
     method: 'post',
@@ -62,6 +74,7 @@ export function listExportTasks(params?: {
   module?: string
   status?: string
 }) {
+  if (!canExport(params?.module)) return Promise.resolve({ rows: [], total: 0 })
   return request<{ data: { rows: ExportTask[]; total: number } }>({
     url: '/export/task',
     method: 'get',
@@ -96,6 +109,7 @@ export function deleteExportTask(taskId: string) {
 
 /** 获取模块可导出列 */
 export function getModuleColumns(module: string) {
+  if (!canExport(module)) return Promise.resolve([])
   return request<{ data: ExportColumn[] }>({
     url: `/export/columns/${module}`,
     method: 'get',

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { BugAttachment } from '@/api/bug/types'
+import { hasAnyPermission } from '@/composables/usePermission'
 import AttachmentFullscreenPreview from './AttachmentFullscreenPreview.vue'
 import AttachmentPreviewPanel from './AttachmentPreviewPanel.vue'
 import AttachmentThumbnailList from './AttachmentThumbnailList.vue'
@@ -25,6 +26,8 @@ const emit = defineEmits<{
 
 const selectedIndex = ref(0)
 const fullscreenOpen = ref(false)
+const canUpload = computed(() => props.uploadable && hasAnyPermission(['bug:attachment:upload']))
+const canRemove = computed(() => props.removable && hasAnyPermission(['bug:attachment:remove']))
 
 watch(
   () => props.attachments.length,
@@ -42,12 +45,12 @@ function selectAttachment(index: number) {
 </script>
 
 <template>
-  <div v-if="attachments.length || uploadable" class="rounded-xl border bg-background p-3 sm:p-4">
+  <div v-if="attachments.length || canUpload" class="rounded-xl border bg-background p-3 sm:p-4">
     <div v-if="attachments.length" class="space-y-4">
       <AttachmentPreviewPanel
         :attachments="attachments"
         :selected-index="selectedIndex"
-        :removable="removable"
+        :removable="canRemove"
         @select="selectAttachment"
         @fullscreen="fullscreenOpen = true"
         @remove="emit('remove', $event)"
@@ -55,7 +58,7 @@ function selectAttachment(index: number) {
       <AttachmentThumbnailList
         :attachments="attachments"
         :selected-index="selectedIndex"
-        :uploadable="uploadable"
+        :uploadable="canUpload"
         :uploading="uploading"
         @select="selectAttachment"
         @upload="emit('upload')"
@@ -68,7 +71,7 @@ function selectAttachment(index: number) {
       <AttachmentThumbnailList
         :attachments="attachments"
         :selected-index="selectedIndex"
-        :uploadable="uploadable"
+        :uploadable="canUpload"
         :uploading="uploading"
         @select="selectAttachment"
         @upload="emit('upload')"

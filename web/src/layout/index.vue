@@ -102,7 +102,7 @@ async function confirmLogout() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction @click="confirmLogout">确认退出</AlertDialogAction>
+          <AlertDialogAction data-permission-neutral @click="confirmLogout">确认退出</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

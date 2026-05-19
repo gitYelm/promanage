@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Loader2Icon, FileSpreadsheetIcon, FileTextIcon, FileJsonIcon } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
 import { useToast } from '@/components/ui/toast'
 import {
   createExportTask,
@@ -22,6 +23,7 @@ import {
   type ExportScope,
   type ExportColumn,
 } from '@/api/common/export'
+import { exportPermissionForRoute, type PermissionFlagInput } from '@/utils/permission-visibility'
 
 const props = defineProps<{
   open: boolean
@@ -30,6 +32,7 @@ const props = defineProps<{
   queryParams?: Record<string, any>
   selectedIds?: string[]
   selectedCount?: number
+  permission?: PermissionFlagInput
 }>()
 
 const emit = defineEmits<{
@@ -38,6 +41,8 @@ const emit = defineEmits<{
 }>()
 
 const { toast } = useToast()
+const route = useRoute()
+const effectivePermission = computed(() => props.permission || exportPermissionForRoute(route.path))
 
 // 状态
 const loading = ref(false)
@@ -232,7 +237,11 @@ async function handleExport() {
 
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)">取消</Button>
-        <Button :disabled="loading || selectedColumnKeys.length === 0" @click="handleExport">
+        <Button
+          :permission="effectivePermission"
+          :disabled="loading || selectedColumnKeys.length === 0"
+          @click="handleExport"
+        >
           <Loader2Icon v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
           开始导出
         </Button>

@@ -20,7 +20,13 @@ onMounted(() => void store.fetchNotifications())
       </div>
       <div class="flex shrink-0 gap-1">
         <Button variant="ghost" size="icon" @click="store.fetchNotifications()"><RefreshCw class="h-4 w-4" /></Button>
-        <Button variant="ghost" size="sm" :disabled="store.unreadCount === 0" @click="store.markAllRead()">全部已读</Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          permission="system:notification:read"
+          :disabled="store.unreadCount === 0"
+          @click="store.markAllRead()"
+        >全部已读</Button>
       </div>
     </div>
     <ScrollArea class="h-[380px]">

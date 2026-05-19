@@ -10,24 +10,28 @@ const quickEntries = [
     description: '查看项目进度、风险、未处理事项和下阶段安排。',
     path: '/project-management/executive-dashboard',
     icon: LayoutDashboard,
+    permissions: ['pm:executive-dashboard:view'],
   },
   {
     title: '需求管理',
     description: '维护需求、评审结论、优先级和关联迭代。',
     path: '/project-management/requirements',
     icon: ClipboardList,
+    permissions: ['pm:requirement:view'],
   },
   {
     title: '缺陷管理',
     description: '跟踪缺陷提交、审核、分派、修复和验证闭环。',
     path: '/bug/tickets',
     icon: Bug,
+    permissions: ['bug:ticket:list', 'bug:ticket:my'],
   },
   {
     title: '项目管理',
     description: '维护项目、模块、版本、迭代和里程碑。',
     path: '/project-management/overview',
     icon: FolderKanban,
+    permissions: ['pm:project:view'],
   },
 ]
 </script>
@@ -42,10 +46,10 @@ const quickEntries = [
           当前首页用于承载常用业务入口；项目进度、风险和待处理事项请进入“项目管理 > 仪表盘”查看。
         </p>
         <div class="flex flex-wrap gap-3 pt-2">
-          <Button as-child>
+          <Button :permission="['pm:executive-dashboard:view']" as-child>
             <RouterLink to="/project-management/executive-dashboard">进入仪表盘</RouterLink>
           </Button>
-          <Button variant="outline" as-child>
+          <Button :permission="['bug:ticket:list', 'bug:ticket:my']" variant="outline" as-child>
             <RouterLink to="/bug/tickets">查看缺陷列表</RouterLink>
           </Button>
         </div>
@@ -64,7 +68,7 @@ const quickEntries = [
           </div>
         </CardHeader>
         <CardContent>
-          <Button variant="secondary" class="w-full" as-child>
+          <Button :permission="entry.permissions" variant="secondary" class="w-full" as-child>
             <RouterLink :to="entry.path">打开</RouterLink>
           </Button>
         </CardContent>

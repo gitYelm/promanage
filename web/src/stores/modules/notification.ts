@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { hasAnyPermission } from '@/composables/usePermission'
 import {
   createNotificationStreamToken,
   listNotifications,
@@ -76,6 +77,7 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   async function markRead(notification: UserNotification) {
+    if (!hasAnyPermission(['system:notification:read'])) return
     if (!notification.readTime) {
       await markNotificationRead(notification.notificationId)
       notification.readTime = new Date().toISOString()
@@ -84,6 +86,7 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   async function markAllRead() {
+    if (!hasAnyPermission(['system:notification:read'])) return
     await markAllNotificationsRead()
     unreadCount.value = 0
     notifications.value = notifications.value.map((item) => ({ ...item, readTime: item.readTime || new Date().toISOString() }))

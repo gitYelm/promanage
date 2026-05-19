@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { usePermission } from '@/composables/usePermission'
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
@@ -40,6 +41,9 @@ const form = reactive<Partial<BugProject>>({ projectName: '', projectKey: '', de
 const memberForm = reactive({ userId: '', memberRole: 'developer', isDefault: false, status: '0' })
 const canSave = computed(() => Boolean(form.projectName && form.projectKey))
 const canSaveMember = computed(() => Boolean(currentProject.value && memberForm.userId && memberForm.memberRole))
+const canShowQuickActionColumn = usePermission(['bug:project:member'])
+const canShowOperationColumn = usePermission(['bug:project:edit', 'bug:project:remove'])
+const canShowMemberOperationColumn = usePermission(['bug:project:member'])
 
 async function getList() {
   loading.value = true
@@ -120,12 +124,12 @@ onMounted(async () => {
       <h2 class="text-2xl font-bold">项目管理</h2>
       <div class="flex items-center gap-2">
         <DataRefreshButton :loading="loading" @refresh="getList" />
-        <Button v-hasPermi="['bug:project:add']" @click="add">新增项目</Button>
+        <Button permission="bug:project:add" @click="add">新增项目</Button>
       </div>
     </div>
     <div class="flex gap-2"><Input v-model="query.keyword" class="w-60" placeholder="项目名称/标识" @keyup.enter="getList" /><Button @click="getList">搜索</Button></div>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><TableHead>名称</TableHead><TableHead>标识</TableHead><TableHead>负责人</TableHead><TableHead class="text-center">状态</TableHead><TableHead>描述</TableHead><TableHead class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.projectId"><TableCell>{{ row.projectName }}</TableCell><TableCell>{{ row.projectKey }}</TableCell><TableCell>{{ row.owner?.nickName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell>{{ row.description }}</TableCell><TableCell class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:project:member']" size="sm" variant="outline" @click="openMembers(row)">成员</Button><Button v-hasPermi="['bug:project:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:project:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><TableHead>名称</TableHead><TableHead>标识</TableHead><TableHead>负责人</TableHead><TableHead class="text-center">状态</TableHead><TableHead>描述</TableHead><TableHead v-if="canShowQuickActionColumn">快捷操作</TableHead><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.projectId"><TableCell>{{ row.projectName }}</TableCell><TableCell>{{ row.projectKey }}</TableCell><TableCell>{{ row.owner?.nickName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell>{{ row.description }}</TableCell><TableCell v-if="canShowQuickActionColumn"><Button permission="bug:project:member" size="sm" variant="outline" @click="openMembers(row)">成员</Button></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button permission="bug:project:edit" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button permission="bug:project:remove" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
@@ -158,7 +162,7 @@ onMounted(async () => {
             <Input id="bug-project-description" v-model="form.description" placeholder="例如：后台权限、菜单和配置管理" />
           </FormFieldBlock>
         </div>
-        <DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter>
+        <DialogFooter><Button :permission="form.projectId ? 'bug:project:edit' : 'bug:project:add'" :disabled="!canSave" @click="save">保存</Button></DialogFooter>
       </DialogContent>
     </Dialog>
     <Dialog v-model:open="memberOpen">
@@ -184,10 +188,10 @@ onMounted(async () => {
             <label class="flex items-center gap-2 text-sm"><Checkbox id="bug-member-default" :model-value="memberForm.isDefault" @update:model-value="(v) => memberForm.isDefault = !!v" />设为默认负责人</label>
           </FormFieldBlock>
           <div class="flex items-end">
-            <Button :disabled="!canSaveMember" @click="saveMember">添加/更新成员</Button>
+            <Button permission="bug:project:member" :disabled="!canSaveMember" @click="saveMember">添加/更新成员</Button>
           </div>
         </div>
-        <div class="rounded-md border"><Table><TableHeader><TableRow><TableHead>成员</TableHead><TableHead>角色</TableHead><TableHead class="text-center">默认</TableHead><TableHead class="text-center">状态</TableHead><TableHead class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="m in members" :key="m.memberId"><TableCell>{{ m.user?.nickName || m.user?.userName }}</TableCell><TableCell>{{ optionLabel(BUG_MEMBER_ROLE_OPTIONS, m.memberRole) }}</TableCell><TableCell class="text-center">{{ m.isDefault ? '是' : '否' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="m.status" /></TableCell><TableCell class="text-right"><div class="flex justify-end"><Button size="sm" variant="destructive" @click="removeMember(m)">移除</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!members.length" /></div>
+        <div class="rounded-md border"><Table><TableHeader><TableRow><TableHead>成员</TableHead><TableHead>角色</TableHead><TableHead class="text-center">默认</TableHead><TableHead class="text-center">状态</TableHead><TableHead v-if="canShowMemberOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="m in members" :key="m.memberId"><TableCell>{{ m.user?.nickName || m.user?.userName }}</TableCell><TableCell>{{ optionLabel(BUG_MEMBER_ROLE_OPTIONS, m.memberRole) }}</TableCell><TableCell class="text-center">{{ m.isDefault ? '是' : '否' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="m.status" /></TableCell><TableCell v-if="canShowMemberOperationColumn" class="text-right"><div class="flex justify-end"><Button permission="bug:project:member" size="sm" variant="destructive" @click="removeMember(m)">移除</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!members.length" /></div>
       </DialogContent>
     </Dialog>
   </div>

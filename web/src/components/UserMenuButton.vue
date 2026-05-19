@@ -73,10 +73,10 @@ const confirmLogout = async () => {
         </div>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      <DropdownMenuItem>个人中心</DropdownMenuItem>
-      <DropdownMenuItem>设置</DropdownMenuItem>
+      <DropdownMenuItem data-permission-neutral>个人中心</DropdownMenuItem>
+      <DropdownMenuItem data-permission-neutral>设置</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem class="text-destructive focus:text-destructive" @click="handleLogoutClick">
+      <DropdownMenuItem data-permission-neutral class="text-destructive focus:text-destructive" @click="handleLogoutClick">
         <LogOut class="mr-2 h-4 w-4" />
         退出登录
       </DropdownMenuItem>
@@ -94,7 +94,7 @@ const confirmLogout = async () => {
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>取消</AlertDialogCancel>
-        <AlertDialogAction @click="confirmLogout">确认退出</AlertDialogAction>
+        <AlertDialogAction data-permission-neutral @click="confirmLogout">确认退出</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

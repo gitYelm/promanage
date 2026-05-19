@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { ErrorCode } from '../../common/enums/error-code.enum'
+import { isLegacyBusinessRole } from '../../common/security/role-level.config'
 import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
@@ -44,7 +45,8 @@ export class BugProjectHelperService {
       where: { userId: BigInt(userId), role: { delFlag: '0', status: '0' } },
       include: { role: true },
     })
-    if (roles.some((item) => item.role.roleKey === 'admin')) {
+    const activeRoles = roles.filter((item) => !isLegacyBusinessRole(item.role.roleKey))
+    if (activeRoles.some((item) => item.role.roleKey === 'admin')) {
       const projects = await this.prisma.bugProject.findMany({
         where: { delFlag: '0', status: '0' },
         select: { projectId: true },

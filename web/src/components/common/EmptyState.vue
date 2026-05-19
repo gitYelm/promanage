@@ -2,6 +2,7 @@
 import type { Component } from 'vue'
 import { InboxIcon } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import type { PermissionFlagInput } from '@/utils/permission-visibility'
 
 interface Props {
   /** 标题 */
@@ -12,6 +13,8 @@ interface Props {
   icon?: Component
   /** 操作按钮文字 */
   actionText?: string
+  /** 操作按钮权限；不传时由 Button 按当前路由和 actionText 兜底推断 */
+  permission?: PermissionFlagInput
 }
 
 interface Emits {
@@ -38,7 +41,7 @@ defineEmits<Emits>()
       {{ description }}
     </p>
     <slot name="action">
-      <Button v-if="actionText" @click="$emit('action')">
+      <Button v-if="actionText" :permission="permission" @click="$emit('action')">
         {{ actionText }}
       </Button>
     </slot>

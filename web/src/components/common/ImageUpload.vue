@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Upload, X, Loader2 } from 'lucide-vue-next'
 import { useToast } from '@/components/ui/toast/use-toast'
 import request from '@/utils/request'
+import type { PermissionFlagInput } from '@/utils/permission-visibility'
 
 const props = defineProps<{
   modelValue: string
   accept?: string
   maxSize?: number // MB
   uploadUrl?: string
+  permission?: PermissionFlagInput
 }>()
 
 const emit = defineEmits<{
@@ -170,17 +172,28 @@ function handleRemove() {
     <!-- 预览区域 -->
     <div v-if="modelValue" class="relative inline-block rounded-lg border bg-muted/50 p-2">
       <img :src="previewUrl" alt="preview" class="h-16 w-auto object-contain" />
-      <button
+      <Button
         type="button"
+        variant="destructive"
+        size="icon-sm"
+        title="移除图片"
+        :permission="permission"
         class="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
         @click="handleRemove"
       >
         <X class="h-3 w-3" />
-      </button>
+      </Button>
     </div>
 
     <!-- 上传按钮 -->
-    <Button type="button" variant="outline" size="sm" :disabled="uploading" @click="triggerUpload">
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      :permission="permission"
+      :disabled="uploading"
+      @click="triggerUpload"
+    >
       <Loader2 v-if="uploading" class="mr-2 h-4 w-4 animate-spin" />
       <Upload v-else class="mr-2 h-4 w-4" />
       {{ uploading ? '上传中...' : '选择文件' }}

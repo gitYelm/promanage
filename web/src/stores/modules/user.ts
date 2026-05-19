@@ -40,14 +40,15 @@ export const useUserStore = defineStore('user', {
     // 登录（不自动设置 token，用于两步验证场景）
     async loginWithoutToken(userInfo: LoginData) {
       // 登录页可能是由旧 Token 失效跳转而来，先清理旧登录态，避免旧请求的 401 回调误伤新会话。
+      this.resetUserAccessState()
       removeToken()
       this.token = ''
-      this.isLoggedIn = false
       return await login(userInfo)
     },
     // 登录
     async login(userInfo: LoginData) {
       // 登录前先清除旧 token，避免状态残留
+      this.resetUserAccessState()
       removeToken()
       this.token = ''
 
@@ -70,6 +71,7 @@ export const useUserStore = defineStore('user', {
       const res = await getInfo()
       const data = res.data // { user, roles, roleList, permissions }
 
+      this.permissions = []
       if (data.roles && data.roles.length > 0) {
         this.roles = data.roles
         this.roleList = data.roleList || []
@@ -86,6 +88,16 @@ export const useUserStore = defineStore('user', {
       this.isLoggedIn = true // 标记已成功登录
       return data
     },
+    resetUserAccessState() {
+      this.userId = ''
+      this.name = ''
+      this.avatar = ''
+      this.email = ''
+      this.roles = []
+      this.roleList = []
+      this.permissions = []
+      this.isLoggedIn = false
+    },
     // 退出系统
     async logout(expectedToken?: string) {
       const currentToken = getToken() || this.token
@@ -99,9 +111,7 @@ export const useUserStore = defineStore('user', {
         // 忽略错误（可能是 token 已失效）
       }
       this.token = ''
-      this.roles = []
-      this.permissions = []
-      this.isLoggedIn = false
+      this.resetUserAccessState()
       removeToken()
 
       // 清空菜单缓存
