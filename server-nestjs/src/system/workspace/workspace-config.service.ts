@@ -5,6 +5,7 @@ import { BusinessException } from '../../common/exceptions'
 import { QueryWorkspaceConfigDto } from './dto/query-workspace-config.dto'
 import { CreateWorkspaceConfigDto } from './dto/create-workspace-config.dto'
 import { UpdateWorkspaceConfigDto } from './dto/update-workspace-config.dto'
+import { expandEquivalentRoleKeys, isLegacyBusinessRole } from '../../common/security/role-level.config'
 
 export interface WorkspaceConfigRow {
   configId: bigint
@@ -92,14 +93,15 @@ export class WorkspaceConfigService {
       orderBy: { role: { roleSort: 'asc' } },
     })
     const roleKeys = roles
-      .filter((item) => item.role.delFlag === '0' && item.role.status === '0')
+      .filter((item) => item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey))
       .map((item) => item.role.roleKey)
     if (roleKeys.length === 0) return this.defaultConfig()
+    const effectiveRoleKeys = expandEquivalentRoleKeys(roleKeys)
     const rows = await this.prisma.$queryRawUnsafe<WorkspaceConfigRow[]>(
       `${this.selectSql()} where c.status = '0' and c.role_key = any($1) order by c.config_id asc`,
-      roleKeys,
+      effectiveRoleKeys,
     )
-    const config = this.pickConfig(roleKeys, rows)
+    const config = this.pickConfig(effectiveRoleKeys, rows)
     return this.toClientVo(config ?? this.defaultConfig())
   }
 
@@ -219,7 +221,11 @@ export class WorkspaceConfigService {
     if (roleKeys.includes('admin')) {
       return configs.find((item) => item.roleKey === 'admin') ?? this.defaultConfig()
     }
-    return configs.find((item) => roleKeys.includes(item.roleKey))
+    for (const roleKey of roleKeys) {
+      const config = configs.find((item) => item.roleKey === roleKey)
+      if (config) return config
+    }
+    return undefined
   }
 
   private defaultConfig(): WorkspaceConfigRow {

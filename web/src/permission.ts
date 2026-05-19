@@ -3,6 +3,7 @@ import { useUserStore } from './stores/modules/user'
 import { useMenuStore } from './stores/modules/menu'
 import { useAppStore } from './stores/modules/app'
 import { useWorkspaceStore } from './stores/modules/workspace'
+import { hasAnyPermission } from './composables/usePermission'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -57,9 +58,10 @@ router.beforeEach(async (to, _from, next) => {
         }
         const prevMenuLength = menuStore.menuList.length
         try {
-          await menuStore.fetchMenus()
-          // 如果之前没有菜单数据，需要重新导航让新路由生效
-          if (prevMenuLength === 0) {
+          const menus = await menuStore.fetchMenus()
+          // 只有真实注册到动态菜单时才重进路由。无角色/无菜单账号如果也重进同一路径，
+          // 会在登录成功后被 beforeEach 反复 replace，表现为登录页不跳转。
+          if (prevMenuLength === 0 && menus.length > 0) {
             next({ path: to.path, query: to.query, replace: true })
             return
           }
@@ -74,12 +76,7 @@ router.beforeEach(async (to, _from, next) => {
           return
         }
         const requiredPerms = (to.meta && (to.meta as any).perms) as string[] | undefined
-        if (
-          requiredPerms &&
-          !requiredPerms.some(
-            (p) => userStore.permissions.includes(p) || userStore.permissions.includes('*:*:*'),
-          )
-        ) {
+        if (requiredPerms && !hasAnyPermission(requiredPerms)) {
           next('/403')
           NProgress.done()
           return

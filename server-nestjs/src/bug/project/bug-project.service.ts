@@ -68,7 +68,9 @@ export class BugProjectService {
       throw BusinessException.forbidden('项目负责人只能创建自己负责的项目')
     }
     const ownerId = dto.ownerId ? BigInt(dto.ownerId) : BigInt(user.userId)
-    await this.roleSecurity.assertTargetHasRole(user.userId, ownerId, ['bug_project_owner'], '项目负责人')
+    await this.roleSecurity.assertTargetHasRole(user.userId, ownerId, ['bug_project_owner', 'project_owner'], '项目负责人', {
+      allowAdminBypassRole: true,
+    })
     this.logger.log(`创建 Bug 项目: ${dto.projectName}`, 'BugProjectService')
     return this.prisma.$transaction(async (tx) => {
       const project = await tx.bugProject.create({
@@ -100,7 +102,11 @@ export class BugProjectService {
     if (operatorId) await this.assertProjectManageAllowed(operatorId, project.projectId)
     if (operatorId && dto.ownerId !== undefined && dto.ownerId !== String(project.ownerId ?? '')) {
       if (!(await this.roleSecurity.isAdmin(operatorId))) throw BusinessException.forbidden('项目负责人不允许直接变更项目负责人，请联系管理员执行负责人交接')
-      if (dto.ownerId) await this.roleSecurity.assertTargetHasRole(operatorId, dto.ownerId, ['bug_project_owner'], '项目负责人')
+      if (dto.ownerId) {
+        await this.roleSecurity.assertTargetHasRole(operatorId, dto.ownerId, ['bug_project_owner', 'project_owner'], '项目负责人', {
+          allowAdminBypassRole: true,
+        })
+      }
     }
     return this.prisma.bugProject.update({
       where: { projectId: BigInt(projectId) },

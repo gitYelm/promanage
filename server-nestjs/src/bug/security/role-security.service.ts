@@ -8,7 +8,11 @@ import {
   PROJECT_MEMBER_ROLE_KEYS,
   PROJECT_MEMBERSHIP_CONTEXTS,
 } from './role-security.config'
-import { defaultRoleSecurityLevel } from '../../common/security/role-level.config'
+import {
+  defaultRoleSecurityLevel,
+  expandEquivalentRoleKeys,
+  isLegacyBusinessRole,
+} from '../../common/security/role-level.config'
 
 interface AssignableUserOptionsQuery {
   keyword?: string
@@ -16,6 +20,10 @@ interface AssignableUserOptionsQuery {
   memberRole?: string
   assignContext?: string
   assignableOnly?: string
+}
+
+interface TargetRoleOptions {
+  allowAdminBypassRole?: boolean
 }
 
 type UserWithRoles = Prisma.SysUserGetPayload<{ include: { roles: { include: { role: true } } } }>
@@ -30,7 +38,10 @@ export class RoleSecurityService {
 
   async hasAnyRole(userId: string | bigint, roleKeys: string[]) {
     const role = await this.prisma.sysUserRole.findFirst({
-      where: { userId: BigInt(userId), role: { roleKey: { in: roleKeys }, delFlag: '0', status: '0' } },
+      where: {
+        userId: BigInt(userId),
+        role: { roleKey: { in: expandEquivalentRoleKeys(roleKeys) }, delFlag: '0', status: '0' },
+      },
       select: { userId: true },
     })
     return Boolean(role)
@@ -46,10 +57,12 @@ export class RoleSecurityService {
       where: { userId: BigInt(userId), role: { delFlag: '0', status: '0' } },
       select: { role: { select: { roleKey: true, securityLevel: true } } },
     })
-    return rows.map((row) => ({
-      roleKey: row.role.roleKey,
-      securityLevel: row.role.securityLevel ?? defaultRoleSecurityLevel(row.role.roleKey),
-    }))
+    return rows
+      .filter((row) => !isLegacyBusinessRole(row.role.roleKey))
+      .map((row) => ({
+        roleKey: row.role.roleKey,
+        securityLevel: row.role.securityLevel ?? defaultRoleSecurityLevel(row.role.roleKey),
+      }))
   }
 
   async assertActiveUser(userId: string | bigint) {
@@ -69,8 +82,15 @@ export class RoleSecurityService {
     if (targetLevel > operatorLevel) throw BusinessException.forbidden(message)
   }
 
-  async assertTargetHasRole(operatorId: string | bigint, targetUserId: string | bigint, roleKeys: string[], label: string) {
+  async assertTargetHasRole(
+    operatorId: string | bigint,
+    targetUserId: string | bigint,
+    roleKeys: string[],
+    label: string,
+    options: TargetRoleOptions = {},
+  ) {
     await this.assertActiveUser(targetUserId)
+    if (options.allowAdminBypassRole && await this.isAdmin(operatorId)) return
     await this.assertNotHigher(operatorId, targetUserId, `不能选择权限高于自己的${label}`)
     if (await this.isAdmin(targetUserId)) return
     if (!(await this.hasAnyRole(targetUserId, roleKeys))) {
@@ -115,7 +135,7 @@ export class RoleSecurityService {
       orderBy: { userId: 'asc' },
       take: 200,
     })
-    const filtered = this.filterUsersByContext(users, query)
+    const filtered = await this.filterUsersByContext(operatorId, users, query)
     const securityFiltered = operatorId && this.shouldApplySecurity(query)
       ? await this.filterUsersBySecurity(operatorId, filtered)
       : filtered
@@ -143,10 +163,24 @@ export class RoleSecurityService {
     }
   }
 
-  private filterUsersByContext(users: UserWithRoles[], query: AssignableUserOptionsQuery) {
+  private async filterUsersByContext(
+    operatorId: string | bigint | undefined,
+    users: UserWithRoles[],
+    query: AssignableUserOptionsQuery,
+  ) {
+    // 超级管理员维护项目负责人时具备兜底能力：候选人只要求启用，不强制预先具备业务角色。
+    if (await this.canAdminBypassProjectOwnerRoleFilter(operatorId, query)) return users
     const roleKeys = this.requiredSystemRoleKeys(query)
     if (!roleKeys.length) return users
     return users.filter((user) => this.userHasAnyRole(user, roleKeys) || this.userHasAnyRole(user, ['admin']))
+  }
+
+  private async canAdminBypassProjectOwnerRoleFilter(
+    operatorId: string | bigint | undefined,
+    query: AssignableUserOptionsQuery,
+  ) {
+    if (!operatorId || query.assignContext !== 'projectOwner') return false
+    return this.isAdmin(operatorId)
   }
 
   private async filterUsersBySecurity(operatorId: string | bigint, users: UserWithRoles[]) {
@@ -170,9 +204,9 @@ export class RoleSecurityService {
   }
 
   private requiredSystemRoleKeys(query: AssignableUserOptionsQuery) {
-    if (query.assignContext === 'projectOwner') return ['bug_project_owner']
+    if (query.assignContext === 'projectOwner') return expandEquivalentRoleKeys(['bug_project_owner'])
     const memberRoles = this.resolveProjectMemberRoles(query)
-    return [...new Set(memberRoles.flatMap((role) => PROJECT_MEMBER_ROLE_KEYS[role] ?? []))]
+    return expandEquivalentRoleKeys(memberRoles.flatMap((role) => PROJECT_MEMBER_ROLE_KEYS[role] ?? []))
   }
 
   private async assertUserMatchesMemberRole(userId: string | bigint, memberRole: string) {
@@ -187,12 +221,17 @@ export class RoleSecurityService {
   }
 
   private userHasAnyRole(user: UserWithRoles, roleKeys: string[]) {
-    return user.roles.some((item) => roleKeys.includes(item.role.roleKey) && item.role.delFlag === '0' && item.role.status === '0')
+    return user.roles.some((item) =>
+      roleKeys.includes(item.role.roleKey) &&
+      item.role.delFlag === '0' &&
+      item.role.status === '0' &&
+      !isLegacyBusinessRole(item.role.roleKey),
+    )
   }
 
   private activeRoleKeys(user: UserWithRoles) {
     return user.roles
-      .filter((item) => item.role.delFlag === '0' && item.role.status === '0')
+      .filter((item) => item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey))
       .map((item) => ({
         roleKey: item.role.roleKey,
         securityLevel: item.role.securityLevel ?? defaultRoleSecurityLevel(item.role.roleKey),
