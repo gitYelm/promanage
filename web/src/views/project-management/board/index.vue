@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -13,10 +11,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import PriorityBadge from '@/components/common/PriorityBadge.vue'
-import StatusBadge from '@/components/common/StatusBadge.vue'
 import RequirementDetailDialog from '../requirements/components/RequirementDetailDialog.vue'
 import BugTicketDetailDialog from '@/views/bug/tickets/components/BugTicketDetailDialog.vue'
+import PmBugSummaryCard from '../components/PmBugSummaryCard.vue'
+import PmRequirementSummaryCard from '../components/PmRequirementSummaryCard.vue'
+import PmScrollableSectionCard from '../components/PmScrollableSectionCard.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { getRequirement, listRequirements } from '@/api/project-management'
 import { bugProjectOptions, getBugTicket, listBugTickets } from '@/api/bug'
@@ -159,119 +158,52 @@ onMounted(async () => {
       </TabsList>
 
       <TabsContent value="requirements">
-        <div class="overflow-x-auto pb-2">
-          <div class="flex min-w-max gap-4">
-            <Card
-              v-for="column in requirementColumns"
-              :key="column.title"
-              class="min-h-[26rem] w-[22rem] flex-none border-dashed"
-            >
-              <CardHeader class="pb-3">
-                <CardTitle class="flex items-center justify-between gap-3 text-sm">
-                  <span>{{ column.title }}</span>
-                  <Badge
-                    variant="outline"
-                    :class="getBoardColumnStyle(column.title).badgeClass"
-                  >
-                    {{ column.rows.length }}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent class="max-h-[30rem] space-y-3 overflow-y-auto overscroll-contain pr-3">
-                <div
-                  v-for="row in column.rows"
-                  :key="row.requirementId"
-                  class="rounded-md border bg-background p-3 text-sm shadow-sm transition hover:shadow-md"
-                  title="双击查看需求详情"
-                  @dblclick="openRequirementDetail(row)"
-                >
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="line-clamp-2 font-medium">
-                      {{ row.title }}
-                    </div>
-                    <Button
-                      permission="pm:requirement:view"
-                      size="xs"
-                      variant="outline"
-                      @click.stop="openRequirementDetail(row)"
-                    >
-                      详情
-                    </Button>
-                  </div>
-                  <div class="mt-2 flex flex-wrap gap-1">
-                    <StatusBadge domain="requirement" :value="row.status" />
-                    <PriorityBadge :value="row.priority" />
-                  </div>
-                  <div class="mt-2 text-xs text-muted-foreground">
-                    {{ requirementMeta(row) }}
-                  </div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    计划完成：{{ formatDate(row.plannedEndTime) }}
-                  </div>
-                </div>
-                <EmptyState v-if="!column.rows.length" title="暂无事项" />
-              </CardContent>
-            </Card>
-          </div>
+        <div class="grid gap-4 xl:grid-cols-3">
+          <PmScrollableSectionCard
+            v-for="column in requirementColumns"
+            :key="column.title"
+            :title="column.title"
+            :count="column.rows.length"
+            :badge-class="getBoardColumnStyle(column.title).badgeClass"
+            card-class="border-dashed"
+            content-class="space-y-3"
+          >
+            <PmRequirementSummaryCard
+              v-for="row in column.rows"
+              :key="row.requirementId"
+              :row="row"
+              interactive
+              :meta-text="requirementMeta(row)"
+              :secondary-text="`计划完成：${formatDate(row.plannedEndTime)}`"
+              @detail="openRequirementDetail"
+            />
+            <EmptyState v-if="!column.rows.length" title="暂无事项" />
+          </PmScrollableSectionCard>
         </div>
       </TabsContent>
 
       <TabsContent value="bugs">
-        <div class="overflow-x-auto pb-2">
-          <div class="flex min-w-max gap-4">
-            <Card
-              v-for="column in bugColumns"
-              :key="column.title"
-              class="min-h-[26rem] w-[22rem] flex-none border-dashed"
-            >
-              <CardHeader class="pb-3">
-                <CardTitle class="flex items-center justify-between gap-3 text-sm">
-                  <span>{{ column.title }}</span>
-                  <Badge
-                    variant="outline"
-                    :class="getBoardColumnStyle(column.title).badgeClass"
-                  >
-                    {{ column.rows.length }}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent class="max-h-[30rem] space-y-3 overflow-y-auto overscroll-contain pr-3">
-                <div
-                  v-for="row in column.rows"
-                  :key="row.ticketId"
-                  class="rounded-md border bg-background p-3 text-sm shadow-sm transition hover:shadow-md"
-                  title="双击查看缺陷详情"
-                  @dblclick="openBugDetail(row)"
-                >
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <div class="text-xs text-muted-foreground">{{ row.ticketNo }}</div>
-                      <div class="line-clamp-2 font-medium">{{ row.title }}</div>
-                    </div>
-                    <Button
-                      permission="bug:ticket:query"
-                      size="xs"
-                      variant="outline"
-                      @click.stop="openBugDetail(row)"
-                    >
-                      详情
-                    </Button>
-                  </div>
-                  <div class="mt-2 flex flex-wrap gap-1">
-                    <StatusBadge domain="bug" :value="row.status" />
-                    <PriorityBadge :value="row.priority" />
-                  </div>
-                  <div class="mt-2 text-xs text-muted-foreground">
-                    {{ bugMeta(row) }}
-                  </div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    期望完成：{{ bugTime(row) }}
-                  </div>
-                </div>
-                <EmptyState v-if="!column.rows.length" title="暂无事项" />
-              </CardContent>
-            </Card>
-          </div>
+        <div class="grid gap-4 xl:grid-cols-3">
+          <PmScrollableSectionCard
+            v-for="column in bugColumns"
+            :key="column.title"
+            :title="column.title"
+            :count="column.rows.length"
+            :badge-class="getBoardColumnStyle(column.title).badgeClass"
+            card-class="border-dashed"
+            content-class="space-y-3"
+          >
+            <PmBugSummaryCard
+              v-for="row in column.rows"
+              :key="row.ticketId"
+              :row="row"
+              interactive
+              :meta-text="bugMeta(row)"
+              :secondary-text="`期望完成：${bugTime(row)}`"
+              @detail="(row) => openBugDetail(row as BugTicket)"
+            />
+            <EmptyState v-if="!column.rows.length" title="暂无事项" />
+          </PmScrollableSectionCard>
         </div>
       </TabsContent>
     </Tabs>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -13,11 +12,13 @@ import {
 } from '@/components/ui/table'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import MetricCard from '@/components/common/MetricCard.vue'
+import PmBugSummaryCard from '../components/PmBugSummaryCard.vue'
+import PmRequirementSummaryCard from '../components/PmRequirementSummaryCard.vue'
+import PmScrollableSectionCard from '../components/PmScrollableSectionCard.vue'
 import BugTicketDetailDialog from '@/views/bug/tickets/components/BugTicketDetailDialog.vue'
 import RequirementDetailDialog from '../requirements/components/RequirementDetailDialog.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 import SemanticProgress from '@/components/common/SemanticProgress.vue'
-import PriorityBadge from '@/components/common/PriorityBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
@@ -144,17 +145,23 @@ function itemProjectName(item: Record<string, unknown>) {
 function itemStatus(item: Record<string, unknown>) {
   return typeof item.status === 'string' ? item.status : undefined
 }
-function itemPriority(item: Record<string, unknown>) {
-  return typeof item.priority === 'string' ? item.priority : undefined
-}
 function requirementOwner(row: Requirement) {
   return row.developer?.nickName || row.owner?.nickName || row.owner?.userName || '-'
+}
+function requirementMeta(row: Requirement) {
+  return `${row.project?.projectName || '-'} · ${requirementOwner(row)}`
 }
 function jumpFromMetric(path: string) {
   router.push(path)
 }
 function bugTicketId(row: Record<string, unknown>) {
   return typeof row.ticketId === 'string' ? row.ticketId : ''
+}
+function bugMeta(row: Record<string, unknown>) {
+  const assignee = (row.assignee as { nickName?: string; userName?: string } | undefined)?.nickName
+    || (row.assignee as { nickName?: string; userName?: string } | undefined)?.userName
+    || '-'
+  return `${itemProjectName(row)} · ${assignee}`
 }
 async function openRequirementDetail(row: Requirement) {
   try {
@@ -275,150 +282,79 @@ onMounted(load)
       >
     </div>
     <div class="grid gap-4 xl:grid-cols-3">
-      <Card
-        ><CardHeader><CardTitle>当前处理</CardTitle></CardHeader
-        ><CardContent class="max-h-[30rem] space-y-3 overflow-y-auto overscroll-contain pr-3"
-          ><div class="text-sm font-medium">需求</div>
-          <div
-            v-for="row in currentWork.requirements"
-            :key="row.requirementId"
-            class="rounded-md border p-2 text-sm"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="font-medium">{{ row.title }}</div>
-              <Button
-                permission="pm:requirement:view"
-                size="xs"
-                variant="outline"
-                @click="openRequirementDetail(row)"
-                >详情</Button
-              >
-            </div>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge domain="requirement" :value="row.status" /><span
-                class="text-xs text-muted-foreground"
-                >{{ row.project?.projectName }} · {{ requirementOwner(row) }}</span
-              >
-            </div>
-          </div>
-          <div class="text-sm font-medium">缺陷</div>
-          <div
-            v-for="row in currentWork.bugs"
-            :key="String(row.ticketId)"
-            class="rounded-md border p-2 text-sm"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="font-medium">{{ bugTitle(row) }}</div>
-              <Button
-                permission="bug:ticket:query"
-                size="xs"
-                variant="outline"
-                @click="openBugDetail(row)"
-                >详情</Button
-              >
-            </div>
-            <div class="mt-2 flex flex-wrap gap-1">
-              <StatusBadge domain="bug" :value="itemStatus(row)" /><PriorityBadge
-                :value="itemPriority(row)"
-              />
-            </div></div></CardContent
-      ></Card>
-      <Card
-        ><CardHeader><CardTitle>历史完成</CardTitle></CardHeader
-        ><CardContent class="max-h-[30rem] space-y-3 overflow-y-auto overscroll-contain pr-3"
-          ><div
-            v-for="row in completed.requirements"
-            :key="row.requirementId"
-            class="rounded-md border p-2 text-sm"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="font-medium">{{ row.title }}</div>
-              <Button
-                permission="pm:requirement:view"
-                size="xs"
-                variant="outline"
-                @click="openRequirementDetail(row)"
-                >详情</Button
-              >
-            </div>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge domain="requirement" :value="row.status" /><span
-                class="text-xs text-muted-foreground"
-                >{{ formatDate(row.actualEndTime || row.updateTime) }}</span
-              >
-            </div>
-          </div>
-          <div
-            v-for="row in completed.bugs"
-            :key="String(row.ticketId)"
-            class="rounded-md border p-2 text-sm"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="font-medium">{{ bugTitle(row) }}</div>
-              <Button
-                permission="bug:ticket:query"
-                size="xs"
-                variant="outline"
-                @click="openBugDetail(row)"
-                >详情</Button
-              >
-            </div>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge domain="bug" :value="itemStatus(row)" /><span
-                class="text-xs text-muted-foreground"
-                >{{ String(row.updateTime || '-') }}</span
-              >
-            </div>
-          </div></CardContent
-        ></Card
+      <PmScrollableSectionCard
+        title="当前处理"
+        :count="currentWork.requirements.length + currentWork.bugs.length"
+        content-class="space-y-3"
       >
-      <Card
-        ><CardHeader><CardTitle>未处理</CardTitle></CardHeader
-        ><CardContent class="max-h-[30rem] space-y-3 overflow-y-auto overscroll-contain pr-3"
-          ><div
-            v-for="row in pending.requirements"
-            :key="row.requirementId"
-            class="rounded-md border p-2 text-sm"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="font-medium">{{ row.title }}</div>
-              <Button
-                permission="pm:requirement:view"
-                size="xs"
-                variant="outline"
-                @click="openRequirementDetail(row)"
-                >详情</Button
-              >
-            </div>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge domain="requirement" :value="row.status" /><PriorityBadge
-                :value="row.priority"
-              /><span class="text-xs text-muted-foreground">{{ row.project?.projectName }}</span>
-            </div>
-          </div>
-          <div
-            v-for="row in pending.bugs"
-            :key="String(row.ticketId)"
-            class="rounded-md border p-2 text-sm"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="font-medium">{{ bugTitle(row) }}</div>
-              <Button
-                permission="bug:ticket:query"
-                size="xs"
-                variant="outline"
-                @click="openBugDetail(row)"
-                >详情</Button
-              >
-            </div>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge domain="bug" :value="itemStatus(row)" /><PriorityBadge
-                :value="itemPriority(row)"
-              /><span class="text-xs text-muted-foreground">{{ itemProjectName(row) }}</span>
-            </div>
-          </div></CardContent
-        ></Card
+        <div class="text-sm font-medium">需求</div>
+        <PmRequirementSummaryCard
+          v-for="row in currentWork.requirements"
+          :key="row.requirementId"
+          :row="row"
+          interactive
+          :show-priority="false"
+          :meta-text="requirementMeta(row)"
+          @detail="openRequirementDetail"
+        />
+        <div class="text-sm font-medium">缺陷</div>
+        <PmBugSummaryCard
+          v-for="row in currentWork.bugs"
+          :key="String(row.ticketId)"
+          :row="row"
+          interactive
+          :show-ticket-no="false"
+          :meta-text="bugMeta(row)"
+          @detail="(row) => openBugDetail(row as Record<string, unknown>)"
+        />
+      </PmScrollableSectionCard>
+      <PmScrollableSectionCard
+        title="历史完成"
+        :count="completed.requirements.length + completed.bugs.length"
+        content-class="space-y-3"
       >
+        <PmRequirementSummaryCard
+          v-for="row in completed.requirements"
+          :key="row.requirementId"
+          :row="row"
+          interactive
+          :show-priority="false"
+          :secondary-text="formatDate(row.actualEndTime || row.updateTime)"
+          @detail="openRequirementDetail"
+        />
+        <PmBugSummaryCard
+          v-for="row in completed.bugs"
+          :key="String(row.ticketId)"
+          :row="row"
+          interactive
+          :show-ticket-no="false"
+          :secondary-text="formatDate(String(row.updateTime || ''))"
+          @detail="(row) => openBugDetail(row as Record<string, unknown>)"
+        />
+      </PmScrollableSectionCard>
+      <PmScrollableSectionCard
+        title="未处理"
+        :count="pending.requirements.length + pending.bugs.length"
+        content-class="space-y-3"
+      >
+        <PmRequirementSummaryCard
+          v-for="row in pending.requirements"
+          :key="row.requirementId"
+          :row="row"
+          interactive
+          :meta-text="row.project?.projectName || '-'"
+          @detail="openRequirementDetail"
+        />
+        <PmBugSummaryCard
+          v-for="row in pending.bugs"
+          :key="String(row.ticketId)"
+          :row="row"
+          interactive
+          :show-ticket-no="false"
+          :meta-text="itemProjectName(row)"
+          @detail="(row) => openBugDetail(row as Record<string, unknown>)"
+        />
+      </PmScrollableSectionCard>
     </div>
     <BugTicketDetailDialog v-model:open="bugDetailOpen" :detail="bugDetail" />
     <RequirementDetailDialog v-model:open="requirementDetailOpen" :detail="requirementDetail" />
