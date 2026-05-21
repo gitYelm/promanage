@@ -19,15 +19,20 @@ import PriorityBadge from '@/components/common/PriorityBadge.vue'
 import SemanticActionButton from '@/components/common/SemanticActionButton.vue'
 import SeverityBadge from '@/components/common/SeverityBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import { formatDate } from '@/utils/format'
+import { normalizeAllOption } from '@/utils/table-filter'
+import { toggleTableSort } from '@/utils/table-sort'
 import { hasAnyPermission, usePermission } from '@/composables/usePermission'
 import { addBugComment, bugProjectOptions, bugUserOptions, getBugTicket, listBugModules, listBugTickets, runBugAction, updateBugTicket } from '@/api/bug'
 import { BUG_LIST_STALE_EVENT, BUG_TICKET_OPEN_EVENT, dispatchBugPendingCountRefresh, type BugTicketOpenEventDetail } from '../shared/bug-events'
 import type { BugActionOption, BugModule, BugProject, BugTicket, BugUserRef } from '@/api/bug/types'
-import { ALL_OPTION_VALUE, BUG_ACTION_LABELS, BUG_ENVIRONMENT_OPTIONS, BUG_PRIORITY_OPTIONS, BUG_SEVERITY_OPTIONS, BUG_STATUS_OPTIONS, BUG_TYPE_OPTIONS, actionLabel, normalizeAll } from '../shared/bug-options'
+import { BUG_ACTION_LABELS, BUG_ENVIRONMENT_OPTIONS, BUG_PRIORITY_OPTIONS, BUG_SEVERITY_OPTIONS, BUG_TYPE_OPTIONS, actionLabel } from '../shared/bug-options'
 import AttachmentList from './components/AttachmentList.vue'
 import BugQuickActions from './components/BugQuickActions.vue'
+import BugTicketFilters from './components/BugTicketFilters.vue'
 import DuplicateBugSelector from './components/DuplicateBugSelector.vue'
+import { buildBugTicketListQuery, createBugTicketFilterState } from './bug-ticket-query'
 
 const route = useRoute()
 const { toast } = useToast()
@@ -62,7 +67,7 @@ const canShowDetailQuickActions = computed(() =>
     (action) => !action.permissions?.length || hasAnyPermission(action.permissions),
   ),
 )
-const query = reactive({ pageNum: 1, pageSize: 20, keyword: '', projectId: ALL_OPTION_VALUE, moduleId: ALL_OPTION_VALUE, status: ALL_OPTION_VALUE, severity: ALL_OPTION_VALUE, priority: ALL_OPTION_VALUE, assigneeId: ALL_OPTION_VALUE, submitterId: ALL_OPTION_VALUE, beginTime: '', endTime: '' })
+const query = reactive(createBugTicketFilterState())
 const actionForm = reactive({ remark: '', assigneeId: '', dueTime: '', duplicateOfId: '' })
 const commentText = ref('')
 const editForm = reactive({ ticketId: '', title: '', type: '', severity: '', priority: '', description: '', reproduceSteps: '', expectedResult: '', actualResult: '', environment: '', deviceInfo: '' })
@@ -70,7 +75,7 @@ const editForm = reactive({ ticketId: '', title: '', type: '', severity: '', pri
 async function getList() {
   loading.value = true
   try {
-    const res = await listBugTickets({ ...query, projectId: normalizeAll(query.projectId), moduleId: normalizeAll(query.moduleId), status: normalizeAll(query.status), severity: normalizeAll(query.severity), priority: normalizeAll(query.priority), assigneeId: normalizeAll(query.assigneeId), submitterId: normalizeAll(query.submitterId), beginTime: query.beginTime ? new Date(query.beginTime).toISOString() : undefined, endTime: query.endTime ? new Date(query.endTime).toISOString() : undefined, mine: isMyPage.value ? 'true' : undefined })
+    const res = await listBugTickets(buildBugTicketListQuery(query, { mine: isMyPage.value }))
     rows.value = res.rows
     total.value = res.total
     listStale.value = false
@@ -80,19 +85,29 @@ async function getList() {
 }
 
 async function loadModules() {
-  const projectId = normalizeAll(query.projectId)
+  const projectId = normalizeAllOption(query.projectId)
   if (!projectId) {
     modules.value = []
-    query.moduleId = ALL_OPTION_VALUE
+    query.moduleId = createBugTicketFilterState(query.pageSize).moduleId
     return
   }
   const res = await listBugModules({ projectId, pageNum: 1, pageSize: 100 })
   modules.value = res.rows
-  query.moduleId = ALL_OPTION_VALUE
+  query.moduleId = createBugTicketFilterState(query.pageSize).moduleId
+}
+
+function searchList() {
+  query.pageNum = 1
+  getList()
+}
+
+function handleSort(key: string) {
+  toggleTableSort(query, key)
+  getList()
 }
 
 function resetQuery() {
-  Object.assign(query, { pageNum: 1, keyword: '', projectId: ALL_OPTION_VALUE, moduleId: ALL_OPTION_VALUE, status: ALL_OPTION_VALUE, severity: ALL_OPTION_VALUE, priority: ALL_OPTION_VALUE, assigneeId: ALL_OPTION_VALUE, submitterId: ALL_OPTION_VALUE, beginTime: '', endTime: '' })
+  Object.assign(query, createBugTicketFilterState(query.pageSize))
   modules.value = []
   getList()
 }
@@ -211,21 +226,17 @@ onBeforeUnmount(() => {
         <Button size="sm" @click="getList">刷新列表</Button>
       </AlertDescription>
     </Alert>
-    <div class="flex flex-wrap gap-3 rounded-lg border bg-background p-4">
-      <Input v-model="query.keyword" placeholder="标题/编号" class="w-48" @keyup.enter="getList" />
-      <Select v-model="query.projectId" @update:model-value="loadModules"><SelectTrigger class="w-44"><SelectValue placeholder="项目" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select>
-      <Select v-model="query.moduleId"><SelectTrigger class="w-40"><SelectValue placeholder="模块" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部模块</SelectItem><SelectItem v-for="m in modules" :key="m.moduleId" :value="m.moduleId">{{ m.moduleName }}</SelectItem></SelectContent></Select>
-      <Select v-model="query.status"><SelectTrigger class="w-40"><SelectValue placeholder="状态" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部状态</SelectItem><SelectItem v-for="o in BUG_STATUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
-      <Select v-model="query.severity"><SelectTrigger class="w-36"><SelectValue placeholder="严重" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部严重</SelectItem><SelectItem v-for="o in BUG_SEVERITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
-      <Select v-model="query.priority"><SelectTrigger class="w-36"><SelectValue placeholder="优先级" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部优先级</SelectItem><SelectItem v-for="o in BUG_PRIORITY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
-      <Select v-model="query.assigneeId"><SelectTrigger class="w-40"><SelectValue placeholder="负责人" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部负责人</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select>
-      <Select v-model="query.submitterId"><SelectTrigger class="w-40"><SelectValue placeholder="提交人" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部提交人</SelectItem><SelectItem v-for="u in users" :key="u.userId" :value="u.userId">{{ u.nickName || u.userName }}</SelectItem></SelectContent></Select>
-      <Input v-model="query.beginTime" type="datetime-local" class="w-48" />
-      <Input v-model="query.endTime" type="datetime-local" class="w-48" />
-      <Button @click="getList">搜索</Button><Button variant="outline" @click="resetQuery">重置</Button>
-    </div>
+    <BugTicketFilters
+      :query="query"
+      :projects="projects"
+      :modules="modules"
+      :users="users"
+      @project-change="loadModules"
+      @search="searchList"
+      @reset="resetQuery"
+    />
     <TableSkeleton v-if="loading" :rows="5" :columns="10" />
-    <div v-else class="rounded-md border"><Table><TableHeader><TableRow><TableHead>编号</TableHead><TableHead>标题</TableHead><TableHead>项目</TableHead><TableHead>模块</TableHead><TableHead class="text-center">状态</TableHead><TableHead class="text-center">严重</TableHead><TableHead class="text-center">优先级</TableHead><TableHead>负责人</TableHead><TableHead>创建时间</TableHead><TableHead v-if="canShowQuickActionColumn" class="min-w-48 text-left">快捷操作</TableHead><TableHead v-if="canShowOperationColumn" class="w-24 text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.ticketId" :class="{ 'cursor-pointer': canShowOperationColumn }" @click="canShowOperationColumn && openDetail(row)"><TableCell>{{ row.ticketNo }}</TableCell><TableCell>{{ row.title }}</TableCell><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.module?.moduleName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="bug" :value="row.status" /></TableCell><TableCell class="text-center"><SeverityBadge :value="row.severity" /></TableCell><TableCell class="text-center"><PriorityBadge :value="row.priority" /></TableCell><TableCell>{{ row.assignee?.nickName || '-' }}</TableCell><TableCell>{{ formatDate(row.createTime) }}</TableCell><TableCell v-if="canShowQuickActionColumn"><BugQuickActions :ticket="row" @run="openAction" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end"><Button size="sm" variant="outline" @click.stop="openDetail(row)">详情</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!rows.length" title="暂无 Bug" /></div>
+    <div v-else class="rounded-md border"><Table><TableHeader><TableRow><SortableTableHead label="编号" sort-key="ticketNo" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead>标题</TableHead><SortableTableHead label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="模块" sort-key="moduleId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="严重" sort-key="severity" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="优先级" sort-key="priority" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="负责人" sort-key="assigneeId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="创建时间" sort-key="createTime" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowQuickActionColumn" class="min-w-48 text-left">快捷操作</TableHead><TableHead v-if="canShowOperationColumn" class="w-24 text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.ticketId" :class="{ 'cursor-pointer': canShowOperationColumn }" @click="canShowOperationColumn && openDetail(row)"><TableCell>{{ row.ticketNo }}</TableCell><TableCell>{{ row.title }}</TableCell><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.module?.moduleName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="bug" :value="row.status" /></TableCell><TableCell class="text-center"><SeverityBadge :value="row.severity" /></TableCell><TableCell class="text-center"><PriorityBadge :value="row.priority" /></TableCell><TableCell>{{ row.assignee?.nickName || '-' }}</TableCell><TableCell>{{ formatDate(row.createTime) }}</TableCell><TableCell v-if="canShowQuickActionColumn"><BugQuickActions :ticket="row" @run="openAction" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end"><Button size="sm" variant="outline" @click.stop="openDetail(row)">详情</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!rows.length" title="暂无 Bug" /></div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
     <Dialog v-model:open="showDetail"><DialogContent class="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogHeader><DialogTitle>{{ detail?.ticketNo }} {{ detail?.title }}</DialogTitle></DialogHeader><div v-if="detail" class="space-y-4"><div class="flex flex-wrap gap-2"><StatusBadge domain="bug" :value="detail.status" /><PriorityBadge :value="detail.priority" /><SeverityBadge :value="detail.severity" /><Badge variant="outline">{{ detail.project?.projectName }} / {{ detail.module?.moduleName || '-' }}</Badge></div><div class="grid gap-4 md:grid-cols-2"><div><h4 class="font-medium">问题描述</h4><p class="whitespace-pre-wrap text-sm">{{ detail.description }}</p></div><div><h4 class="font-medium">复现步骤</h4><p class="whitespace-pre-wrap text-sm">{{ detail.reproduceSteps }}</p></div><div><h4 class="font-medium">期望结果</h4><p class="whitespace-pre-wrap text-sm">{{ detail.expectedResult }}</p></div><div><h4 class="font-medium">实际结果</h4><p class="whitespace-pre-wrap text-sm">{{ detail.actualResult }}</p></div></div><div><h4 class="mb-2 font-medium">附件</h4><AttachmentList :attachments="detail.attachments || []" empty-text="暂无附件" /></div><div><h4 class="font-medium">评论</h4><div v-for="c in detail.comments" :key="c.commentId" class="border-b py-2 text-sm"><b>{{ c.user?.nickName }}</b>：{{ c.content }} <span class="text-muted-foreground">{{ formatDate(c.createTime) }}</span></div><div class="mt-2 flex gap-2"><Textarea v-model="commentText" placeholder="补充评论" /><Button v-hasPermi="['bug:comment:add']" @click="comment">评论</Button></div></div><div><h4 class="font-medium">操作历史</h4><div v-for="h in detail.histories" :key="h.historyId" class="text-sm text-muted-foreground">{{ formatDate(h.createTime) }} {{ h.operator?.nickName }} {{ actionLabel(h.action) }} {{ h.fromValue }} → {{ h.toValue }} {{ h.remark }}</div></div></div><DialogFooter v-if="detail?.canEdit || canShowDetailQuickActions" class="flex flex-wrap gap-2"><Button v-if="detail?.canEdit" v-hasPermi="['bug:ticket:edit', 'bug:ticket:add', 'bug:ticket:my']" variant="outline" @click="openEdit">编辑</Button><SemanticActionButton v-for="a in detail?.availableActions" :key="a.action" :action="a.action" :permissions="a.permissions" @click="openAction(a)">{{ a.label || BUG_ACTION_LABELS[a.action] || a.action }}</SemanticActionButton></DialogFooter></DialogContent></Dialog>
     <Dialog v-model:open="editOpen">

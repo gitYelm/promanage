@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import type { Requirement } from '@/api/project-management/types'
 import { formatDate } from '../../shared/options'
@@ -31,10 +31,13 @@ defineProps<{
         <div class="flex flex-wrap gap-2">
           <StatusBadge domain="requirement" :value="detail.status" />
           <PriorityBadge :value="detail.priority" />
-          <Badge variant="outline">{{ detail.project?.projectName || '-' }}</Badge>
-          <Badge v-if="detail.module?.moduleName" variant="outline">{{
-            detail.module.moduleName
-          }}</Badge>
+          <ProjectBadge :name="detail.project?.projectName" :code="detail.project?.projectKey" />
+          <span
+            v-if="detail.module?.moduleName"
+            class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300"
+          >
+            {{ detail.module.moduleName }}
+          </span>
         </div>
         <div class="grid gap-3 text-sm md:grid-cols-2">
           <div>

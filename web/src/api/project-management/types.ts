@@ -37,6 +37,8 @@ export interface Requirement {
   type: string
   source?: string
   priority: string
+  valueScore?: number
+  difficultyScore?: number
   status: string
   ownerId?: string
   developerId?: string
@@ -63,17 +65,42 @@ export interface Requirement {
   tickets?: Array<Record<string, unknown>>
 }
 export interface RequirementForm extends Partial<Requirement> {}
+export interface RequirementBatchAssignPayload {
+  ids: string[]
+  ownerId?: string | null
+  developerId?: string | null
+  testerId?: string | null
+}
 export interface RequirementQuery {
   pageNum?: number
   pageSize?: number
   keyword?: string
+  requirementNo?: string
+  title?: string
   projectId?: string
   moduleId?: string
+  type?: string
+  source?: string
   status?: string
   priority?: string
   ownerId?: string
   developerId?: string
+  testerId?: string
   iterationId?: string
+  milestoneId?: string
+  versionId?: string
+  valueScoreMin?: number
+  valueScoreMax?: number
+  difficultyScoreMin?: number
+  difficultyScoreMax?: number
+  plannedStartTimeStart?: string
+  plannedStartTimeEnd?: string
+  plannedEndTimeStart?: string
+  plannedEndTimeEnd?: string
+  createTimeStart?: string
+  createTimeEnd?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }
 
 export interface Iteration {
@@ -97,6 +124,13 @@ export interface IterationQuery {
   keyword?: string
   projectId?: string
   status?: string
+  ownerId?: string
+  startDateStart?: string
+  startDateEnd?: string
+  endDateStart?: string
+  endDateEnd?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }
 
 export interface Milestone {
@@ -120,6 +154,12 @@ export interface MilestoneQuery {
   keyword?: string
   projectId?: string
   status?: string
+  stage?: string
+  ownerId?: string
+  targetDateStart?: string
+  targetDateEnd?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }
 
 export interface DashboardQuery {
@@ -152,6 +192,7 @@ export interface DashboardSummary extends WorkCountsSummary {
 export interface ProjectHealth {
   project: ProjectRef
   progress: number
+  requirementDoneRate: number
   bugCloseRate: number
   blockerBugs: number
   delayedMilestones: number

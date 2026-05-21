@@ -14,6 +14,7 @@ import type {
   ProjectOverview,
   ProjectProgressForm,
   Requirement,
+  RequirementBatchAssignPayload,
   RequirementForm,
   RequirementQuery,
   RiskItems,
@@ -41,6 +42,9 @@ export function updateRequirement(data: RequirementForm) {
     method: 'put',
     data,
   })
+}
+export function batchAssignRequirements(data: RequirementBatchAssignPayload) {
+  return request({ url: '/project-management/requirements/batch-assign', method: 'post', data })
 }
 export function deleteRequirements(ids: string[]) {
   return request({

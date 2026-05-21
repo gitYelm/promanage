@@ -1,83 +1,67 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Label } from '@/components/ui/label'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
-import SemanticActionButton from '@/components/common/SemanticActionButton.vue'
-import PriorityBadge from '@/components/common/PriorityBadge.vue'
-import StatusBadge from '@/components/common/StatusBadge.vue'
+import RequirementBatchBar from './components/RequirementBatchBar.vue'
 import RequirementDetailDialog from './components/RequirementDetailDialog.vue'
+import RequirementBatchAssignDialog from './components/RequirementBatchAssignDialog.vue'
+import RequirementFormDialog from './components/RequirementFormDialog.vue'
+import {
+  REQUIREMENT_BATCH_CLEAR_VALUE,
+  REQUIREMENT_BATCH_KEEP_VALUE,
+  type RequirementBatchAssignFormState,
+} from './components/requirement-batch-assign.constants'
 import RequirementFilters from './components/RequirementFilters.vue'
+import RequirementPageToolbar from './components/RequirementPageToolbar.vue'
+import RequirementTable from './components/RequirementTable.vue'
+import { useRequirementColumns } from './requirement-columns'
+import {
+  buildRequirementListQuery,
+  createRequirementFilterState,
+} from './requirement-query'
+import { toggleTableSort } from '@/utils/table-sort'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { hasAnyPermission, usePermission } from '@/composables/usePermission'
 import { bugProjectOptions, bugUserOptions } from '@/api/bug'
 import {
   addRequirement,
+  batchAssignRequirements,
   deleteRequirements,
   getRequirement,
   listRequirements,
   runRequirementAction,
   updateRequirement,
 } from '@/api/project-management'
-import type { Requirement, RequirementForm } from '@/api/project-management/types'
+import type {
+  Requirement,
+  RequirementBatchAssignPayload,
+  RequirementForm,
+} from '@/api/project-management/types'
 import type { BugProject, BugUserRef } from '@/api/bug/types'
 import {
-  PM_ALL_OPTION_VALUE,
   PM_NONE_OPTION_VALUE,
-  PM_PRIORITY_OPTIONS,
   PM_REQUIREMENT_ACTION_OPTIONS,
-  PM_REQUIREMENT_TYPE_OPTIONS,
-  formatDate,
   pmAvailableActions,
-  pmNormalizeAll,
   pmNormalizeOptional,
   toDateInput,
 } from '../shared/options'
 
 const { toast } = useToast()
+const { columns, visibleColumnMap, toggleColumn, resetColumns } = useRequirementColumns()
 const loading = ref(false)
 const open = ref(false)
 const detailOpen = ref(false)
+const batchAssignOpen = ref(false)
 const rows = ref<Requirement[]>([])
 const total = ref(0)
 const detail = ref<Requirement | null>(null)
 const projects = ref<BugProject[]>([])
+const filterUsers = ref<BugUserRef[]>([])
 const ownerUsers = ref<BugUserRef[]>([])
 const developerUsers = ref<BugUserRef[]>([])
-const query = reactive({
-  pageNum: 1,
-  pageSize: 20,
-  keyword: '',
-  projectId: PM_ALL_OPTION_VALUE,
-  status: PM_ALL_OPTION_VALUE,
-})
+const testerUsers = ref<BugUserRef[]>([])
+const selectedIds = ref<string[]>([])
+const query = reactive(createRequirementFilterState())
 const form = reactive<RequirementForm>({
   title: '',
   projectId: '',
@@ -87,29 +71,61 @@ const form = reactive<RequirementForm>({
   ownerId: PM_NONE_OPTION_VALUE,
   developerId: PM_NONE_OPTION_VALUE,
 })
-const canSave = computed(() => Boolean(form.title && form.projectId))
 const canShowQuickActionColumn = usePermission(['pm:requirement:status', 'pm:requirement:review'])
 const canShowOperationColumn = usePermission(['pm:requirement:view', 'pm:requirement:update'])
+const canBatchAssign = usePermission(['pm:requirement:update'])
+const hasSelectedRows = computed(() => selectedIds.value.length > 0)
+const selectAll = computed({
+  get: () => rows.value.length > 0 && rows.value.every((row) => selectedIds.value.includes(row.requirementId)),
+  set: (checked: boolean) => {
+    selectedIds.value = checked ? rows.value.map((row) => row.requirementId) : []
+  },
+})
+const selectedRows = computed(() =>
+  rows.value.filter((row) => selectedIds.value.includes(row.requirementId)),
+)
+const selectedProjectIds = computed(() => [...new Set(selectedRows.value.map((row) => row.projectId))])
+const selectedProjectId = computed(() => (selectedProjectIds.value.length === 1 ? selectedProjectIds.value[0] : ''))
+const selectedProjectName = computed(() =>
+  selectedProjectIds.value.length === 1 ? selectedRows.value[0]?.project?.projectName || '-' : '多个项目',
+)
+const batchAssignForm = reactive<RequirementBatchAssignFormState>({
+  ownerId: REQUIREMENT_BATCH_KEEP_VALUE,
+  developerId: REQUIREMENT_BATCH_KEEP_VALUE,
+  testerId: REQUIREMENT_BATCH_KEEP_VALUE,
+})
 
 async function getList() {
   loading.value = true
   try {
-    const res = await listRequirements({
-      ...query,
-      projectId: pmNormalizeAll(query.projectId),
-      status: pmNormalizeAll(query.status),
-    })
+    const res = await listRequirements(buildRequirementListQuery(query))
     rows.value = res.rows
     total.value = res.total
+    selectedIds.value = selectedIds.value.filter((id) =>
+      rows.value.some((row) => row.requirementId === id),
+    )
   } finally {
     loading.value = false
   }
 }
+function searchList() {
+  query.pageNum = 1
+  getList()
+}
+function resetQuery() {
+  Object.assign(query, createRequirementFilterState(query.pageSize))
+  getList()
+}
+function handleSort(key: string) {
+  toggleTableSort(query, key)
+  getList()
+}
 async function refreshAssignableUsers(projectId = form.projectId) {
   if (!projectId) return
-  ;[ownerUsers.value, developerUsers.value] = await Promise.all([
+  ;[ownerUsers.value, developerUsers.value, testerUsers.value] = await Promise.all([
     loadUsers(projectId, 'requirementOwner'),
     loadUsers(projectId, 'requirementDeveloper'),
+    loadUsers(projectId, 'requirementTester'),
   ])
 }
 function loadUsers(projectId: string, assignContext: string) {
@@ -177,104 +193,102 @@ function quickActions(row: Requirement) {
     (item) => !item.permissions || hasAnyPermission(item.permissions),
   )
 }
+function toggleSelect(requirementId: string) {
+  const idx = selectedIds.value.indexOf(requirementId)
+  if (idx >= 0) selectedIds.value.splice(idx, 1)
+  else selectedIds.value.push(requirementId)
+}
+function resetBatchAssignForm() {
+  Object.assign(batchAssignForm, {
+    ownerId: REQUIREMENT_BATCH_KEEP_VALUE,
+    developerId: REQUIREMENT_BATCH_KEEP_VALUE,
+    testerId: REQUIREMENT_BATCH_KEEP_VALUE,
+  })
+}
+async function openBatchAssign() {
+  if (!selectedIds.value.length) {
+    toast({ title: '请先选择需求', description: '至少选择一条需求后再进行批量修改。', variant: 'destructive' })
+    return
+  }
+  if (selectedProjectIds.value.length !== 1 || !selectedProjectId.value) {
+    toast({
+      title: '仅支持同一项目批量修改',
+      description: '请先按项目筛选，或只勾选同一项目的需求后，再重新指定负责人/开发/测试人员。',
+      variant: 'destructive',
+    })
+    return
+  }
+  resetBatchAssignForm()
+  await refreshAssignableUsers(selectedProjectId.value)
+  batchAssignOpen.value = true
+}
+async function saveBatchAssign() {
+  const payload: RequirementBatchAssignPayload = { ids: [...selectedIds.value] }
+  ;(['ownerId', 'developerId', 'testerId'] as const).forEach((field) => {
+    const value = batchAssignForm[field]
+    if (value === REQUIREMENT_BATCH_KEEP_VALUE) return
+    payload[field] = value === REQUIREMENT_BATCH_CLEAR_VALUE ? null : value
+  })
+  await batchAssignRequirements(payload)
+  toast({ title: '批量修改成功', description: `已更新 ${selectedIds.value.length} 条需求的人员分工。` })
+  batchAssignOpen.value = false
+  selectedIds.value = []
+  getList()
+}
 
 onMounted(async () => {
-  projects.value = await bugProjectOptions()
+  ;[projects.value, filterUsers.value] = await Promise.all([
+    bugProjectOptions(),
+    bugUserOptions('', { assignableOnly: 'true' }),
+  ])
   await getList()
 })
 </script>
 
 <template>
   <div class="space-y-4 p-4 sm:p-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-2xl font-bold">需求管理</h2>
-      <div class="flex gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" /><Button
-          v-hasPermi="['pm:requirement:create']"
-          @click="add"
-          >新增需求</Button
-        >
-      </div>
-    </div>
-    <RequirementFilters :query="query" :projects="projects" @search="getList" />
-    <div class="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>编号</TableHead>
-            <TableHead>标题</TableHead>
-            <TableHead>项目</TableHead>
-            <TableHead>负责人</TableHead>
-            <TableHead class="text-center">状态</TableHead>
-            <TableHead class="text-center">优先级</TableHead>
-            <TableHead class="text-left">计划完成</TableHead>
-            <TableHead v-if="canShowQuickActionColumn" class="min-w-48 text-left"
-              >快捷操作</TableHead
-            >
-            <TableHead v-if="canShowOperationColumn" class="min-w-56 text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow
-            v-for="row in rows"
-            :key="row.requirementId"
-            :class="canShowOperationColumn && 'cursor-pointer'"
-            title="双击查看需求详情"
-            @dblclick="canShowOperationColumn && openDetail(row)"
-          >
-            <TableCell>{{ row.requirementNo }}</TableCell>
-            <TableCell>{{ row.title }}</TableCell>
-            <TableCell>{{ row.project?.projectName }}</TableCell>
-            <TableCell>{{ row.owner?.nickName || row.developer?.nickName || '-' }}</TableCell>
-            <TableCell class="text-center"
-              ><StatusBadge domain="requirement" :value="row.status"
-            /></TableCell>
-            <TableCell class="text-center"><PriorityBadge :value="row.priority" /></TableCell>
-            <TableCell class="text-left">{{ formatDate(row.plannedEndTime) }}</TableCell>
-            <TableCell v-if="canShowQuickActionColumn" class="text-left">
-              <div v-if="quickActions(row).length" class="flex flex-wrap gap-2">
-                <SemanticActionButton
-                  v-for="item in quickActions(row)"
-                  :key="item.action"
-                  :permissions="item.permissions"
-                  :action="item.action"
-                  @click="action(row, item.action)"
-                >
-                  {{ item.label }}
-                </SemanticActionButton>
-              </div>
-              <span v-else class="text-sm text-muted-foreground">-</span>
-            </TableCell>
-            <TableCell v-if="canShowOperationColumn" class="text-right">
-              <div class="flex justify-end gap-2">
-                <Button
-                  permission="pm:requirement:view"
-                  size="sm"
-                  variant="outline"
-                  @click.stop="openDetail(row)"
-                  >详情</Button
-                >
-                <Button
-                  v-hasPermi="['pm:requirement:update']"
-                  size="sm"
-                  variant="outline"
-                  @click.stop="edit(row)"
-                  >编辑</Button
-                >
-                <Button
-                  v-hasPermi="['pm:requirement:update']"
-                  size="sm"
-                  variant="destructive"
-                  @click.stop="remove(row)"
-                  >删除</Button
-                >
-              </div>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-      <EmptyState v-if="!rows.length" />
-    </div>
+    <RequirementPageToolbar
+      :loading="loading"
+      :can-batch-assign="canBatchAssign"
+      :columns="columns"
+      @refresh="getList"
+      @batch-assign="openBatchAssign"
+      @add="add"
+      @toggle-column="toggleColumn"
+      @reset-columns="resetColumns"
+    />
+    <RequirementBatchBar
+      :visible="hasSelectedRows && canBatchAssign"
+      :selected-count="selectedIds.length"
+      @batch-assign="openBatchAssign"
+      @clear="selectedIds = []"
+    />
+    <RequirementFilters
+      :query="query"
+      :projects="projects"
+      :users="filterUsers"
+      @search="searchList"
+      @reset="resetQuery"
+    />
+    <RequirementTable
+      :rows="rows"
+      :selected-ids="selectedIds"
+      :select-all="selectAll"
+      :can-select-rows="canBatchAssign"
+      :can-show-quick-action-column="canShowQuickActionColumn"
+      :can-show-operation-column="canShowOperationColumn"
+      :quick-actions="quickActions"
+      :sort-by="query.sortBy"
+      :sort-order="query.sortOrder"
+      :visible-columns="visibleColumnMap"
+      @toggle-select-all="(checked) => (selectAll = checked)"
+      @toggle-select="toggleSelect"
+      @open-detail="openDetail"
+      @edit="edit"
+      @remove="remove"
+      @action="action"
+      @sort="handleSort"
+    />
     <TablePagination
       v-model:page-num="query.pageNum"
       v-model:page-size="query.pageSize"
@@ -282,152 +296,24 @@ onMounted(async () => {
       @change="getList"
     />
     <RequirementDetailDialog v-model:open="detailOpen" :detail="detail" />
-    <Dialog v-model:open="open">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{{ form.requirementId ? '编辑需求' : '新增需求' }}</DialogTitle>
-          <DialogDescription
-            >请补充需求基础信息、人员分工和计划时间；带 * 的字段为必填。</DialogDescription
-          >
-        </DialogHeader>
-        <div class="grid gap-4 md:grid-cols-2">
-          <div class="space-y-2 md:col-span-2">
-            <Label for="requirement-title">需求标题 <span class="text-destructive">*</span></Label>
-            <Input
-              id="requirement-title"
-              v-model="form.title"
-              placeholder="例如：后台管理系统新增数据导出能力"
-            />
-            <p class="text-xs text-muted-foreground">
-              编辑时默认带出列表标题；这里修改后会同步更新列表主标题。
-            </p>
-          </div>
-          <div class="space-y-2">
-            <Label for="requirement-project"
-              >所属项目 <span class="text-destructive">*</span></Label
-            >
-            <Select
-              v-model="form.projectId"
-              @update:model-value="
-                (v) => {
-                  form.projectId = String(v)
-                  form.ownerId = PM_NONE_OPTION_VALUE
-                  form.developerId = PM_NONE_OPTION_VALUE
-                  refreshAssignableUsers(form.projectId)
-                }
-              "
-            >
-              <SelectTrigger id="requirement-project"
-                ><SelectValue placeholder="请选择所属项目"
-              /></SelectTrigger>
-              <SelectContent
-                ><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{
-                  p.projectName
-                }}</SelectItem></SelectContent
-              >
-            </Select>
-            <p class="text-xs text-muted-foreground">
-              决定需求归属和可选择的负责人范围，切换项目会重置人员分工。
-            </p>
-          </div>
-          <div class="space-y-2">
-            <Label for="requirement-type">需求分类</Label>
-            <Select v-model="form.type">
-              <SelectTrigger id="requirement-type"
-                ><SelectValue placeholder="请选择需求分类"
-              /></SelectTrigger>
-              <SelectContent
-                ><SelectItem
-                  v-for="t in PM_REQUIREMENT_TYPE_OPTIONS"
-                  :key="t.value"
-                  :value="t.value"
-                  >{{ t.label }}</SelectItem
-                ></SelectContent
-              >
-            </Select>
-            <p class="text-xs text-muted-foreground">用于统计和后续筛选，不影响优先级或负责人。</p>
-          </div>
-          <div class="space-y-2">
-            <Label for="requirement-priority">优先级</Label>
-            <Select v-model="form.priority">
-              <SelectTrigger id="requirement-priority"
-                ><SelectValue placeholder="请选择优先级"
-              /></SelectTrigger>
-              <SelectContent
-                ><SelectItem v-for="p in PM_PRIORITY_OPTIONS" :key="p.value" :value="p.value">{{
-                  p.label
-                }}</SelectItem></SelectContent
-              >
-            </Select>
-            <p class="text-xs text-muted-foreground">
-              表示排期和处理紧急程度，默认“中”适用于常规需求。
-            </p>
-          </div>
-          <div class="space-y-2">
-            <Label for="requirement-owner">需求负责人（可选）</Label>
-            <Select v-model="form.ownerId">
-              <SelectTrigger id="requirement-owner"
-                ><SelectValue placeholder="请选择需求负责人"
-              /></SelectTrigger>
-              <SelectContent
-                ><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定需求负责人</SelectItem
-                ><SelectItem v-for="u in ownerUsers" :key="u.userId" :value="u.userId">{{
-                  u.nickName || u.userName
-                }}</SelectItem></SelectContent
-              >
-            </Select>
-            <p class="text-xs text-muted-foreground">
-              负责需求澄清、范围确认和验收；暂不指定表示稍后再补充，不会自动分派。
-            </p>
-          </div>
-          <div class="space-y-2">
-            <Label for="requirement-developer">开发负责人（可选）</Label>
-            <Select v-model="form.developerId">
-              <SelectTrigger id="requirement-developer"
-                ><SelectValue placeholder="请选择开发负责人"
-              /></SelectTrigger>
-              <SelectContent
-                ><SelectItem :value="PM_NONE_OPTION_VALUE">暂不指定开发负责人</SelectItem
-                ><SelectItem v-for="u in developerUsers" :key="u.userId" :value="u.userId">{{
-                  u.nickName || u.userName
-                }}</SelectItem></SelectContent
-              >
-            </Select>
-            <p class="text-xs text-muted-foreground">
-              负责排期后的开发承接；暂不指定时需求仍可保存，但后续需补齐承接人。
-            </p>
-          </div>
-          <div class="space-y-2">
-            <Label for="requirement-start">计划开始（可选）</Label>
-            <Input id="requirement-start" v-model="form.plannedStartTime" type="date" />
-            <p class="text-xs text-muted-foreground">用于排期和进度统计；不确定时可先留空。</p>
-          </div>
-          <div class="space-y-2">
-            <Label for="requirement-end">计划完成（可选）</Label>
-            <Input id="requirement-end" v-model="form.plannedEndTime" type="date" />
-            <p class="text-xs text-muted-foreground">
-              用于判断延期和统计交付计划；不确定时可先留空。
-            </p>
-          </div>
-          <div class="space-y-2 md:col-span-2">
-            <Label for="requirement-description">需求描述（可选）</Label>
-            <Textarea
-              id="requirement-description"
-              v-model="form.description"
-              placeholder="描述用户场景、业务价值或问题背景"
-            />
-          </div>
-          <div class="space-y-2 md:col-span-2">
-            <Label for="requirement-acceptance">验收标准（可选）</Label>
-            <Textarea
-              id="requirement-acceptance"
-              v-model="form.acceptanceCriteria"
-              placeholder="描述完成后如何判断需求已达成"
-            />
-          </div>
-        </div>
-        <DialogFooter><Button :disabled="!canSave" @click="save">保存</Button></DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <RequirementBatchAssignDialog
+      v-model:open="batchAssignOpen"
+      :selected-count="selectedIds.length"
+      :project-name="selectedProjectName"
+      :owner-users="ownerUsers"
+      :developer-users="developerUsers"
+      :tester-users="testerUsers"
+      :form="batchAssignForm"
+      @save="saveBatchAssign"
+    />
+    <RequirementFormDialog
+      v-model:open="open"
+      :form="form"
+      :projects="projects"
+      :owner-users="ownerUsers"
+      :developer-users="developerUsers"
+      @project-change="refreshAssignableUsers"
+      @save="save"
+    />
   </div>
 </template>

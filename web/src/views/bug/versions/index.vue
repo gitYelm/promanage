@@ -9,11 +9,14 @@ import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
+import { TableFilterPanel } from '@/components/common/table-filter'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { usePermission } from '@/composables/usePermission'
 import { addBugVersion, bugProjectOptions, deleteBugVersions, listBugVersions, updateBugVersion } from '@/api/bug'
 import type { BugProject, BugVersion } from '@/api/bug/types'
+import { toggleTableSort } from '@/utils/table-sort'
 import { ALL_OPTION_VALUE, BUG_VERSION_STATUS_OPTIONS, normalizeAll } from '../shared/bug-options'
 
 const { toast } = useToast()
@@ -22,7 +25,7 @@ const rows = ref<BugVersion[]>([])
 const projects = ref<BugProject[]>([])
 const total = ref(0)
 const open = ref(false)
-const query = reactive({ pageNum: 1, pageSize: 20, projectId: ALL_OPTION_VALUE, keyword: '' })
+const query = reactive({ pageNum: 1, pageSize: 20, projectId: ALL_OPTION_VALUE, keyword: '', status: ALL_OPTION_VALUE, sortBy: '', sortOrder: '' as 'asc' | 'desc' | '' })
 const form = reactive<Partial<BugVersion>>({ projectId: '', versionNo: '', versionName: '', status: 'planning' })
 const canSave = computed(() => Boolean(form.projectId && form.versionNo))
 const canShowOperationColumn = usePermission(['bug:version:edit', 'bug:version:remove'])
@@ -30,12 +33,27 @@ const canShowOperationColumn = usePermission(['bug:version:edit', 'bug:version:r
 async function getList() {
   loading.value = true
   try {
-    const res = await listBugVersions({ ...query, projectId: normalizeAll(query.projectId) })
+    const res = await listBugVersions({ ...query, projectId: normalizeAll(query.projectId), status: normalizeAll(query.status) })
     rows.value = res.rows
     total.value = res.total
   } finally {
     loading.value = false
   }
+}
+
+function searchList() {
+  query.pageNum = 1
+  getList()
+}
+
+function handleSort(key: string) {
+  toggleTableSort(query, key)
+  getList()
+}
+
+function resetQuery() {
+  Object.assign(query, { pageNum: 1, pageSize: query.pageSize, projectId: ALL_OPTION_VALUE, keyword: '', status: ALL_OPTION_VALUE, sortBy: '', sortOrder: '' })
+  getList()
 }
 
 function add() {
@@ -82,13 +100,38 @@ onMounted(async () => {
         <Button v-hasPermi="['bug:version:add']" @click="add">新增版本</Button>
       </div>
     </div>
-    <div class="flex gap-2">
-      <Select v-model="query.projectId"><SelectTrigger class="w-48"><SelectValue placeholder="全部项目" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select>
-      <Input v-model="query.keyword" class="w-48" placeholder="版本号/名称" @keyup.enter="getList" />
-      <Button @click="getList">搜索</Button>
-    </div>
+    <TableFilterPanel description="默认展示所属项目和版本关键词，展开后可按版本状态完整筛选。">
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div class="space-y-1">
+          <label for="bug-version-filter-project" class="text-sm font-medium">所属项目</label>
+          <Select v-model="query.projectId"><SelectTrigger id="bug-version-filter-project"><SelectValue placeholder="全部项目" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select>
+        </div>
+        <div class="space-y-1">
+          <label for="bug-version-filter-keyword" class="text-sm font-medium">关键词</label>
+          <Input id="bug-version-filter-keyword" v-model="query.keyword" placeholder="版本号/名称" @keyup.enter="searchList" />
+        </div>
+        <div class="flex items-end gap-2">
+          <Button data-permission-neutral @click="searchList">搜索</Button>
+          <Button variant="outline" data-permission-neutral @click="resetQuery">重置</Button>
+        </div>
+      </div>
+      <template #expanded>
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div class="space-y-1">
+            <label for="bug-version-filter-status" class="text-sm font-medium">版本状态</label>
+            <Select v-model="query.status">
+              <SelectTrigger id="bug-version-filter-status"><SelectValue placeholder="状态" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="ALL_OPTION_VALUE">全部状态</SelectItem>
+                <SelectItem v-for="item in BUG_VERSION_STATUS_OPTIONS" :key="item.value" :value="item.value">{{ item.label }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </template>
+    </TableFilterPanel>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><TableHead>项目</TableHead><TableHead>版本号</TableHead><TableHead>版本名</TableHead><TableHead class="text-center">状态</TableHead><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.versionId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.versionNo }}</TableCell><TableCell>{{ row.versionName }}</TableCell><TableCell class="text-center"><StatusBadge domain="bugVersion" :value="row.status" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:version:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:version:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><SortableTableHead label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="版本号" sort-key="versionNo" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="版本名" sort-key="versionName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.versionId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.versionNo }}</TableCell><TableCell>{{ row.versionName }}</TableCell><TableCell class="text-center"><StatusBadge domain="bugVersion" :value="row.status" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:version:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:version:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />

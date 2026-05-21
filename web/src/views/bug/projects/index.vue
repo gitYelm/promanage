@@ -12,7 +12,9 @@ import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
+import { TableFilterPanel } from '@/components/common/table-filter'
 import {
   addBugProject,
   bugUserOptions,
@@ -24,7 +26,8 @@ import {
   upsertBugMember,
 } from '@/api/bug'
 import type { BugMember, BugProject, BugUserRef } from '@/api/bug/types'
-import { BUG_MEMBER_ROLE_OPTIONS, NONE_OPTION_VALUE, normalizeOptional, optionLabel } from '../shared/bug-options'
+import { toggleTableSort } from '@/utils/table-sort'
+import { ALL_OPTION_VALUE, BUG_MEMBER_ROLE_OPTIONS, NONE_OPTION_VALUE, normalizeAll, normalizeOptional, optionLabel } from '../shared/bug-options'
 
 const { toast } = useToast()
 const loading = ref(false)
@@ -36,7 +39,7 @@ const total = ref(0)
 const open = ref(false)
 const memberOpen = ref(false)
 const currentProject = ref<BugProject | null>(null)
-const query = reactive({ pageNum: 1, pageSize: 20, keyword: '' })
+const query = reactive({ pageNum: 1, pageSize: 20, keyword: '', status: ALL_OPTION_VALUE, sortBy: '', sortOrder: '' as 'asc' | 'desc' | '' })
 const form = reactive<Partial<BugProject>>({ projectName: '', projectKey: '', description: '', status: '0' })
 const memberForm = reactive({ userId: '', memberRole: 'developer', isDefault: false, status: '0' })
 const canSave = computed(() => Boolean(form.projectName && form.projectKey))
@@ -48,12 +51,27 @@ const canShowMemberOperationColumn = usePermission(['bug:project:member'])
 async function getList() {
   loading.value = true
   try {
-    const res = await listBugProjects(query)
+    const res = await listBugProjects({ ...query, status: normalizeAll(query.status) })
     rows.value = res.rows
     total.value = res.total
   } finally {
     loading.value = false
   }
+}
+
+function searchList() {
+  query.pageNum = 1
+  getList()
+}
+
+function handleSort(key: string) {
+  toggleTableSort(query, key)
+  getList()
+}
+
+function resetQuery() {
+  Object.assign(query, { pageNum: 1, pageSize: query.pageSize, keyword: '', status: ALL_OPTION_VALUE, sortBy: '', sortOrder: '' })
+  getList()
 }
 
 function add() {
@@ -127,9 +145,35 @@ onMounted(async () => {
         <Button permission="bug:project:add" @click="add">新增项目</Button>
       </div>
     </div>
-    <div class="flex gap-2"><Input v-model="query.keyword" class="w-60" placeholder="项目名称/标识" @keyup.enter="getList" /><Button @click="getList">搜索</Button></div>
+    <TableFilterPanel description="默认展示项目名称或标识等高频条件；展开后可按状态完整筛选。">
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div class="space-y-1">
+          <label for="bug-project-filter-keyword" class="text-sm font-medium">关键词</label>
+          <Input id="bug-project-filter-keyword" v-model="query.keyword" placeholder="项目名称/标识" @keyup.enter="searchList" />
+        </div>
+        <div class="flex items-end gap-2">
+          <Button data-permission-neutral @click="searchList">搜索</Button>
+          <Button variant="outline" data-permission-neutral @click="resetQuery">重置</Button>
+        </div>
+      </div>
+      <template #expanded>
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div class="space-y-1">
+            <label for="bug-project-filter-status" class="text-sm font-medium">项目状态</label>
+            <Select v-model="query.status">
+              <SelectTrigger id="bug-project-filter-status"><SelectValue placeholder="状态" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="ALL_OPTION_VALUE">全部状态</SelectItem>
+                <SelectItem value="0">启用</SelectItem>
+                <SelectItem value="1">停用</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </template>
+    </TableFilterPanel>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><TableHead>名称</TableHead><TableHead>标识</TableHead><TableHead>负责人</TableHead><TableHead class="text-center">状态</TableHead><TableHead>描述</TableHead><TableHead v-if="canShowQuickActionColumn">快捷操作</TableHead><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.projectId"><TableCell>{{ row.projectName }}</TableCell><TableCell>{{ row.projectKey }}</TableCell><TableCell>{{ row.owner?.nickName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell>{{ row.description }}</TableCell><TableCell v-if="canShowQuickActionColumn"><Button permission="bug:project:member" size="sm" variant="outline" @click="openMembers(row)">成员</Button></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button permission="bug:project:edit" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button permission="bug:project:remove" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><SortableTableHead label="名称" sort-key="projectName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="标识" sort-key="projectKey" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="负责人" sort-key="ownerId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead>描述</TableHead><TableHead v-if="canShowQuickActionColumn">快捷操作</TableHead><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.projectId"><TableCell>{{ row.projectName }}</TableCell><TableCell>{{ row.projectKey }}</TableCell><TableCell>{{ row.owner?.nickName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell>{{ row.description }}</TableCell><TableCell v-if="canShowQuickActionColumn"><Button permission="bug:project:member" size="sm" variant="outline" @click="openMembers(row)">成员</Button></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button permission="bug:project:edit" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button permission="bug:project:remove" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />

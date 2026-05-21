@@ -16,19 +16,49 @@ export interface BugTicketQuery {
   pageNum?: number
   pageSize?: number
   keyword?: string
+  ticketNo?: string
+  title?: string
   projectId?: string
   moduleId?: string
+  type?: string
   status?: string
   severity?: string
   priority?: string
+  environment?: string
+  deviceInfo?: string
   assigneeId?: string
   submitterId?: string
+  verifierId?: string
   requirementId?: string
   iterationId?: string
   milestoneId?: string
   beginTime?: string
   endTime?: string
+  dueTimeStart?: string
+  dueTimeEnd?: string
+  updateTimeStart?: string
+  updateTimeEnd?: string
   mine?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
+}
+
+
+export interface BugProjectQuery {
+  pageNum?: number
+  pageSize?: number
+  keyword?: string
+  status?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
+}
+
+export interface BugModuleQuery extends BugProjectQuery {
+  projectId?: string
+}
+
+export interface BugVersionQuery extends BugProjectQuery {
+  projectId?: string
 }
 
 export interface BugTicketForm {
@@ -146,7 +176,7 @@ export function bugStatistics(): Promise<BugStatisticsResult> {
   return request({ url: '/bug/tickets/statistics', method: 'get' }).then(unwrap<BugStatisticsResult>)
 }
 
-export function listBugProjects(params?: Record<string, unknown>): Promise<PageResult<BugProject>> {
+export function listBugProjects(params?: BugProjectQuery): Promise<PageResult<BugProject>> {
   return request({ url: '/bug/projects', method: 'get', params }).then(unwrap<PageResult<BugProject>>)
 }
 
@@ -166,7 +196,7 @@ export function deleteBugProjects(ids: string[]) {
   return request({ url: '/bug/projects', method: 'delete', params: { ids: ids.join(',') } })
 }
 
-export function listBugModules(params?: Record<string, unknown>): Promise<PageResult<BugModule>> {
+export function listBugModules(params?: BugModuleQuery): Promise<PageResult<BugModule>> {
   return request({ url: '/bug/modules', method: 'get', params }).then(unwrap<PageResult<BugModule>>)
 }
 
@@ -182,7 +212,7 @@ export function deleteBugModules(ids: string[]) {
   return request({ url: '/bug/modules', method: 'delete', params: { ids: ids.join(',') } })
 }
 
-export function listBugVersions(params?: Record<string, unknown>): Promise<PageResult<BugVersion>> {
+export function listBugVersions(params?: BugVersionQuery): Promise<PageResult<BugVersion>> {
   return request({ url: '/bug/versions', method: 'get', params }).then(unwrap<PageResult<BugVersion>>)
 }
 

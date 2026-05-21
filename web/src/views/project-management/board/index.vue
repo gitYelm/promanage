@@ -164,7 +164,7 @@ onMounted(async () => {
             :key="column.title"
             :title="column.title"
             :count="column.rows.length"
-            :badge-class="getBoardColumnStyle(column.title).badgeClass"
+            :badge-class="getBoardColumnStyle(column.title).tagClass"
             card-class="border-dashed"
             content-class="space-y-3"
           >
@@ -189,7 +189,7 @@ onMounted(async () => {
             :key="column.title"
             :title="column.title"
             :count="column.rows.length"
-            :badge-class="getBoardColumnStyle(column.title).badgeClass"
+            :badge-class="getBoardColumnStyle(column.title).tagClass"
             card-class="border-dashed"
             content-class="space-y-3"
           >

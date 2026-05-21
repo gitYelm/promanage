@@ -1,15 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import MetricCard from '@/components/common/MetricCard.vue'
 import PmBugSummaryCard from '../components/PmBugSummaryCard.vue'
@@ -18,9 +10,7 @@ import PmScrollableSectionCard from '../components/PmScrollableSectionCard.vue'
 import BugTicketDetailDialog from '@/views/bug/tickets/components/BugTicketDetailDialog.vue'
 import RequirementDetailDialog from '../requirements/components/RequirementDetailDialog.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
-import SemanticProgress from '@/components/common/SemanticProgress.vue'
-import StatusBadge from '@/components/common/StatusBadge.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
 import { useToast } from '@/components/ui/toast/use-toast'
 import {
   executiveActions,
@@ -40,7 +30,9 @@ import type {
 } from '@/api/project-management/types'
 import type { BugTicket } from '@/api/bug/types'
 import { formatDate } from '../shared/options'
-import { getRiskStyle, type SemanticTone } from '@/utils/semantic-styles'
+import { sortRowsByState, toggleTableSort } from '@/utils/table-sort'
+import { type SemanticTone } from '@/utils/semantic-styles'
+import ProjectHealthTable from './ProjectHealthTable.vue'
 
 const loading = ref(false)
 const router = useRouter()
@@ -55,6 +47,75 @@ const requirementDetailOpen = ref(false)
 const requirementDetail = ref<Requirement | null>(null)
 const bugDetailOpen = ref(false)
 const bugDetail = ref<BugTicket | null>(null)
+
+
+const ALL_VALUE = '__all__'
+const projectFilterQuery = reactive({
+  projectName: '',
+  stage: ALL_VALUE,
+  risk: ALL_VALUE,
+  progressMin: undefined as number | undefined,
+  progressMax: undefined as number | undefined,
+  bugCloseRateMin: undefined as number | undefined,
+  bugCloseRateMax: undefined as number | undefined,
+  sortBy: '',
+  sortOrder: '' as 'asc' | 'desc' | '',
+})
+const projectFilterFields = computed(() => [
+  { label: '项目', key: 'projectName', placeholder: '请输入项目名称' },
+  { label: '阶段', key: 'stage', type: 'select' as const, options: toOptions(projects.value.map((item) => item.project.projectStage).filter((value): value is string => Boolean(value))) },
+  { label: '风险', key: 'risk', type: 'select' as const, options: toOptions(projects.value.map((item) => item.health)) },
+])
+const projectExpandedFields = [
+  { label: '进度', type: 'number-range' as const, startKey: 'progressMin', endKey: 'progressMax', min: 0, max: 100 },
+  { label: '缺陷关闭率', type: 'number-range' as const, startKey: 'bugCloseRateMin', endKey: 'bugCloseRateMax', min: 0, max: 100 },
+]
+const filteredProjects = computed(() =>
+  sortRowsByState(
+    projects.value.filter((item) => {
+      const nameMatched = item.project.projectName.includes(projectFilterQuery.projectName.trim())
+      const stageMatched = projectFilterQuery.stage === ALL_VALUE || item.project.projectStage === projectFilterQuery.stage
+      const riskMatched = projectFilterQuery.risk === ALL_VALUE || item.health === projectFilterQuery.risk
+      const progressMatched = inNumberRange(item.progress, projectFilterQuery.progressMin, projectFilterQuery.progressMax)
+      const bugRateMatched = inNumberRange(item.bugCloseRate, projectFilterQuery.bugCloseRateMin, projectFilterQuery.bugCloseRateMax)
+      return nameMatched && stageMatched && riskMatched && progressMatched && bugRateMatched
+    }),
+    projectFilterQuery,
+    {
+      projectName: (item) => item.project.projectName,
+      projectStage: (item) => item.project.projectStage || '',
+      progress: (item) => item.progress,
+      requirementDoneRate: (item) => item.requirementDoneRate,
+      bugCloseRate: (item) => item.bugCloseRate,
+      health: (item) => item.health,
+    },
+  ),
+)
+
+function toOptions(values: string[]) {
+  return [
+    { label: '全部', value: ALL_VALUE },
+    ...Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: value, value })),
+  ]
+}
+function inNumberRange(value: number, min?: number, max?: number) {
+  return (min === undefined || value >= min) && (max === undefined || value <= max)
+}
+function handleProjectSort(key: string) {
+  toggleTableSort(projectFilterQuery, key)
+}
+
+function resetProjectFilters() {
+  projectFilterQuery.projectName = ''
+  projectFilterQuery.stage = ALL_VALUE
+  projectFilterQuery.risk = ALL_VALUE
+  projectFilterQuery.progressMin = undefined
+  projectFilterQuery.progressMax = undefined
+  projectFilterQuery.bugCloseRateMin = undefined
+  projectFilterQuery.bugCloseRateMax = undefined
+  projectFilterQuery.sortBy = ''
+  projectFilterQuery.sortOrder = ''
+}
 
 const cards: Array<{
   label: string
@@ -234,41 +295,21 @@ onMounted(load)
     <div class="grid gap-4 xl:grid-cols-3">
       <Card class="xl:col-span-2">
         <CardHeader><CardTitle>项目健康度</CardTitle></CardHeader>
-        <CardContent>
-          <div class="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>项目</TableHead>
-                  <TableHead class="text-center">阶段</TableHead>
-                  <TableHead class="min-w-36 text-right">进度</TableHead>
-                  <TableHead class="text-right">缺陷关闭率</TableHead>
-                  <TableHead class="text-center">风险</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow v-for="item in projects" :key="item.project.projectId">
-                  <TableCell>{{ item.project.projectName }}</TableCell>
-                  <TableCell class="text-center"
-                    ><StatusBadge domain="projectStage" :value="item.project.projectStage"
-                  /></TableCell>
-                  <TableCell class="min-w-36">
-                    <div class="ml-auto flex max-w-44 items-center justify-end gap-2">
-                      <SemanticProgress
-                        :model-value="item.progress"
-                        :tone="getRiskStyle(item.health).tone"
-                        class="h-2"
-                      />
-                      <span class="w-10 text-right text-xs tabular-nums">{{ item.progress }}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell class="text-right tabular-nums">{{ item.bugCloseRate }}%</TableCell>
-                  <TableCell class="text-center"><RiskBadge :value="item.health" /></TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-            <EmptyState v-if="!projects.length" />
-          </div>
+        <CardContent class="space-y-4">
+          <SimpleTableFilters
+            :query="projectFilterQuery"
+            :fields="projectFilterFields"
+            :expanded-fields="projectExpandedFields"
+            description="默认展示项目、阶段和风险，展开后可按进度与缺陷关闭率范围筛选。"
+            @search="() => undefined"
+            @reset="resetProjectFilters"
+          />
+          <ProjectHealthTable
+            :rows="filteredProjects"
+            :sort-by="projectFilterQuery.sortBy"
+            :sort-order="projectFilterQuery.sortOrder"
+            @sort="handleProjectSort"
+          />
         </CardContent>
       </Card>
       <Card
