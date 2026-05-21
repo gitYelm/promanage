@@ -757,3 +757,45 @@
 - `web/src/views/project-management/executive-dashboard/index.vue`
 - `web/src/components/common/MetricCard.vue`
 
+
+## Tooltip 与说明文案防重复规则
+
+### 现象
+
+仪表盘和项目概览中，指标右侧的说明 icon 虽然存在，但 Tooltip 响应慢、文案像开发备注，直接暴露字段名、内部变量名或技术口径，普通用户看完仍然不知道该怎么理解当前数字。
+
+### 根因
+
+1. 开发时把 Tooltip 当成技术注释出口，误把实现细节直接展示给用户。
+2. 同类指标缺少统一的说明文案规范，导致每个页面临时写一套说法。
+3. Tooltip 默认交互没有明确要求，容易出现悬停反馈过慢的问题。
+
+### 错误决策链路
+
+- 不能把 `bug_project.progress`、`requirementDoneRate`、DTO 字段名、数据库列名直接展示给用户。
+- 不能把 Tooltip 写成长段技术说明，用户真正关心的是“这是什么、怎么算、怎么理解”。
+- 不能让 Tooltip 悬停很久才出现；说明 icon 如果不及时反馈，会被用户认为失效。
+
+### 防重复规则
+
+1. Tooltip、说明 icon、帮助文案必须说人话，优先解释业务含义，不要暴露字段名和实现细节。
+2. 文案尽量控制在 1 到 2 句，简短说明重点。
+3. 多口径指标必须明确当前显示的是哪一种口径，例如“手动维护的项目进度”或“已完成需求占比”。
+4. Tooltip 应即时或接近即时出现，不能让用户长时间等待。
+5. 同类页面（仪表盘、项目概览、项目看板、详情弹窗）中的同类说明文案必须统一。
+6. 正式规范写入 `docs/开发规范/前端页面交互与视觉规范.md`，后续新增说明 icon 时优先复用规范文案风格。
+
+### 写入后验收
+
+- 用户无需懂技术实现，也能理解说明文案。
+- Tooltip 文案不出现字段名、数据库列名、内部变量名。
+- 同一业务指标在不同页面的说明口径一致。
+- 悬停说明 icon 后能快速看到反馈。
+
+### 相关文件路径
+
+- `docs/开发规范/前端页面交互与视觉规范.md`
+- `web/src/views/project-management/executive-dashboard/index.vue`
+- `web/src/views/project-management/overview/index.vue`
+- `web/src/components/ui/tooltip/TooltipProvider.vue`
+

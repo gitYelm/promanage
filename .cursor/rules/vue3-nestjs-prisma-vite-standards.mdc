@@ -9,7 +9,7 @@ alwaysApply: true
 
 # Vue 3 + NestJS + Prisma + Vite 技术栈开发规范
 
-最后更新时间：2026-05-19
+最后更新时间：2026-05-20
 
 ## 官方文档来源
 
@@ -26,8 +26,10 @@ alwaysApply: true
 4. 权限按钮必须使用 `v-hasPermi`、`Button.permission`、`DropdownMenuItem.permission`、`AlertDialogAction.permission`、`SemanticActionButton.permissions`、`StatusSwitch.permission`、`usePermission` 或全局按钮/菜单项权限映射做可见性控制；当前用户没有权限时必须直接不渲染，不要显示禁用态、空占位、空图标或可点击空区域。确认删除、确认清空、确认强退、确认重置密码、确认批量启停、确认执行一次等弹窗确认按钮也必须遵守。后端接口必须同时加 `@RequirePermission`。
 5. 表格“操作”列和“快捷操作”列必须按当前用户权限计算列级可见性；无编辑/删除等管理动作权限时隐藏“操作”表头和整列，无任何快捷操作权限时隐藏“快捷操作”表头和整列。快捷操作配置必须携带 `permissions`，渲染前先过滤无权限动作。导出下拉菜单项、附件上传/移除入口等业务动作也必须把权限透传到内部按钮或菜单项。
 6. 纯 UI 触发器、无事件原生按钮、取消/关闭/退出登录/放弃更改/全选/取消全选/个人中心/主题切换等普通交互不按业务权限隐藏；必要时显式使用 `data-permission-neutral`，避免全局文案/图标推断误判。
-7. 表单和列表复杂逻辑优先抽到 composable、constants 或子组件，避免单个 `.vue` 文件超过 500 行。
-8. 使用 shadcn-vue 现有组件时遵循项目问题总结：Checkbox/Switch 使用 `model-value` / `update:model-value`，不要误用旧事件名。
+7. 状态、风险、优先级、严重程度必须使用 `StatusBadge`、`RiskBadge`、`PriorityBadge`、`SeverityBadge` 等语义组件；通用成功/失败展示优先使用 `SuccessFailBadge`，其它短语义标签优先使用 `SemanticTag`。这些 Tag / Badge 是被动信息，必须保持轻量胶囊、浅底、无明显 hover，不得做成按钮形态。快捷流转动作必须使用 `SemanticActionButton`，保留按钮高度、可点击 hover/focus、实色或更强边框，让用户一眼区分“状态”和“动作”。
+8. 项目、模块、版本、人员等对象归属字段使用中性色 Tag / Badge，不得混用红黄绿状态色。项目字段优先复用 `ProjectBadge`、项目下拉选项优先复用 `ProjectSelectOption`、项目下拉已选值优先复用 `ProjectSelectValue`。禁止在页面里用 `Badge variant="default/destructive"` 手写状态样式；普通 `Badge` 的全局样式也必须保持标签形态，不得带按钮式 hover、阴影或强交互感。
+9. 表单和列表复杂逻辑优先抽到 composable、constants 或子组件，避免单个 `.vue` 文件超过 500 行。
+10. 使用 shadcn-vue 现有组件时遵循项目问题总结：Checkbox/Switch 使用 `model-value` / `update:model-value`，不要误用旧事件名。
 
 ## 后端 NestJS 规范
 
