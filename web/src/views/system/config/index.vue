@@ -26,17 +26,20 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Plus, Edit, Trash2, RefreshCw, Search, RotateCw } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, RotateCw } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
+import SemanticTag from '@/components/common/SemanticTag.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import LeaveConfirmDialog from '@/components/common/LeaveConfirmDialog.vue'
 import { formatDate } from '@/utils/format'
+import { toggleTableSort } from '@/utils/table-sort'
 import {
   listConfig,
   getConfig,
@@ -66,7 +69,24 @@ const queryParams = reactive({
   configName: '',
   configKey: '',
   configType: undefined,
+  sortBy: '',
+  sortOrder: '' as 'asc' | 'desc' | '',
 })
+const configFilterFields = [
+  { label: '参数名称', key: 'configName', placeholder: '请输入参数名称' },
+  { label: '参数键名', key: 'configKey', placeholder: '请输入参数键名' },
+]
+const configExpandedFields = [
+  {
+    label: '系统内置',
+    key: 'configType',
+    type: 'select' as const,
+    options: [
+      { label: '是', value: 'Y' },
+      { label: '否', value: 'N' },
+    ],
+  },
+]
 
 const showDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -115,10 +135,17 @@ function handleQuery() {
   getList()
 }
 
+function handleSort(key: string) {
+  toggleTableSort(queryParams, key)
+  getList()
+}
+
 function resetQuery() {
   queryParams.configName = ''
   queryParams.configKey = ''
   queryParams.configType = undefined
+  queryParams.sortBy = ''
+  queryParams.sortOrder = ''
   handleQuery()
 }
 
@@ -232,51 +259,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div
-      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">参数名称</span>
-        <Input
-          v-model="queryParams.configName"
-          placeholder="请输入参数名称"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">参数键名</span>
-        <Input
-          v-model="queryParams.configKey"
-          placeholder="请输入参数键名"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">系统内置</span>
-        <Select v-model="queryParams.configType" @update:model-value="handleQuery">
-          <SelectTrigger class="w-[120px]">
-            <SelectValue placeholder="请选择" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Y">是</SelectItem>
-            <SelectItem value="N">否</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex gap-2 ml-auto">
-        <Button @click="handleQuery">
-          <Search class="w-4 h-4 mr-2" />
-          搜索
-        </Button>
-        <Button variant="outline" @click="resetQuery">
-          <RefreshCw class="w-4 h-4 mr-2" />
-          重置
-        </Button>
-      </div>
-    </div>
+    <SimpleTableFilters
+      :query="queryParams"
+      :fields="configFilterFields"
+      :expanded-fields="configExpandedFields"
+      description="默认展示参数名称和键名，展开后可按系统内置类型完整筛选。"
+      @search="handleQuery"
+      @reset="resetQuery"
+    />
 
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
@@ -296,13 +286,13 @@ onMounted(() => {
       <Table v-else>
         <TableHeader>
           <TableRow>
-            <TableHead>参数主键</TableHead>
-            <TableHead>参数名称</TableHead>
-            <TableHead>参数键名</TableHead>
+            <SortableTableHead label="参数主键" sort-key="configId" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="参数名称" sort-key="configName" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="参数键名" sort-key="configKey" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
             <TableHead>参数键值</TableHead>
-            <TableHead class="text-center">系统内置</TableHead>
+            <SortableTableHead label="系统内置" sort-key="configType" align="center" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
             <TableHead>备注</TableHead>
-            <TableHead>创建时间</TableHead>
+            <SortableTableHead label="创建时间" sort-key="createTime" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
             <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
@@ -315,9 +305,9 @@ onMounted(() => {
               item.configValue
             }}</TableCell>
             <TableCell class="text-center">
-              <Badge :variant="item.configType === 'Y' ? 'default' : 'secondary'">
+              <SemanticTag :tone="item.configType === 'Y' ? 'info' : 'neutral'">
                 {{ item.configType === 'Y' ? '是' : '否' }}
-              </Badge>
+              </SemanticTag>
             </TableCell>
             <TableCell class="max-w-[200px] truncate">{{ item.remark }}</TableCell>
             <TableCell>{{ formatDate(item.createTime) }}</TableCell>

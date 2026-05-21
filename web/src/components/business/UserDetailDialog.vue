@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import StatusBadge from '@/components/common/StatusBadge.vue'
+import SuccessFailBadge from '@/components/common/SuccessFailBadge.vue'
 import {
   Table,
   TableBody,
@@ -161,9 +163,11 @@ watch(
             <div class="flex-1 space-y-3">
               <div class="flex items-center gap-3">
                 <h3 class="text-xl font-semibold">{{ user?.nickName }}</h3>
-                <Badge :variant="user?.status === '0' ? 'default' : 'destructive'">
-                  {{ user?.status === '0' ? '正常' : '停用' }}
-                </Badge>
+                <StatusBadge
+                  domain="enabled"
+                  :value="user?.status"
+                  :label="user?.status === '0' ? '正常' : '停用'"
+                />
               </div>
               <div class="grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -271,9 +275,7 @@ watch(
                   <TableCell>{{ log.operName }}</TableCell>
                   <TableCell>{{ formatDate(log.operTime) }}</TableCell>
                   <TableCell>
-                    <Badge :variant="log.status === 0 ? 'default' : 'destructive'">
-                      {{ log.status === 0 ? '成功' : '失败' }}
-                    </Badge>
+                    <SuccessFailBadge :value="log.status" />
                   </TableCell>
                 </TableRow>
                 <TableRow v-if="operLogs.length === 0">
@@ -309,9 +311,7 @@ watch(
                   <TableCell>{{ log.os || '-' }}</TableCell>
                   <TableCell>{{ formatDate(log.loginTime) }}</TableCell>
                   <TableCell>
-                    <Badge :variant="log.status === '0' ? 'default' : 'destructive'">
-                      {{ log.status === '0' ? '成功' : '失败' }}
-                    </Badge>
+                    <SuccessFailBadge :value="log.status" />
                   </TableCell>
                 </TableRow>
                 <TableRow v-if="loginLogs.length === 0">

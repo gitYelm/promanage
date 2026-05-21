@@ -27,9 +27,12 @@ import { LogOut, RefreshCw, Search, Loader2, Copy } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
+import { TableFilterPanel } from '@/components/common/table-filter'
 import { listOnline, forceLogout, type SysUserOnline } from '@/api/monitor/online'
 import { useUserStore } from '@/stores/modules/user'
 import { usePermission } from '@/composables/usePermission'
+import { toggleTableSort } from '@/utils/table-sort'
 
 const { toast } = useToast()
 const userStore = useUserStore()
@@ -44,6 +47,8 @@ const queryParams = reactive({
   pageSize: 20,
   ipaddr: '',
   userName: '',
+  sortBy: '',
+  sortOrder: '' as 'asc' | 'desc' | '',
 })
 
 // 选择相关
@@ -145,9 +150,16 @@ function handleQuery() {
   getList()
 }
 
+function handleSort(key: string) {
+  toggleTableSort(queryParams, key)
+  getList()
+}
+
 function resetQuery() {
   queryParams.ipaddr = ''
   queryParams.userName = ''
+  queryParams.sortBy = ''
+  queryParams.sortOrder = ''
   handleQuery()
 }
 
@@ -244,39 +256,13 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div
-      class="flex flex-wrap gap-4 items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">登录地址</span>
-        <Input
-          v-model="queryParams.ipaddr"
-          placeholder="请输入登录地址"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
+    <TableFilterPanel description="当前页面筛选项较少，直接展示全部可用查询条件。" expand-text="更多筛选">
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div class="space-y-1"><label for="online-filter-ip" class="text-sm font-medium">登录地址</label><Input id="online-filter-ip" v-model="queryParams.ipaddr" placeholder="请输入登录地址" @keyup.enter="handleQuery" /></div>
+        <div class="space-y-1"><label for="online-filter-user" class="text-sm font-medium">用户名称</label><Input id="online-filter-user" v-model="queryParams.userName" placeholder="请输入用户名称" @keyup.enter="handleQuery" /></div>
+        <div class="flex items-end gap-2"><Button data-permission-neutral @click="handleQuery"><Search class="w-4 h-4 mr-2" />搜索</Button><Button variant="outline" data-permission-neutral @click="resetQuery"><RefreshCw class="w-4 h-4 mr-2" />重置</Button></div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">用户名称</span>
-        <Input
-          v-model="queryParams.userName"
-          placeholder="请输入用户名称"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex gap-2 ml-auto">
-        <Button @click="handleQuery">
-          <Search class="w-4 h-4 mr-2" />
-          搜索
-        </Button>
-        <Button variant="outline" @click="resetQuery">
-          <RefreshCw class="w-4 h-4 mr-2" />
-          重置
-        </Button>
-      </div>
-    </div>
+    </TableFilterPanel>
 
     <!-- 批量操作栏 - 勾选后显示 -->
     <Transition
@@ -322,14 +308,14 @@ onUnmounted(() => {
             <TableHead class="w-[50px]">
               <Checkbox v-model="selectAll" :disabled="onlineList.length === 0" />
             </TableHead>
-            <TableHead>会话编号</TableHead>
-            <TableHead>用户名称</TableHead>
-            <TableHead>主机</TableHead>
-            <TableHead>登录地点</TableHead>
-            <TableHead>浏览器</TableHead>
-            <TableHead>操作系统</TableHead>
-            <TableHead>登录时间</TableHead>
-            <TableHead>在线时长</TableHead>
+            <SortableTableHead label="会话编号" sort-key="tokenId" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="用户名称" sort-key="userName" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="主机" sort-key="ipaddr" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="登录地点" sort-key="loginLocation" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="浏览器" sort-key="browser" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="操作系统" sort-key="os" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="登录时间" sort-key="loginTime" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="在线时长" sort-key="onlineDuration" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
             <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>

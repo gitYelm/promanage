@@ -1,20 +1,37 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { getDatabase, type DatabaseInfo } from '@/api/monitor/database'
 import { Loader2, RefreshCw, Database, Activity, Server, HardDrive, Zap } from 'lucide-vue-next'
 import { toast } from '@/components/ui/toast'
+import SemanticTag from '@/components/common/SemanticTag.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
+import { sortRowsByState, toggleTableSort } from '@/utils/table-sort'
+import {
+  DRUID_ALL_VALUE,
+  connectionExpandedFields,
+  createDruidConnectionQuery,
+  createDruidSlowQuery,
+  createDruidTableQuery,
+  resetDruidConnectionQuery,
+  resetDruidSlowQuery,
+  resetDruidTableQuery,
+  slowExpandedFields,
+  slowFilterFields,
+  tableExpandedFields,
+  tableFilterFields,
+} from './druid-filter-config'
+import { parseDurationMs, parsePrettySize } from './druid-sort'
 
 const loading = ref(true)
 const data = ref<DatabaseInfo | null>(null)
@@ -22,6 +39,94 @@ const autoRefresh = ref(false)
 const refreshInterval = ref<ReturnType<typeof setInterval> | null>(null)
 const lastUpdateTime = ref<string>('')
 
+const tableQuery = reactive(createDruidTableQuery())
+const connectionQuery = reactive(createDruidConnectionQuery())
+const slowQuery = reactive(createDruidSlowQuery())
+const connectionFilterFields = computed(() => [
+  {
+    label: '状态',
+    key: 'state',
+    type: 'select' as const,
+    options: toOptions(data.value?.activeConnections.map((item) => item.state) || []),
+  },
+  { label: '客户端', key: 'clientAddr', placeholder: '请输入客户端地址' },
+])
+const filteredTables = computed(() =>
+  sortRowsByState(
+    (data.value?.tables || []).filter((item) =>
+      item.tableName.includes(tableQuery.tableName.trim()) &&
+      inNumberRange(item.rowCount, tableQuery.rowCountMin, tableQuery.rowCountMax),
+    ),
+    tableQuery,
+    {
+      tableName: (item) => item.tableName,
+      rowCount: (item) => item.rowCount,
+      totalSize: (item) => parsePrettySize(item.totalSize),
+      dataSize: (item) => parsePrettySize(item.dataSize),
+      indexSize: (item) => parsePrettySize(item.indexSize),
+    },
+  ),
+)
+const filteredConnections = computed(() =>
+  sortRowsByState(
+    (data.value?.activeConnections || []).filter((item) => {
+    const stateMatched = connectionQuery.state === DRUID_ALL_VALUE || item.state === connectionQuery.state
+      const clientMatched = item.clientAddr.includes(connectionQuery.clientAddr.trim())
+      const queryMatched = (item.query || '').includes(connectionQuery.query.trim())
+      const timeMatched = inDateRange(item.backendStart, connectionQuery.backendStartBegin, connectionQuery.backendStartEnd)
+      return stateMatched && clientMatched && queryMatched && timeMatched
+    }),
+    connectionQuery,
+    {
+      pid: (item) => item.pid,
+      state: (item) => getStateLabel(item.state),
+      clientAddr: (item) => item.clientAddr,
+      backendStart: (item) => new Date(item.backendStart || 0),
+      query: (item) => item.query || '',
+    },
+  ),
+)
+const filteredSlowQueries = computed(() =>
+  sortRowsByState(
+    (data.value?.slowQueries || []).filter((item) =>
+      item.query.includes(slowQuery.query.trim()) &&
+      inNumberRange(item.calls, slowQuery.callsMin, slowQuery.callsMax),
+    ),
+    slowQuery,
+    {
+      query: (item) => item.query,
+      calls: (item) => item.calls,
+      avgTime: (item) => parseDurationMs(item.avgTime),
+      maxTime: (item) => parseDurationMs(item.maxTime),
+    },
+  ),
+)
+
+function toOptions(values: string[]) {
+  return [
+    { label: '全部', value: DRUID_ALL_VALUE },
+    ...Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: getStateLabel(value), value })),
+  ]
+}
+function inNumberRange(value: number, min?: number, max?: number) {
+  return (min === undefined || value >= min) && (max === undefined || value <= max)
+}
+function inDateRange(value: string | null, begin: string, end: string) {
+  if (!value || value === '-') return !begin && !end
+  const time = new Date(value).getTime()
+  const beginTime = begin ? new Date(begin).getTime() : Number.NEGATIVE_INFINITY
+  const endTime = end ? new Date(end).getTime() : Number.POSITIVE_INFINITY
+  return !Number.isNaN(time) && time >= beginTime && time <= endTime
+}
+function handleTableSort(key: string) {
+  toggleTableSort(tableQuery, key)
+}
+function handleConnectionSort(key: string) {
+  toggleTableSort(connectionQuery, key)
+}
+function handleSlowSort(key: string) {
+  toggleTableSort(slowQuery, key)
+}
 const connectionUsageColor = computed(() => {
   if (!data.value) return 'bg-primary'
   const usage = data.value.connections.usage
@@ -61,16 +166,6 @@ function toggleAutoRefresh() {
   }
 }
 
-function getStateBadge(state: string) {
-  const map: Record<string, string> = {
-    active: 'bg-green-500',
-    idle: 'bg-gray-400',
-    'idle in transaction': 'bg-yellow-500',
-    unknown: 'bg-gray-400',
-  }
-  return map[state] || 'bg-gray-400'
-}
-
 function getStateLabel(state: string) {
   const map: Record<string, string> = {
     active: '执行中',
@@ -79,6 +174,16 @@ function getStateLabel(state: string) {
     unknown: '未知',
   }
   return map[state] || state
+}
+
+function getStateTone(state: string) {
+  const map = {
+    active: 'success',
+    idle: 'neutral',
+    'idle in transaction': 'warning',
+    unknown: 'neutral',
+  } as const
+  return map[state as keyof typeof map] || 'neutral'
 }
 
 function formatTime(iso: string | null) {
@@ -185,19 +290,27 @@ onUnmounted(() => {
             表空间统计
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent class="space-y-4">
+          <SimpleTableFilters
+            :query="tableQuery"
+            :fields="tableFilterFields"
+            :expanded-fields="tableExpandedFields"
+            description="默认展示表名，展开后可按行数范围筛选。"
+            @search="() => undefined"
+            @reset="resetDruidTableQuery(tableQuery)"
+          />
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>表名</TableHead>
-                <TableHead class="text-right">行数</TableHead>
-                <TableHead class="text-right">总大小</TableHead>
-                <TableHead class="text-right">数据大小</TableHead>
-                <TableHead class="text-right">索引大小</TableHead>
+                <SortableTableHead label="表名" sort-key="tableName" :sort-by="tableQuery.sortBy" :sort-order="tableQuery.sortOrder" @sort="handleTableSort" />
+                <SortableTableHead label="行数" sort-key="rowCount" align="right" class="text-right" :sort-by="tableQuery.sortBy" :sort-order="tableQuery.sortOrder" @sort="handleTableSort" />
+                <SortableTableHead label="总大小" sort-key="totalSize" align="right" class="text-right" :sort-by="tableQuery.sortBy" :sort-order="tableQuery.sortOrder" @sort="handleTableSort" />
+                <SortableTableHead label="数据大小" sort-key="dataSize" align="right" class="text-right" :sort-by="tableQuery.sortBy" :sort-order="tableQuery.sortOrder" @sort="handleTableSort" />
+                <SortableTableHead label="索引大小" sort-key="indexSize" align="right" class="text-right" :sort-by="tableQuery.sortBy" :sort-order="tableQuery.sortOrder" @sort="handleTableSort" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="table in data.tables" :key="table.tableName">
+              <TableRow v-for="table in filteredTables" :key="table.tableName">
                 <TableCell class="font-medium">{{ table.tableName }}</TableCell>
                 <TableCell class="text-right">{{ table.rowCount.toLocaleString() }}</TableCell>
                 <TableCell class="text-right">{{ table.totalSize }}</TableCell>
@@ -217,24 +330,32 @@ onUnmounted(() => {
             当前连接
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent class="space-y-4">
+          <SimpleTableFilters
+            :query="connectionQuery"
+            :fields="connectionFilterFields"
+            :expanded-fields="connectionExpandedFields"
+            description="默认展示状态和客户端，展开后可按查询语句与连接时间范围筛选。"
+            @search="() => undefined"
+            @reset="resetDruidConnectionQuery(connectionQuery)"
+          />
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>PID</TableHead>
-                <TableHead class="text-center">状态</TableHead>
-                <TableHead>客户端</TableHead>
-                <TableHead>连接时间</TableHead>
-                <TableHead class="max-w-[300px]">当前查询</TableHead>
+                <SortableTableHead label="PID" sort-key="pid" :sort-by="connectionQuery.sortBy" :sort-order="connectionQuery.sortOrder" @sort="handleConnectionSort" />
+                <SortableTableHead label="状态" sort-key="state" align="center" class="text-center" :sort-by="connectionQuery.sortBy" :sort-order="connectionQuery.sortOrder" @sort="handleConnectionSort" />
+                <SortableTableHead label="客户端" sort-key="clientAddr" :sort-by="connectionQuery.sortBy" :sort-order="connectionQuery.sortOrder" @sort="handleConnectionSort" />
+                <SortableTableHead label="连接时间" sort-key="backendStart" :sort-by="connectionQuery.sortBy" :sort-order="connectionQuery.sortOrder" @sort="handleConnectionSort" />
+                <SortableTableHead label="当前查询" sort-key="query" class="max-w-[300px]" :sort-by="connectionQuery.sortBy" :sort-order="connectionQuery.sortOrder" @sort="handleConnectionSort" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="conn in data.activeConnections" :key="conn.pid">
+              <TableRow v-for="conn in filteredConnections" :key="conn.pid">
                 <TableCell class="font-mono">{{ conn.pid }}</TableCell>
                 <TableCell class="text-center">
-                  <Badge :class="getStateBadge(conn.state)" variant="secondary">
+                  <SemanticTag :tone="getStateTone(conn.state)">
                     {{ getStateLabel(conn.state) }}
-                  </Badge>
+                  </SemanticTag>
                 </TableCell>
                 <TableCell>{{ conn.clientAddr }}</TableCell>
                 <TableCell class="text-sm">{{ formatTime(conn.backendStart) }}</TableCell>
@@ -242,7 +363,7 @@ onUnmounted(() => {
                   {{ conn.query || '-' }}
                 </TableCell>
               </TableRow>
-              <TableRow v-if="!data.activeConnections.length">
+              <TableRow v-if="!filteredConnections.length">
                 <TableCell colspan="5" class="text-center text-muted-foreground">
                   暂无活跃连接
                 </TableCell>
@@ -260,19 +381,28 @@ onUnmounted(() => {
             慢查询统计
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent class="space-y-4">
+          <SimpleTableFilters
+            v-if="data.slowQueries.length"
+            :query="slowQuery"
+            :fields="slowFilterFields"
+            :expanded-fields="slowExpandedFields"
+            description="默认展示查询语句，展开后可按调用次数范围筛选。"
+            @search="() => undefined"
+            @reset="resetDruidSlowQuery(slowQuery)"
+          />
           <div v-if="data.slowQueries.length">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead class="w-[50%]">查询语句</TableHead>
-                  <TableHead class="text-right">调用次数</TableHead>
-                  <TableHead class="text-right">平均耗时</TableHead>
-                  <TableHead class="text-right">最大耗时</TableHead>
+                  <SortableTableHead label="查询语句" sort-key="query" class="w-[50%]" :sort-by="slowQuery.sortBy" :sort-order="slowQuery.sortOrder" @sort="handleSlowSort" />
+                  <SortableTableHead label="调用次数" sort-key="calls" align="right" class="text-right" :sort-by="slowQuery.sortBy" :sort-order="slowQuery.sortOrder" @sort="handleSlowSort" />
+                  <SortableTableHead label="平均耗时" sort-key="avgTime" align="right" class="text-right" :sort-by="slowQuery.sortBy" :sort-order="slowQuery.sortOrder" @sort="handleSlowSort" />
+                  <SortableTableHead label="最大耗时" sort-key="maxTime" align="right" class="text-right" :sort-by="slowQuery.sortBy" :sort-order="slowQuery.sortOrder" @sort="handleSlowSort" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow v-for="(q, i) in data.slowQueries" :key="i">
+                <TableRow v-for="(q, i) in filteredSlowQueries" :key="i">
                   <TableCell class="font-mono text-xs truncate max-w-[400px]">
                     {{ q.query }}
                   </TableCell>

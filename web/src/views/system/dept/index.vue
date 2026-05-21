@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast/use-toast'
 import {
   Plus,
@@ -34,15 +33,12 @@ import {
   ChevronDown,
   ChevronRight,
   RefreshCw,
-  Search,
-  Loader2,
   Maximize2,
   Minimize2,
 } from 'lucide-vue-next'
 import { formatDate } from '@/utils/format'
 import {
   getStatusOptionsWithAll,
-  getStatusOptions,
   toQueryValue,
   ALL_OPTION_VALUE,
 } from '@/utils/options'
@@ -51,6 +47,8 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
+import DeptFormDialog from './DeptFormDialog.vue'
 import {
   listDept,
   getDept,
@@ -71,6 +69,12 @@ const queryParams = reactive({
   deptName: '',
   status: ALL_OPTION_VALUE as string,
 })
+const simpleFilterFields = [
+  { label: '部门名称', key: 'deptName', placeholder: '请输入部门名称' },
+]
+const simpleExpandedFields = [
+  { label: '状态', key: 'status', type: 'select' as const, options: getStatusOptionsWithAll() },
+]
 const isExpanded = ref<Record<string, boolean>>({})
 const expandedAll = ref(true) // 默认展开全部
 
@@ -334,47 +338,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div
-      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">部门名称</span>
-        <Input
-          v-model="queryParams.deptName"
-          placeholder="请输入部门名称"
-          class="w-[200px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status" @update:model-value="handleQuery">
-          <SelectTrigger class="w-[120px]">
-            <SelectValue placeholder="请选择" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem
-              v-for="opt in getStatusOptionsWithAll()"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex gap-2 ml-auto">
-        <Button @click="handleQuery">
-          <Search class="w-4 h-4 mr-2" />
-          搜索
-        </Button>
-        <Button variant="outline" @click="resetQuery">
-          <RefreshCw class="w-4 h-4 mr-2" />
-          重置
-        </Button>
-      </div>
-    </div>
+    <SimpleTableFilters
+      :query="queryParams"
+      :fields="simpleFilterFields"
+      :expanded-fields="simpleExpandedFields"
+      description="默认展示部门名称，展开后可按状态完整筛选。"
+      @search="handleQuery"
+      @reset="resetQuery"
+    />
 
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
@@ -449,82 +420,14 @@ onMounted(() => {
       </Table>
     </div>
 
-    <!-- Add/Edit Dialog -->
-    <Dialog v-model:open="showDialog">
-      <DialogContent class="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{{ isEdit ? '修改部门' : '新增部门' }}</DialogTitle>
-          <DialogDescription> 请填写部门信息 </DialogDescription>
-        </DialogHeader>
-
-        <div class="grid gap-4 py-4">
-          <div class="grid gap-2">
-            <Label for="parentId">上级部门</Label>
-            <Select v-model="form.parentId">
-              <SelectTrigger>
-                <SelectValue placeholder="选择上级部门" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">无上级</SelectItem>
-                <SelectItem v-for="dept in flattenedOptions" :key="dept.id" :value="dept.id">
-                  {{ dept.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="deptName">部门名称 *</Label>
-              <Input id="deptName" v-model="form.deptName" placeholder="请输入部门名称" />
-            </div>
-            <div class="grid gap-2">
-              <Label for="orderNum">显示排序</Label>
-              <Input id="orderNum" v-model="form.orderNum" type="number" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="leader">负责人</Label>
-              <Input id="leader" v-model="form.leader" placeholder="请输入负责人" />
-            </div>
-            <div class="grid gap-2">
-              <Label for="phone">联系电话</Label>
-              <Input id="phone" v-model="form.phone" placeholder="请输入联系电话" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="email">邮箱</Label>
-              <Input id="email" v-model="form.email" placeholder="请输入邮箱" />
-            </div>
-            <div class="grid gap-2">
-              <Label for="status">部门状态</Label>
-              <Select v-model="form.status">
-                <SelectTrigger>
-                  <SelectValue placeholder="选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="opt in getStatusOptions()" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button :disabled="submitLoading" @click="handleSubmit">
-            <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
-            确定
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <DeptFormDialog
+      v-model:open="showDialog"
+      :form="form"
+      :is-edit="isEdit"
+      :submit-loading="submitLoading"
+      :flattened-options="flattenedOptions"
+      @submit="handleSubmit"
+    />
 
     <!-- Delete Confirmation Dialog -->
     <ConfirmDialog

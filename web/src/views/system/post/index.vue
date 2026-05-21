@@ -1,13 +1,5 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,17 +18,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Plus, Edit, Trash2, RefreshCw, Search, Loader2 } from 'lucide-vue-next'
+import { Plus, Loader2 } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import StatusSwitch from '@/components/common/StatusSwitch.vue'
-import { formatDate } from '@/utils/format'
+import { toggleTableSort } from '@/utils/table-sort'
 import {
   getStatusOptionsWithAll,
   getStatusOptions,
@@ -52,6 +42,7 @@ import {
   changePostStatus,
 } from '@/api/system/post'
 import type { SysPost } from '@/api/system/types'
+import PostTable from './components/PostTable.vue'
 
 const { toast } = useToast()
 
@@ -65,7 +56,16 @@ const queryParams = reactive({
   postCode: '',
   postName: '',
   status: ALL_OPTION_VALUE as string,
+  sortBy: '',
+  sortOrder: '' as 'asc' | 'desc' | '',
 })
+const postFilterFields = [
+  { label: '岗位编码', key: 'postCode', placeholder: '请输入岗位编码' },
+  { label: '岗位名称', key: 'postName', placeholder: '请输入岗位名称' },
+]
+const postExpandedFields = [
+  { label: '状态', key: 'status', type: 'select' as const, options: getStatusOptionsWithAll() },
+]
 
 // 选择相关
 const selectedIds = ref<string[]>([])
@@ -122,11 +122,24 @@ function handleQuery() {
   getList()
 }
 
+function handleSort(key: string) {
+  toggleTableSort(queryParams, key)
+  getList()
+}
+
 function resetQuery() {
   queryParams.postCode = ''
   queryParams.postName = ''
   queryParams.status = ALL_OPTION_VALUE
+  queryParams.sortBy = ''
+  queryParams.sortOrder = ''
   handleQuery()
+}
+
+async function handleStatusChange(postId: string, status: string) {
+  await changePostStatus(postId, status)
+  const post = postList.value.find((item) => item.postId === postId)
+  if (post) post.status = status as '0' | '1'
 }
 
 // 选择操作
@@ -277,56 +290,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div
-      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">岗位编码</span>
-        <Input
-          v-model="queryParams.postCode"
-          placeholder="请输入岗位编码"
-          class="w-[200px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">岗位名称</span>
-        <Input
-          v-model="queryParams.postName"
-          placeholder="请输入岗位名称"
-          class="w-[200px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status" @update:model-value="handleQuery">
-          <SelectTrigger class="w-[120px]">
-            <SelectValue placeholder="请选择" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem
-              v-for="opt in getStatusOptionsWithAll()"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex gap-2 ml-auto">
-        <Button @click="handleQuery">
-          <Search class="w-4 h-4 mr-2" />
-          搜索
-        </Button>
-        <Button variant="outline" @click="resetQuery">
-          <RefreshCw class="w-4 h-4 mr-2" />
-          重置
-        </Button>
-      </div>
-    </div>
+    <SimpleTableFilters
+      :query="queryParams"
+      :fields="postFilterFields"
+      :expanded-fields="postExpandedFields"
+      description="默认展示岗位编码和名称，展开后可按状态完整筛选。"
+      @search="handleQuery"
+      @reset="resetQuery"
+    />
 
     <!-- 批量操作栏 -->
     <Transition
@@ -365,60 +336,19 @@ onMounted(() => {
       />
 
       <!-- 数据表格 -->
-      <Table v-else>
-        <TableHeader>
-          <TableRow>
-            <TableHead class="w-[50px]">
-              <Checkbox v-model="selectAll" :disabled="postList.length === 0" />
-            </TableHead>
-            <TableHead>岗位编号</TableHead>
-            <TableHead>岗位编码</TableHead>
-            <TableHead>岗位名称</TableHead>
-            <TableHead>排序</TableHead>
-            <TableHead>状态</TableHead>
-            <TableHead>创建时间</TableHead>
-            <TableHead class="text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="item in postList" :key="item.postId">
-            <TableCell>
-              <Checkbox
-                :model-value="selectedIds.includes(item.postId)"
-                @update:model-value="() => toggleSelect(item.postId)"
-              />
-            </TableCell>
-            <TableCell>{{ item.postId }}</TableCell>
-            <TableCell
-              ><Badge variant="outline">{{ item.postCode }}</Badge></TableCell
-            >
-            <TableCell>{{ item.postName }}</TableCell>
-            <TableCell>{{ item.postSort }}</TableCell>
-            <TableCell>
-              <StatusSwitch
-                :status="item.status"
-                :name="item.postName"
-                :on-toggle="(s) => changePostStatus(item.postId, s)"
-                @update:status="item.status = $event as '0' | '1'"
-              />
-            </TableCell>
-            <TableCell>{{ formatDate(item.createTime) }}</TableCell>
-            <TableCell class="text-right space-x-2">
-              <Button variant="ghost" size="icon" @click="handleUpdate(item)">
-                <Edit class="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="text-destructive"
-                @click="handleDelete(item)"
-              >
-                <Trash2 class="w-4 h-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <PostTable
+        v-else
+        v-model:select-all="selectAll"
+        :rows="postList"
+        :selected-ids="selectedIds"
+        :sort-by="queryParams.sortBy"
+        :sort-order="queryParams.sortOrder"
+        @toggle-select="toggleSelect"
+        @edit="handleUpdate"
+        @remove="handleDelete"
+        @change-status="handleStatusChange"
+        @sort="handleSort"
+      />
     </div>
 
     <!-- Pagination -->

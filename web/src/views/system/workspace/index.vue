@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Plus, Edit, Trash2, Search } from 'lucide-vue-next'
+import { Plus, Edit, Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,8 +33,12 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { usePermission } from '@/composables/usePermission'
+import { toggleTableSort } from '@/utils/table-sort'
 import {
   addWorkspaceConfig,
   delWorkspaceConfig,
@@ -59,7 +63,26 @@ const current = ref<WorkspaceConfig | null>(null)
 const roles = ref<WorkspaceRoleOption[]>([])
 const menus = ref<WorkspaceMenuOption[]>([])
 
-const query = reactive({ pageNum: 1, pageSize: 20, roleKey: '', status: undefined as string | undefined })
+const query = reactive({
+  pageNum: 1,
+  pageSize: 20,
+  roleKey: '',
+  status: undefined as string | undefined,
+  sortBy: '',
+  sortOrder: '' as 'asc' | 'desc' | '',
+})
+const workspaceFilterFields = [
+  { label: '角色标识', key: 'roleKey', placeholder: '角色标识' },
+  {
+    label: '状态',
+    key: 'status',
+    type: 'select' as const,
+    options: [
+      { label: '启用', value: '0' },
+      { label: '停用', value: '1' },
+    ],
+  },
+]
 const form = reactive({
   configId: '',
   roleKey: '',
@@ -106,9 +129,16 @@ function handleSearch() {
   void getList()
 }
 
+function handleSort(key: string) {
+  toggleTableSort(query, key)
+  void getList()
+}
+
 function resetQuery() {
   query.roleKey = ''
   query.status = undefined
+  query.sortBy = ''
+  query.sortOrder = ''
   handleSearch()
 }
 
@@ -212,29 +242,24 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
-      <Input v-model="query.roleKey" placeholder="角色标识" class="w-48" @keyup.enter="handleSearch" />
-      <Select v-model="query.status">
-        <SelectTrigger class="w-32"><SelectValue placeholder="状态" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="0">启用</SelectItem>
-          <SelectItem value="1">停用</SelectItem>
-        </SelectContent>
-      </Select>
-      <Button variant="outline" @click="handleSearch"><Search class="mr-2 h-4 w-4" />查询</Button>
-      <Button variant="ghost" @click="resetQuery">重置</Button>
-    </div>
+    <SimpleTableFilters
+      :query="query"
+      :fields="workspaceFilterFields"
+      description="当前页面筛选项较少，直接展示全部可用查询条件。"
+      @search="handleSearch"
+      @reset="resetQuery"
+    />
 
     <div class="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>角色</TableHead>
-            <TableHead>默认首页</TableHead>
-            <TableHead>首页替代路径</TableHead>
-            <TableHead>默认展开菜单</TableHead>
-            <TableHead>菜单策略</TableHead>
-            <TableHead class="text-center">状态</TableHead>
+            <SortableTableHead label="角色" sort-key="roleKey" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="默认首页" sort-key="defaultPath" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="首页替代路径" sort-key="dashboardPath" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="默认展开菜单" sort-key="defaultOpenMenu" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="菜单策略" sort-key="menuScope" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="状态" sort-key="status" align="center" class="text-center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" />
             <TableHead v-if="canShowOperationColumn" class="w-32 text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
@@ -245,7 +270,7 @@ onMounted(async () => {
             <TableCell><Badge variant="secondary">{{ row.dashboardPath || row.defaultPath }}</Badge></TableCell>
             <TableCell>{{ row.defaultOpenMenu || '-' }}</TableCell>
             <TableCell>{{ menuScopeLabel(row.menuScope) }}</TableCell>
-            <TableCell class="text-center"><Badge :variant="row.status === '0' ? 'default' : 'secondary'">{{ row.status === '0' ? '启用' : '停用' }}</Badge></TableCell>
+            <TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell>
             <TableCell v-if="canShowOperationColumn" class="text-right">
               <div class="flex justify-end gap-2">
                 <Button v-hasPermi="['system:workspace:edit']" size="sm" variant="outline" @click="handleEdit(row)"><Edit class="h-4 w-4" /></Button>

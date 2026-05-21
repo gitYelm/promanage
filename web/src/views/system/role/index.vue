@@ -11,6 +11,7 @@ import RoleFormDialog from './components/RoleFormDialog.vue'
 import RolePreviewDialog from './components/RolePreviewDialog.vue'
 import RoleConfirmDialogs from './components/RoleConfirmDialogs.vue'
 import { toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { toggleTableSort } from '@/utils/table-sort'
 import {
   listRole,
   getRole,
@@ -41,6 +42,10 @@ const queryParams = reactive({
   roleName: '',
   roleKey: '',
   status: ALL_OPTION_VALUE as string,
+  securityLevelMin: '',
+  securityLevelMax: '',
+  sortBy: '',
+  sortOrder: '' as 'asc' | 'desc' | '',
 })
 
 // 选择相关
@@ -167,10 +172,19 @@ function handleQuery() {
   getList()
 }
 
+function handleSort(key: string) {
+  toggleTableSort(queryParams, key)
+  getList()
+}
+
 function resetQuery() {
   queryParams.roleName = ''
   queryParams.roleKey = ''
   queryParams.status = ALL_OPTION_VALUE
+  queryParams.securityLevelMin = ''
+  queryParams.securityLevelMax = ''
+  queryParams.sortBy = ''
+  queryParams.sortOrder = ''
   handleQuery()
 }
 
@@ -393,12 +407,15 @@ onMounted(() => {
       :role-list="roleList"
       :selected-ids="selectedIds"
       :total="total"
+      :sort-by="queryParams.sortBy"
+      :sort-order="queryParams.sortOrder"
       @add="handleAdd"
       @toggle-select="toggleSelect"
       @status-change="handleRoleStatusChange"
       @preview="handlePreview"
       @edit="handleUpdate"
       @delete="handleDelete"
+      @sort="handleSort"
       @change="getList"
     />
 

@@ -1,7 +1,20 @@
 import request from '@/utils/request'
 import { type SysOperLog } from '@/api/system/types'
 
-export function listOperLog(query: any) {
+export interface OperLogQuery {
+  title?: string
+  operName?: string
+  status?: string
+  businessType?: string
+  beginTime?: string
+  endTime?: string
+  pageNum?: number
+  pageSize?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
+}
+
+export function listOperLog(query: OperLogQuery) {
   return request<{ data: { rows: SysOperLog[]; total: number } }>({
     url: '/monitor/operlog',
     method: 'get',

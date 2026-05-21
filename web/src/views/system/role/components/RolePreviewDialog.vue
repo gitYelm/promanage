@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { Shield } from 'lucide-vue-next'
 import { formatDate } from '@/utils/format'
 import type { SysMenu, SysRole } from '@/api/system/types'
@@ -77,9 +78,11 @@ function getDataScopeText(dataScope?: string) {
           <div>
             <div class="text-sm font-medium text-muted-foreground mb-1">状态</div>
             <div class="text-sm">
-              <Badge :variant="role?.status === '0' ? 'default' : 'secondary'">
-                {{ role?.status === '0' ? '正常' : '停用' }}
-              </Badge>
+              <StatusBadge
+                domain="enabled"
+                :value="role?.status"
+                :label="role?.status === '0' ? '正常' : '停用'"
+              />
             </div>
           </div>
         </div>

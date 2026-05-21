@@ -25,9 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useToast } from '@/components/ui/toast/use-toast'
 import {
   Plus,
@@ -36,12 +34,9 @@ import {
   ChevronDown,
   ChevronRight,
   RefreshCw,
-  Search,
-  Loader2,
   Maximize2,
   Minimize2,
 } from 'lucide-vue-next'
-import IconPicker from '@/components/common/IconPicker.vue'
 import * as icons from 'lucide-vue-next'
 
 // 获取图标组件 (将 kebab-case 转换为 PascalCase)
@@ -58,11 +53,12 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import StatusSwitch from '@/components/common/StatusSwitch.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
+import MenuFormDialog from './MenuFormDialog.vue'
 import { listMenu, delMenu, addMenu, updateMenu, changeMenuStatus } from '@/api/system/menu'
 import type { SysMenu } from '@/api/system/types'
 import {
   getStatusOptionsWithAll,
-  getStatusOptions,
   toQueryValue,
   ALL_OPTION_VALUE,
 } from '@/utils/options'
@@ -76,6 +72,12 @@ const queryParams = reactive({
   menuName: '',
   status: ALL_OPTION_VALUE as string,
 })
+const simpleFilterFields = [
+  { label: '菜单名称', key: 'menuName', placeholder: '请输入菜单名称' },
+]
+const simpleExpandedFields = [
+  { label: '状态', key: 'status', type: 'select' as const, options: getStatusOptionsWithAll() },
+]
 const isExpanded = ref<Record<string, boolean>>({})
 const expandedAll = ref(true) // 默认展开第一级
 
@@ -350,47 +352,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div
-      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">菜单名称</span>
-        <Input
-          v-model="queryParams.menuName"
-          placeholder="请输入菜单名称"
-          class="w-[200px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status" @update:model-value="handleQuery">
-          <SelectTrigger class="w-[120px]">
-            <SelectValue placeholder="请选择" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem
-              v-for="opt in getStatusOptionsWithAll()"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex gap-2 ml-auto">
-        <Button @click="handleQuery">
-          <Search class="w-4 h-4 mr-2" />
-          搜索
-        </Button>
-        <Button variant="outline" @click="resetQuery">
-          <RefreshCw class="w-4 h-4 mr-2" />
-          重置
-        </Button>
-      </div>
-    </div>
+    <SimpleTableFilters
+      :query="queryParams"
+      :fields="simpleFilterFields"
+      :expanded-fields="simpleExpandedFields"
+      description="默认展示菜单名称，展开后可按状态完整筛选。"
+      @search="handleQuery"
+      @reset="resetQuery"
+    />
 
     <!-- Table -->
     <div class="border rounded-md bg-card overflow-x-auto">
@@ -496,123 +465,14 @@ onMounted(() => {
       </Table>
     </div>
 
-    <!-- Add/Edit Dialog -->
-    <Dialog v-model:open="showDialog">
-      <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-        <DialogHeader class="flex-shrink-0">
-          <DialogTitle>{{ isEdit ? '修改菜单' : '新增菜单' }}</DialogTitle>
-          <DialogDescription> 请填写菜单信息 </DialogDescription>
-        </DialogHeader>
-
-        <div class="flex-1 overflow-y-auto grid gap-4 py-4">
-          <div class="grid gap-2">
-            <Label for="parentId">上级菜单</Label>
-            <Select v-model="form.parentId">
-              <SelectTrigger>
-                <SelectValue placeholder="选择上级菜单" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">主类目</SelectItem>
-                <SelectItem v-for="menu in flattenedOptions" :key="menu.id" :value="menu.id">
-                  {{ menu.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid gap-2">
-            <Label>菜单类型</Label>
-            <RadioGroup v-model="form.menuType" class="flex items-center gap-4">
-              <div class="flex items-center space-x-2">
-                <RadioGroupItem id="typeM" value="M" />
-                <Label for="typeM">目录</Label>
-              </div>
-              <div class="flex items-center space-x-2">
-                <RadioGroupItem id="typeC" value="C" />
-                <Label for="typeC">菜单</Label>
-              </div>
-              <div class="flex items-center space-x-2">
-                <RadioGroupItem id="typeF" value="F" />
-                <Label for="typeF">按钮</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="menuName">菜单名称 *</Label>
-              <Input id="menuName" v-model="form.menuName" placeholder="请输入菜单名称" />
-            </div>
-            <div class="grid gap-2">
-              <Label for="orderNum">显示排序</Label>
-              <Input id="orderNum" v-model="form.orderNum" type="number" />
-            </div>
-          </div>
-
-          <div v-if="form.menuType !== 'F'" class="grid gap-2">
-            <Label for="icon">菜单图标</Label>
-            <IconPicker v-model="form.icon" />
-          </div>
-
-          <div v-if="form.menuType !== 'F'" class="grid grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="path">路由地址</Label>
-              <Input id="path" v-model="form.path" placeholder="请输入路由地址" />
-            </div>
-            <div v-if="form.menuType === 'C'" class="grid gap-2">
-              <Label for="component">组件路径</Label>
-              <Input id="component" v-model="form.component" placeholder="请输入组件路径" />
-            </div>
-          </div>
-
-          <div v-if="form.menuType !== 'M'" class="grid gap-2">
-            <Label for="perms">权限字符</Label>
-            <Input id="perms" v-model="form.perms" placeholder="system:user:list" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="visible">显示状态</Label>
-              <Select v-model="form.visible">
-                <SelectTrigger>
-                  <SelectValue placeholder="选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="opt in getStatusOptions('showHide')"
-                    :key="opt.value"
-                    :value="opt.value"
-                  >
-                    {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div class="grid gap-2">
-              <Label for="status">菜单状态</Label>
-              <Select v-model="form.status">
-                <SelectTrigger>
-                  <SelectValue placeholder="选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="opt in getStatusOptions()" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter class="flex-shrink-0">
-          <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button :disabled="submitLoading" @click="handleSubmit">
-            <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
-            确定
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <MenuFormDialog
+      v-model:open="showDialog"
+      :form="form"
+      :is-edit="isEdit"
+      :submit-loading="submitLoading"
+      :flattened-options="flattenedOptions"
+      @submit="handleSubmit"
+    />
 
     <!-- Delete Confirmation Dialog -->
     <ConfirmDialog

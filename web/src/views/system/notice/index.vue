@@ -1,46 +1,16 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Plus, Edit, Trash2, RefreshCw, Search, Eye } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import { SimpleTableFilters } from '@/components/common/table-filter'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import LeaveConfirmDialog from '@/components/common/LeaveConfirmDialog.vue'
-import StatusSwitch from '@/components/common/StatusSwitch.vue'
-import { formatDate } from '@/utils/format'
-import { getStatusOptions } from '@/utils/options'
-import { sanitizeHtml } from '@/utils/sanitize'
+import { toggleTableSort } from '@/utils/table-sort'
 import {
   listNotice,
   getNotice,
@@ -48,10 +18,14 @@ import {
   addNotice,
   updateNotice,
   changeNoticeStatus,
+  type NoticeFormState,
   type SysNotice,
 } from '@/api/system/notice'
 import { getUploadConfig, type UploadConfig } from '@/api/system/config'
 import { useUnsavedChanges } from '@/composables'
+import NoticeTable from './components/NoticeTable.vue'
+import NoticeFormDialog from './NoticeFormDialog.vue'
+import NoticePreviewDialog from './NoticePreviewDialog.vue'
 
 const { toast } = useToast()
 
@@ -77,7 +51,16 @@ const queryParams = reactive({
   noticeTitle: '',
   createBy: '',
   noticeType: undefined,
+  sortBy: '',
+  sortOrder: '' as 'asc' | 'desc' | '',
 })
+const noticeFilterFields = [
+  { label: '公告标题', key: 'noticeTitle', placeholder: '请输入公告标题' },
+  { label: '操作人员', key: 'createBy', placeholder: '请输入操作人员' },
+]
+const noticeExpandedFields = [
+  { label: '公告类型', key: 'noticeType', type: 'select' as const, options: [{ label: '通知', value: '1' }, { label: '公告', value: '2' }] },
+]
 
 // 选择相关
 const selectedIds = ref<string[]>([])
@@ -102,7 +85,7 @@ const previewNotice = ref<SysNotice | null>(null)
 const isEdit = ref(false)
 const submitLoading = ref(false)
 
-const form = reactive({
+const form = reactive<NoticeFormState>({
   noticeId: undefined as string | undefined,
   noticeTitle: '',
   noticeType: '1',
@@ -146,11 +129,24 @@ function handleQuery() {
   getList()
 }
 
+function handleSort(key: string) {
+  toggleTableSort(queryParams, key)
+  getList()
+}
+
 function resetQuery() {
   queryParams.noticeTitle = ''
   queryParams.createBy = ''
   queryParams.noticeType = undefined
+  queryParams.sortBy = ''
+  queryParams.sortOrder = ''
   handleQuery()
+}
+
+async function handleStatusChange(noticeId: string, status: string) {
+  await changeNoticeStatus(noticeId, status)
+  const notice = noticeList.value.find((item) => item.noticeId === noticeId)
+  if (notice) notice.status = status as '0' | '1'
 }
 
 // 选择操作
@@ -266,19 +262,6 @@ function resetForm() {
   markClean() // 重置表单时清除脏状态
 }
 
-function getNoticeTypeLabel(type: string) {
-  const map: Record<string, string> = {
-    '1': '通知',
-    '2': '公告',
-  }
-  return map[type] || '未知'
-}
-
-// 清洗后的预览内容，防止 XSS 攻击
-const sanitizedPreviewContent = computed(() => {
-  return sanitizeHtml(previewNotice.value?.noticeContent)
-})
-
 onMounted(() => {
   getList()
   // 获取上传配置
@@ -309,51 +292,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div
-      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">公告标题</span>
-        <Input
-          v-model="queryParams.noticeTitle"
-          placeholder="请输入公告标题"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">操作人员</span>
-        <Input
-          v-model="queryParams.createBy"
-          placeholder="请输入操作人员"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">类型</span>
-        <Select v-model="queryParams.noticeType" @update:model-value="handleQuery">
-          <SelectTrigger class="w-[120px]">
-            <SelectValue placeholder="请选择" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">通知</SelectItem>
-            <SelectItem value="2">公告</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex gap-2 ml-auto">
-        <Button @click="handleQuery">
-          <Search class="w-4 h-4 mr-2" />
-          搜索
-        </Button>
-        <Button variant="outline" @click="resetQuery">
-          <RefreshCw class="w-4 h-4 mr-2" />
-          重置
-        </Button>
-      </div>
-    </div>
+    <SimpleTableFilters
+      :query="queryParams"
+      :fields="noticeFilterFields"
+      :expanded-fields="noticeExpandedFields"
+      description="默认展示公告标题和操作人员，展开后可按类型完整筛选。"
+      @search="handleQuery"
+      @reset="resetQuery"
+    />
 
     <!-- 批量操作栏 -->
     <Transition
@@ -390,64 +336,20 @@ onMounted(() => {
       />
 
       <!-- 数据表格 -->
-      <Table v-else>
-        <TableHeader>
-          <TableRow>
-            <TableHead class="w-[50px]">
-              <Checkbox v-model="selectAll" :disabled="noticeList.length === 0" />
-            </TableHead>
-            <TableHead>序号</TableHead>
-            <TableHead>公告标题</TableHead>
-            <TableHead>公告类型</TableHead>
-            <TableHead>状态</TableHead>
-            <TableHead>创建者</TableHead>
-            <TableHead>创建时间</TableHead>
-            <TableHead class="text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="item in noticeList" :key="item.noticeId">
-            <TableCell>
-              <Checkbox
-                :model-value="selectedIds.includes(item.noticeId)"
-                @update:model-value="() => toggleSelect(item.noticeId)"
-              />
-            </TableCell>
-            <TableCell>{{ item.noticeId }}</TableCell>
-            <TableCell>{{ item.noticeTitle }}</TableCell>
-            <TableCell>
-              <Badge variant="outline">{{ getNoticeTypeLabel(item.noticeType) }}</Badge>
-            </TableCell>
-            <TableCell>
-              <StatusSwitch
-                :status="item.status"
-                :name="item.noticeTitle"
-                :on-toggle="(s) => changeNoticeStatus(item.noticeId, s)"
-                @update:status="item.status = $event as '0' | '1'"
-              />
-            </TableCell>
-            <TableCell>{{ item.createBy }}</TableCell>
-            <TableCell>{{ formatDate(item.createTime) }}</TableCell>
-            <TableCell class="text-right space-x-2">
-              <Button variant="ghost" size="icon" title="预览" @click="handlePreview(item)">
-                <Eye class="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" title="编辑" @click="handleUpdate(item)">
-                <Edit class="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="text-destructive"
-                title="删除"
-                @click="handleDelete(item)"
-              >
-                <Trash2 class="w-4 h-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <NoticeTable
+        v-else
+        v-model:select-all="selectAll"
+        :rows="noticeList"
+        :selected-ids="selectedIds"
+        :sort-by="queryParams.sortBy"
+        :sort-order="queryParams.sortOrder"
+        @toggle-select="toggleSelect"
+        @preview="handlePreview"
+        @edit="handleUpdate"
+        @remove="handleDelete"
+        @change-status="handleStatusChange"
+        @sort="handleSort"
+      />
     </div>
 
     <!-- Pagination -->
@@ -458,75 +360,15 @@ onMounted(() => {
       @change="getList"
     />
 
-    <!-- Add/Edit Dialog -->
-    <Dialog :open="showDialog" @update:open="(val) => !val && handleCloseDialog()">
-      <DialogContent
-        class="sm:max-w-[800px] max-h-[90vh] flex flex-col"
-        @escape-key-down.prevent="handleCloseDialog"
-        @pointer-down-outside.prevent="handleCloseDialog"
-      >
-        <DialogHeader>
-          <DialogTitle>{{ isEdit ? '修改公告' : '新增公告' }}</DialogTitle>
-          <DialogDescription> 请填写公告信息 </DialogDescription>
-        </DialogHeader>
-
-        <div class="flex-1 overflow-y-auto py-4">
-          <div class="grid gap-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="grid gap-2">
-                <Label for="noticeTitle">公告标题 *</Label>
-                <Input id="noticeTitle" v-model="form.noticeTitle" placeholder="请输入公告标题" />
-              </div>
-              <div class="grid gap-2">
-                <Label for="noticeType">公告类型</Label>
-                <Select v-model="form.noticeType">
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">通知</SelectItem>
-                    <SelectItem value="2">公告</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="status">状态</Label>
-              <Select v-model="form.status">
-                <SelectTrigger>
-                  <SelectValue placeholder="选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="opt in getStatusOptions('normalClose')"
-                    :key="opt.value"
-                    :value="opt.value"
-                  >
-                    {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="noticeContent">内容 *</Label>
-              <RichTextEditor
-                v-model="form.noticeContent"
-                placeholder="请输入公告内容..."
-                :image-max-size="uploadConfig.editorImageMaxSize"
-                :video-max-size="uploadConfig.editorVideoMaxSize"
-              />
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" @click="handleCloseDialog">取消</Button>
-          <Button :disabled="submitLoading" @click="handleSubmit"> 确定 </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <NoticeFormDialog
+      v-model:open="showDialog"
+      :form="form"
+      :is-edit="isEdit"
+      :submit-loading="submitLoading"
+      :upload-config="uploadConfig"
+      @close="handleCloseDialog"
+      @submit="handleSubmit"
+    />
 
     <!-- 未保存更改确认弹窗 -->
     <LeaveConfirmDialog
@@ -555,29 +397,6 @@ onMounted(() => {
       @confirm="confirmBatchDelete"
     />
 
-    <!-- Preview Dialog -->
-    <Dialog v-model:open="showPreviewDialog">
-      <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-        <DialogHeader class="flex-shrink-0">
-          <DialogTitle>{{ previewNotice?.noticeTitle }}</DialogTitle>
-          <DialogDescription>
-            <Badge variant="outline" class="mr-2">{{
-              getNoticeTypeLabel(previewNotice?.noticeType || '1')
-            }}</Badge>
-            <span class="text-muted-foreground"
-              >{{ previewNotice?.createBy }} 发布于
-              {{ formatDate(previewNotice?.createTime) }}</span
-            >
-          </DialogDescription>
-        </DialogHeader>
-        <div
-          class="flex-1 overflow-y-auto py-4 prose prose-sm dark:prose-invert max-w-none"
-          v-html="sanitizedPreviewContent"
-        />
-        <DialogFooter class="flex-shrink-0">
-          <Button variant="outline" @click="showPreviewDialog = false">关闭</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <NoticePreviewDialog v-model:open="showPreviewDialog" :notice="previewNotice" />
   </div>
 </template>

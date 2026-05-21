@@ -6,6 +6,10 @@ export interface JobQuery extends PageQuery {
   jobName?: string
   jobGroup?: string
   status?: string
+  invokeTarget?: string
+  cronExpression?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }
 
 /** 定时任务表单参数 */

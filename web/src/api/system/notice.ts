@@ -6,11 +6,15 @@ export type { SysNotice } from './types'
 /** 通知公告创建/更新参数 */
 export interface NoticeForm {
   noticeId?: string
-  noticeTitle?: string
-  noticeType?: string
-  noticeContent?: string
-  status?: string
+  noticeTitle: string
+  noticeType: string
+  noticeContent: string
+  status: string
   remark?: string
+}
+
+export interface NoticeFormState extends NoticeForm {
+  noticeId?: string
 }
 
 export function listNotice(query: NoticeQuery) {

@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   AlertDialog,
@@ -41,10 +40,14 @@ import type { SysLoginLog } from '@/api/system/types'
 import { formatDate } from '@/utils/format'
 import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
 import TablePagination from '@/components/common/TablePagination.vue'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import SuccessFailBadge from '@/components/common/SuccessFailBadge.vue'
+import { FilterRangeField, TableFilterPanel } from '@/components/common/table-filter'
+import { toggleTableSort } from '@/utils/table-sort'
 
 const { toast } = useToast()
 
@@ -60,6 +63,8 @@ const queryParams = reactive<LogininforQuery & { status: string }>({
   status: ALL_OPTION_VALUE,
   beginTime: undefined,
   endTime: undefined,
+  sortBy: '',
+  sortOrder: '',
 })
 
 // 选择相关
@@ -104,12 +109,19 @@ function handleQuery() {
   getList()
 }
 
+function handleSort(key: string) {
+  toggleTableSort(queryParams, key)
+  getList()
+}
+
 function resetQuery() {
   queryParams.userName = ''
   queryParams.ipaddr = ''
   queryParams.status = ALL_OPTION_VALUE
   queryParams.beginTime = undefined
   queryParams.endTime = undefined
+  queryParams.sortBy = ''
+  queryParams.sortOrder = ''
   handleQuery()
 }
 
@@ -189,62 +201,19 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div
-      class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">用户名称</span>
-        <Input
-          v-model="queryParams.userName"
-          placeholder="请输入用户名称"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
+    <TableFilterPanel description="默认展示用户名称、登录地址和状态，展开后可按登录时间范围完整筛选。">
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div class="space-y-1"><label for="login-log-filter-user" class="text-sm font-medium">用户名称</label><Input id="login-log-filter-user" v-model="queryParams.userName" placeholder="请输入用户名称" @keyup.enter="handleQuery" /></div>
+        <div class="space-y-1"><label for="login-log-filter-ip" class="text-sm font-medium">登录地址</label><Input id="login-log-filter-ip" v-model="queryParams.ipaddr" placeholder="请输入IP地址" @keyup.enter="handleQuery" /></div>
+        <div class="space-y-1"><label for="login-log-filter-status" class="text-sm font-medium">状态</label><Select v-model="queryParams.status"><SelectTrigger id="login-log-filter-status"><SelectValue placeholder="请选择" /></SelectTrigger><SelectContent><SelectItem v-for="opt in getStatusOptionsWithAll('successFail')" :key="opt.value" :value="opt.value">{{ opt.label }}</SelectItem></SelectContent></Select></div>
+        <div class="flex items-end gap-2"><Button data-permission-neutral @click="handleQuery"><Search class="w-4 h-4 mr-2" />搜索</Button><Button variant="outline" data-permission-neutral @click="resetQuery"><RefreshCw class="w-4 h-4 mr-2" />重置</Button></div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">登录地址</span>
-        <Input
-          v-model="queryParams.ipaddr"
-          placeholder="请输入IP地址"
-          class="w-[150px]"
-          @keyup.enter="handleQuery"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">状态</span>
-        <Select v-model="queryParams.status" @update:model-value="handleQuery">
-          <SelectTrigger class="w-[100px]">
-            <SelectValue placeholder="请选择" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem
-              v-for="opt in getStatusOptionsWithAll('successFail')"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">登录时间</span>
-        <Input v-model="queryParams.beginTime" type="date" class="w-[140px]" />
-        <span class="text-muted-foreground">至</span>
-        <Input v-model="queryParams.endTime" type="date" class="w-[140px]" />
-      </div>
-      <div class="flex gap-2 ml-auto">
-        <Button @click="handleQuery">
-          <Search class="w-4 h-4 mr-2" />
-          搜索
-        </Button>
-        <Button variant="outline" @click="resetQuery">
-          <RefreshCw class="w-4 h-4 mr-2" />
-          重置
-        </Button>
-      </div>
-    </div>
+      <template #expanded>
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <FilterRangeField v-model:start="queryParams.beginTime" v-model:end="queryParams.endTime" label="登录时间" />
+        </div>
+      </template>
+    </TableFilterPanel>
 
     <!-- 批量操作栏 -->
     <Transition
@@ -285,15 +254,15 @@ onMounted(() => {
             <TableHead class="w-[50px]">
               <Checkbox v-model="selectAll" :disabled="logList.length === 0" />
             </TableHead>
-            <TableHead class="w-[100px]">访问编号</TableHead>
-            <TableHead class="w-[120px]">用户名称</TableHead>
-            <TableHead class="w-[140px]">登录地址</TableHead>
-            <TableHead class="min-w-[120px]">登录地点</TableHead>
-            <TableHead class="w-[120px]">浏览器</TableHead>
-            <TableHead class="w-[120px]">操作系统</TableHead>
-            <TableHead class="w-[90px] text-center">登录状态</TableHead>
-            <TableHead class="min-w-[150px]">操作信息</TableHead>
-            <TableHead class="w-[170px]">登录时间</TableHead>
+            <SortableTableHead label="访问编号" sort-key="infoId" class="w-[100px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="用户名称" sort-key="userName" class="w-[120px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="登录地址" sort-key="ipaddr" class="w-[140px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="登录地点" sort-key="loginLocation" class="min-w-[120px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="浏览器" sort-key="browser" class="w-[120px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="操作系统" sort-key="os" class="w-[120px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="登录状态" sort-key="status" align="center" class="w-[90px] text-center" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="操作信息" sort-key="msg" class="min-w-[150px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead label="登录时间" sort-key="loginTime" class="w-[170px]" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -311,9 +280,7 @@ onMounted(() => {
             <TableCell>{{ item.browser }}</TableCell>
             <TableCell>{{ item.os }}</TableCell>
             <TableCell class="text-center">
-              <Badge :variant="item.status === '0' ? 'default' : 'destructive'">
-                {{ item.status === '0' ? '成功' : '失败' }}
-              </Badge>
+              <SuccessFailBadge :value="item.status" />
             </TableCell>
             <TableCell>{{ item.msg }}</TableCell>
             <TableCell>{{ formatDate(item.loginTime) }}</TableCell>

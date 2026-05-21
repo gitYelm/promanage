@@ -17,6 +17,8 @@ export interface SysUserOnline {
 export interface OnlineQuery extends PageQuery {
   userName?: string
   ipaddr?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }
 
 export function listOnline(query: OnlineQuery): Promise<PageResult<SysUserOnline>> {

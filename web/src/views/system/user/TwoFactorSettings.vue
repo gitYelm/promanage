@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import SemanticTag from '@/components/common/SemanticTag.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { Loader2, Shield, ShieldCheck, ShieldOff, Copy, Check } from 'lucide-vue-next'
 import { getTwoFactorSetup, enableTwoFactor, disableTwoFactor } from '@/api/login'
@@ -111,14 +111,14 @@ onMounted(() => {
           <Shield class="h-5 w-5" />
           <CardTitle>两步验证</CardTitle>
         </div>
-        <Badge v-if="userEnabled" variant="default" class="bg-green-500">
+        <SemanticTag v-if="userEnabled" tone="success">
           <ShieldCheck class="h-3 w-3 mr-1" />
           已启用
-        </Badge>
-        <Badge v-else variant="secondary">
+        </SemanticTag>
+        <SemanticTag v-else tone="neutral">
           <ShieldOff class="h-3 w-3 mr-1" />
           未启用
-        </Badge>
+        </SemanticTag>
       </div>
       <CardDescription>
         两步验证为您的账户提供额外的安全保护。启用后，登录时需要输入验证器应用生成的验证码。

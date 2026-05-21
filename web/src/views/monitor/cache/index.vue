@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
@@ -15,6 +15,7 @@ import {
 } from 'lucide-vue-next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from '@/components/ui/toast'
+import { SimpleTableFilters } from '@/components/common/table-filter'
 
 const loading = ref(true)
 const cache = ref<CacheInfo | null>(null)
@@ -22,10 +23,29 @@ const autoRefresh = ref(false)
 const refreshInterval = ref<ReturnType<typeof setInterval> | null>(null)
 const lastUpdateTime = ref<string>('')
 
+
+const commandQuery = reactive({ name: '', callsMin: undefined as number | undefined, callsMax: undefined as number | undefined })
+const commandFilterFields = [{ label: '命令名称', key: 'name', placeholder: '请输入命令名称' }]
+const commandExpandedFields = [{ label: '调用次数', type: 'number-range' as const, startKey: 'callsMin', endKey: 'callsMax', min: 0 }]
+const filteredCommandStats = computed(() =>
+  (cache.value?.commandStats || []).filter((item) => {
+    const calls = parseInt(item.value) || 0
+    return item.name.includes(commandQuery.name.trim()) && inNumberRange(calls, commandQuery.callsMin, commandQuery.callsMax)
+  }),
+)
+function inNumberRange(value: number, min?: number, max?: number) {
+  return (min === undefined || value >= min) && (max === undefined || value <= max)
+}
+function resetCommandFilters() {
+  commandQuery.name = ''
+  commandQuery.callsMin = undefined
+  commandQuery.callsMax = undefined
+}
+
 // 命令统计最大值，用于计算进度条
 const maxCommandCalls = computed(() => {
   if (!cache.value?.commandStats?.length) return 1
-  return Math.max(...cache.value.commandStats.map((s) => parseInt(s.value) || 0))
+  return Math.max(...filteredCommandStats.value.map((s) => parseInt(s.value) || 0))
 })
 
 async function getData() {
@@ -169,9 +189,17 @@ onUnmounted(() => {
         <CardHeader>
           <CardTitle>命令统计</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent class="space-y-4">
+          <SimpleTableFilters
+            :query="commandQuery"
+            :fields="commandFilterFields"
+            :expanded-fields="commandExpandedFields"
+            description="默认展示命令名称，展开后可按调用次数范围筛选。"
+            @search="() => undefined"
+            @reset="resetCommandFilters"
+          />
           <div class="space-y-4">
-            <div v-for="item in cache.commandStats" :key="item.name" class="space-y-1">
+            <div v-for="item in filteredCommandStats" :key="item.name" class="space-y-1">
               <div class="flex items-center justify-between text-sm">
                 <span class="font-medium">{{ item.name }}</span>
                 <span>{{ parseInt(item.value).toLocaleString() }} 次</span>
@@ -184,7 +212,7 @@ onUnmounted(() => {
               </div>
             </div>
             <p
-              v-if="!cache.commandStats?.length"
+              v-if="!filteredCommandStats.length"
               class="text-sm text-muted-foreground text-center py-4"
             >
               暂无命令统计数据

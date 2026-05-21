@@ -1,196 +1,53 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Checkbox } from '@/components/ui/checkbox'
-import PasswordInput from '@/components/common/PasswordInput.vue'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { useToast } from '@/components/ui/toast/use-toast'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Plus,
-  Search,
-  FileDown,
-  FileUp,
-  Trash2,
-  Loader2,
-  RefreshCw,
-  Key,
-  Eye,
-  Filter,
-  Edit,
-  Settings2,
-  Download,
-} from 'lucide-vue-next'
-import {
-  listUser,
   getUser,
   delUser,
   addUser,
   updateUser,
   resetUserPwd,
   changeUserStatus,
-  downloadUserTemplate,
-  importUserExcel,
 } from '@/api/system/user'
-import { listDeptTree } from '@/api/system/dept'
 import { listRole } from '@/api/system/role'
 import { listPost } from '@/api/system/post'
 import type { SysUser, SysRole, SysPost } from '@/api/system/types'
-import DeptTreeSelect from '@/components/business/DeptTreeSelect.vue'
-import UserForm from '@/components/business/UserForm.vue'
 import UserDetailDialog from '@/components/business/UserDetailDialog.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
-import TableSkeleton from '@/components/common/TableSkeleton.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import ExportButton from '@/components/common/ExportButton.vue'
 import ExportDialog from '@/components/common/ExportDialog.vue'
 import ExportTaskList from '@/components/common/ExportTaskList.vue'
-import StatusSwitch from '@/components/common/StatusSwitch.vue'
-import { formatDate } from '@/utils/format'
-import { getStatusOptionsWithAll, toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { useToast } from '@/components/ui/toast/use-toast'
+import UserFilters from './UserFilters.vue'
+import UserBatchActions from './UserBatchActions.vue'
+import UserTable from './UserTable.vue'
+import UserFormDialog from './UserFormDialog.vue'
+import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
+import UserImportDialog from './UserImportDialog.vue'
+import UserBatchStatusDialog from './UserBatchStatusDialog.vue'
+import UserToolbar from './UserToolbar.vue'
+import { useUserColumns } from './useUserColumns'
+import { useUserList } from './useUserList'
+import { useUserImport } from './useUserImport'
 
-// State
-const loading = ref(true)
-const userList = ref<SysUser[]>([])
-const total = ref(0)
-const queryParams = reactive({
-  pageNum: 1,
-  pageSize: 20,
-  userName: '',
-  phonenumber: '',
-  status: ALL_OPTION_VALUE as string,
-  deptId: undefined,
-  roleId: undefined,
-})
+const {
+  loading,
+  userList,
+  total,
+  deptOptions,
+  queryParams,
+  getList,
+  getDeptTree,
+  handleQuery,
+  resetQuery,
+  handleSort,
+} = useUserList()
 
-// 高级搜索
-const showAdvancedSearch = ref(false)
 const selectedRows = ref<string[]>([])
 const selectAll = ref(false)
 
-// 表格列配置
-interface ColumnConfig {
-  key: string
-  label: string
-  visible: boolean
-  fixed?: boolean // 固定列不可隐藏
-}
+const { columns, toggleColumn, resetColumns } = useUserColumns()
 
-const COLUMN_STORAGE_KEY = 'user-table-columns'
-
-// 默认列配置
-const defaultColumns: ColumnConfig[] = [
-  { key: 'userId', label: '用户编号', visible: true },
-  { key: 'userName', label: '用户名', visible: true, fixed: true },
-  { key: 'nickName', label: '用户昵称', visible: true },
-  { key: 'dept', label: '部门', visible: true },
-  { key: 'phonenumber', label: '手机号码', visible: true },
-  { key: 'email', label: '邮箱', visible: false },
-  { key: 'status', label: '状态', visible: true },
-  { key: 'createTime', label: '创建时间', visible: true },
-]
-
-// 从 localStorage 加载列配置
-function loadColumnConfig(): ColumnConfig[] {
-  try {
-    const saved = localStorage.getItem(COLUMN_STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved) as ColumnConfig[]
-      // 合并保存的配置与默认配置，确保新增列也能显示
-      return defaultColumns.map((col) => {
-        const savedCol = parsed.find((c) => c.key === col.key)
-        return savedCol ? { ...col, visible: savedCol.visible } : col
-      })
-    }
-  } catch {
-    // ignore
-  }
-  return defaultColumns.map((c) => ({ ...c }))
-}
-
-// 保存列配置到 localStorage
-function saveColumnConfig() {
-  localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columns.value))
-}
-
-const columns = ref<ColumnConfig[]>(loadColumnConfig())
-
-// 切换列显示
-function toggleColumn(key: string) {
-  const col = columns.value.find((c) => c.key === key)
-  if (col && !col.fixed) {
-    col.visible = !col.visible
-    saveColumnConfig()
-  }
-}
-
-// 重置列配置
-function resetColumns() {
-  columns.value = defaultColumns.map((c) => ({ ...c }))
-  saveColumnConfig()
-}
-
-// 判断列是否可见
-function isColumnVisible(key: string): boolean {
-  const col = columns.value.find((c) => c.key === key)
-  return col ? col.visible : true
-}
-
-// 计算属性:是否有选中的行
-const hasSelectedRows = computed(() => selectedRows.value.length > 0)
-
-// 计算属性:可见列数量(用于空数据colspan)
-const _visibleColumnCount = computed(() => {
-  // 选择框列 + 可见数据列 + 操作列
-  return 1 + columns.value.filter((c) => c.visible).length + 1
-})
-
-const deptOptions = ref<any[]>([])
 const roleOptions = ref<SysRole[]>([])
 const postOptions = ref<SysPost[]>([])
 
@@ -202,7 +59,7 @@ const userToDelete = ref<SysUser | null>(null)
 const currentUser = ref<SysUser | null>(null)
 const isEdit = ref(false)
 const submitLoading = ref(false)
-const userFormRef = ref<InstanceType<typeof UserForm> | null>(null)
+const userFormDialogRef = ref<InstanceType<typeof UserFormDialog> | null>(null)
 
 // Form Data
 const form = reactive<Partial<SysUser>>({
@@ -221,57 +78,6 @@ const form = reactive<Partial<SysUser>>({
 })
 
 const { toast } = useToast()
-
-// 获取完整的头像URL
-function getAvatarUrl(avatar: string | undefined | null): string {
-  if (!avatar) return ''
-  // 如果已经是完整URL,直接返回
-  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-    return avatar
-  }
-  // 如果是相对路径,拼接后端地址
-  return `${import.meta.env.VITE_API_URL}${avatar}`
-}
-
-// Fetch Data
-async function getList() {
-  loading.value = true
-  try {
-    const res = await listUser({
-      ...queryParams,
-      status: toQueryValue(queryParams.status),
-    })
-    userList.value = res.rows
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
-async function getDeptTree() {
-  const res = await listDeptTree()
-  deptOptions.value = toTreeDept(res)
-}
-
-// Search Operations
-function handleQuery() {
-  queryParams.pageNum = 1
-  getList()
-}
-
-function resetQuery() {
-  queryParams.userName = ''
-  queryParams.phonenumber = ''
-  queryParams.status = ALL_OPTION_VALUE
-  queryParams.deptId = undefined
-  queryParams.roleId = undefined
-  handleQuery()
-}
-
-// 切换高级搜索
-function toggleAdvancedSearch() {
-  showAdvancedSearch.value = !showAdvancedSearch.value
-}
 
 // Add/Edit Operations
 async function handleAdd() {
@@ -308,7 +114,7 @@ async function handleUpdate(row: SysUser) {
 
 async function handleSubmit() {
   // 使用表单组件的验证方法
-  if (userFormRef.value && !userFormRef.value.validate()) {
+  if (userFormDialogRef.value && !userFormDialogRef.value.validate()) {
     return
   }
 
@@ -426,62 +232,17 @@ function handleExportSuccess(taskId: string) {
   showExportTasks.value = true
 }
 
-// 导入功能
-const showImportDialog = ref(false)
-const importFile = ref<File | null>(null)
-const importLoading = ref(false)
-const updateSupport = ref(false)
-const importResult = ref<{ success: number; fail: number; errors: string[] } | null>(null)
-
-function handleImport() {
-  importFile.value = null
-  updateSupport.value = false
-  importResult.value = null
-  showImportDialog.value = true
-}
-
-async function handleDownloadTemplate() {
-  try {
-    const res = await downloadUserTemplate()
-    const blob = new Blob([res as any], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = '用户导入模板.xlsx'
-    link.click()
-    URL.revokeObjectURL(link.href)
-  } catch {
-    toast({ title: '下载失败', variant: 'destructive' })
-  }
-}
-
-function handleFileChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    importFile.value = target.files[0]
-  }
-}
-
-async function confirmImport() {
-  if (!importFile.value) {
-    toast({ title: '请选择文件', variant: 'destructive' })
-    return
-  }
-  importLoading.value = true
-  try {
-    const result = await importUserExcel(importFile.value, updateSupport.value)
-    importResult.value = result
-    if (result.success > 0) {
-      toast({ title: '导入完成', description: `成功 ${result.success} 条，失败 ${result.fail} 条` })
-      getList()
-    }
-  } catch {
-    toast({ title: '导入失败', variant: 'destructive' })
-  } finally {
-    importLoading.value = false
-  }
-}
+const {
+  showImportDialog,
+  importFile,
+  importLoading,
+  updateSupport,
+  importResult,
+  handleImport,
+  handleDownloadTemplate,
+  handleFileChange,
+  confirmImport,
+} = useUserImport(toast, getList)
 
 // 清除选择
 function _clearSelection() {
@@ -556,49 +317,6 @@ function resetForm() {
   form.roleIds = []
 }
 
-// Dept Tree Helper
-// 将部门树扁平化为下拉选项，确保拥有有效的 id 与 label 字段
-const _flattenedDepts = computed(() => {
-  const result: Array<{ id: string; label: string }> = []
-  const traverse = (
-    nodes: Array<{ deptId: string; deptName: string; children?: any[] }>,
-    prefix = '',
-  ) => {
-    for (const node of nodes || []) {
-      result.push({ id: node.deptId, label: prefix + node.deptName })
-      if (node.children && node.children.length) {
-        traverse(node.children as any[], prefix + '-- ')
-      }
-    }
-  }
-  traverse(deptOptions.value as any[])
-  return result
-})
-
-// 将扁平部门列表转换为树形结构（用于筛选与表单）
-function toTreeDept(list: any[]): any[] {
-  const map = new Map<string, any>()
-  const roots: any[] = []
-
-  list.forEach((item) => {
-    const node = { ...item, children: item.children ?? [] }
-    map.set(item.deptId, node)
-  })
-
-  map.forEach((node) => {
-    const pid = node.parentId ?? '0'
-    if (pid === '0' || !map.has(pid)) {
-      roots.push(node)
-    } else {
-      const parent = map.get(pid)!
-      parent.children = parent.children ?? []
-      parent.children.push(node)
-    }
-  })
-
-  return roots
-}
-
 // 监听全选状态变化
 watch(selectAll, (newVal) => {
   if (newVal) {
@@ -636,250 +354,51 @@ onMounted(async () => {
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">用户管理</h2>
         <p class="text-sm text-muted-foreground">管理系统用户、分配角色和部门</p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
-        <Button variant="outline" size="sm" @click="handleImport">
-          <FileUp class="h-4 w-4 sm:mr-2" />
-          <span class="hidden sm:inline">导入</span>
-        </Button>
-        <ExportButton size="sm" @export="handleExport" />
-        <Button variant="outline" size="sm" title="导出任务" @click="showExportTasks = true">
-          <FileDown class="h-4 w-4" />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="icon" class="h-8 w-8 sm:h-9 sm:w-9">
-              <Settings2 class="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" class="w-48">
-            <DropdownMenuLabel>显示列</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              v-for="col in columns"
-              :key="col.key"
-              :checked="col.visible"
-              :disabled="col.fixed"
-              @select="
-                (e: Event) => {
-                  e.preventDefault()
-                  toggleColumn(col.key)
-                }
-              "
-            >
-              {{ col.label }}
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem @select="resetColumns"> 重置默认 </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button size="sm" @click="handleAdd">
-          <Plus class="h-4 w-4 sm:mr-2" />
-          <span class="hidden sm:inline">新增用户</span>
-        </Button>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="space-y-4">
-      <!-- 基础搜索 -->
-      <div
-        class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center bg-background/95 p-3 sm:p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-      >
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-          <span class="text-sm font-medium whitespace-nowrap">用户名</span>
-          <Input
-            v-model="queryParams.userName"
-            placeholder="请输入用户名"
-            class="w-full sm:w-[150px]"
-            @keyup.enter="handleQuery"
-          />
-        </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-          <span class="text-sm font-medium whitespace-nowrap">手机号码</span>
-          <Input
-            v-model="queryParams.phonenumber"
-            placeholder="请输入手机号码"
-            class="w-full sm:w-[150px]"
-            @keyup.enter="handleQuery"
-          />
-        </div>
-        <div class="flex gap-2 sm:ml-auto">
-          <Button variant="outline" size="sm" @click="toggleAdvancedSearch">
-            <Filter class="w-4 h-4 mr-2" />
-            {{ showAdvancedSearch ? '收起' : '高级搜索' }}
-          </Button>
-          <Button @click="handleQuery">
-            <Search class="w-4 h-4 mr-2" />
-            搜索
-          </Button>
-          <Button variant="outline" @click="resetQuery">
-            <RefreshCw class="w-4 h-4 mr-2" />
-            重置
-          </Button>
-        </div>
-      </div>
-
-      <!-- 高级搜索 -->
-      <div
-        v-if="showAdvancedSearch"
-        class="bg-background/95 p-4 border rounded-lg backdrop-blur supports-[backdrop-filter]:bg-background/60"
-      >
-        <div class="grid grid-cols-3 gap-4">
-          <div class="grid gap-2">
-            <Label>状态</Label>
-            <Select v-model="queryParams.status" @update:model-value="handleQuery">
-              <SelectTrigger>
-                <SelectValue placeholder="请选择状态" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="opt in getStatusOptionsWithAll()"
-                  :key="opt.value"
-                  :value="opt.value"
-                >
-                  {{ opt.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div class="grid gap-2">
-            <Label>部门</Label>
-            <DeptTreeSelect
-              v-model="queryParams.deptId"
-              :depts="deptOptions"
-              placeholder="请选择部门"
-              @update:model-value="handleQuery"
-            />
-          </div>
-          <div class="grid gap-2">
-            <Label>角色</Label>
-            <Select v-model="queryParams.roleId" @update:model-value="handleQuery">
-              <SelectTrigger>
-                <SelectValue placeholder="请选择角色" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="role in roleOptions" :key="role.roleId" :value="role.roleId">
-                  {{ role.roleName }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 批量操作栏 - 勾选后显示 -->
-    <Transition
-      enter-active-class="transition-all duration-200 ease-out"
-      enter-from-class="opacity-0 -translate-y-2"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition-all duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 -translate-y-2"
-    >
-      <div
-        v-if="hasSelectedRows"
-        class="flex items-center gap-4 px-4 py-3 bg-muted/50 border rounded-lg"
-      >
-        <span class="text-sm">
-          已选择 <span class="font-medium">{{ selectedRows.length }}</span> 项
-        </span>
-        <Button variant="outline" size="sm" @click="handleBatchStatus('0')"> 批量启用 </Button>
-        <Button variant="outline" size="sm" @click="handleBatchStatus('1')"> 批量停用 </Button>
-        <Button variant="destructive" size="sm" @click="handleBatchDelete"> 批量删除 </Button>
-      </div>
-    </Transition>
-
-    <!-- Table -->
-    <div class="border rounded-md bg-card overflow-x-auto">
-      <!-- 骨架屏 -->
-      <TableSkeleton v-if="loading" :columns="6" :rows="10" show-checkbox />
-
-      <!-- 空状态 -->
-      <EmptyState
-        v-else-if="userList.length === 0"
-        title="暂无用户数据"
-        description="点击新增用户按钮添加第一个用户"
-        action-text="新增用户"
-        @action="handleAdd"
+      <UserToolbar
+        :loading="loading"
+        :columns="columns"
+        @refresh="getList"
+        @import="handleImport"
+        @export="handleExport"
+        @show-export-tasks="showExportTasks = true"
+        @toggle-column="toggleColumn"
+        @reset-columns="resetColumns"
+        @add="handleAdd"
       />
-
-      <!-- 数据表格 -->
-      <Table v-else class="min-w-[800px]">
-        <TableHeader>
-          <TableRow>
-            <TableHead class="w-[50px]">
-              <Checkbox v-model="selectAll" />
-            </TableHead>
-            <TableHead v-if="isColumnVisible('userId')" class="w-[100px]">用户编号</TableHead>
-            <TableHead v-if="isColumnVisible('userName')">用户名</TableHead>
-            <TableHead v-if="isColumnVisible('nickName')">用户昵称</TableHead>
-            <TableHead v-if="isColumnVisible('dept')">部门</TableHead>
-            <TableHead v-if="isColumnVisible('phonenumber')">手机号码</TableHead>
-            <TableHead v-if="isColumnVisible('email')">邮箱</TableHead>
-            <TableHead v-if="isColumnVisible('status')">状态</TableHead>
-            <TableHead v-if="isColumnVisible('createTime')">创建时间</TableHead>
-            <TableHead class="text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="user in userList" :key="user.userId">
-            <TableCell>
-              <Checkbox
-                :model-value="selectedRows.includes(user.userId)"
-                @update:model-value="() => toggleRowSelection(user.userId)"
-              />
-            </TableCell>
-            <TableCell v-if="isColumnVisible('userId')">{{ user.userId }}</TableCell>
-            <TableCell v-if="isColumnVisible('userName')" class="font-medium">
-              <div class="flex items-center gap-2">
-                <Avatar class="h-8 w-8">
-                  <AvatarImage :src="getAvatarUrl(user.avatar)" />
-                  <AvatarFallback>{{ user.nickName?.charAt(0) || 'U' }}</AvatarFallback>
-                </Avatar>
-                {{ user.userName }}
-              </div>
-            </TableCell>
-            <TableCell v-if="isColumnVisible('nickName')">{{ user.nickName }}</TableCell>
-            <TableCell v-if="isColumnVisible('dept')">{{ user.dept?.deptName }}</TableCell>
-            <TableCell v-if="isColumnVisible('phonenumber')">{{ user.phonenumber }}</TableCell>
-            <TableCell v-if="isColumnVisible('email')">{{ user.email }}</TableCell>
-            <TableCell v-if="isColumnVisible('status')">
-              <StatusSwitch
-                :status="user.status"
-                :name="user.nickName"
-                :on-toggle="(s) => changeUserStatus(user.userId, s)"
-                @update:status="user.status = $event as '0' | '1'"
-              />
-            </TableCell>
-            <TableCell v-if="isColumnVisible('createTime')">{{
-              formatDate(user.createTime)
-            }}</TableCell>
-            <TableCell class="text-right space-x-2">
-              <Button variant="ghost" size="icon" title="查看详情" @click="handleDetail(user)">
-                <Eye class="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" title="修改" @click="handleUpdate(user)">
-                <Edit class="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" title="重置密码" @click="handleResetPwd(user)">
-                <Key class="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="text-destructive"
-                title="删除"
-                @click="handleDelete(user)"
-              >
-                <Trash2 class="w-4 h-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
     </div>
+
+    <UserFilters
+      :query="queryParams"
+      :dept-options="deptOptions"
+      :role-options="roleOptions"
+      @search="handleQuery"
+      @reset="resetQuery"
+    />
+
+    <UserBatchActions
+      :selected-count="selectedRows.length"
+      @batch-status="handleBatchStatus"
+      @batch-delete="handleBatchDelete"
+    />
+
+    <UserTable
+      :loading="loading"
+      :users="userList"
+      :columns="columns"
+      :selected-rows="selectedRows"
+      :select-all="selectAll"
+      :sort-by="queryParams.sortBy"
+      :sort-order="queryParams.sortOrder"
+      @add="handleAdd"
+      @detail="handleDetail"
+      @edit="handleUpdate"
+      @reset-password="handleResetPwd"
+      @delete="handleDelete"
+      @toggle-row="toggleRowSelection"
+      @update-select-all="(checked) => (selectAll = checked)"
+      @status-updated="(user, status) => (user.status = status as '0' | '1')"
+      @sort="handleSort"
+    />
 
     <!-- Pagination -->
     <TablePagination
@@ -889,32 +408,17 @@ onMounted(async () => {
       @change="getList"
     />
 
-    <!-- Add/Edit Dialog -->
-    <Dialog v-model:open="showDialog">
-      <DialogContent class="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{{ isEdit ? '修改用户' : '新增用户' }}</DialogTitle>
-          <DialogDescription> 请填写用户信息 </DialogDescription>
-        </DialogHeader>
-
-        <UserForm
-          ref="userFormRef"
-          v-model="form"
-          :is-edit="isEdit"
-          :depts="deptOptions"
-          :roles="roleOptions"
-          :posts="postOptions"
-        />
-
-        <DialogFooter>
-          <Button variant="outline" @click="showDialog = false">取消</Button>
-          <Button :disabled="submitLoading" @click="handleSubmit">
-            <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />
-            确定
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <UserFormDialog
+      ref="userFormDialogRef"
+      v-model:open="showDialog"
+      :form="form"
+      :is-edit="isEdit"
+      :submit-loading="submitLoading"
+      :dept-options="deptOptions"
+      :role-options="roleOptions"
+      :post-options="postOptions"
+      @submit="handleSubmit"
+    />
 
     <!-- Delete Confirmation Dialog -->
     <ConfirmDialog
@@ -940,100 +444,31 @@ onMounted(async () => {
     <!-- User Detail Dialog -->
     <UserDetailDialog v-model:open="showDetailDialog" :user="currentUser" />
 
-    <!-- Reset Password Dialog -->
-    <AlertDialog v-model:open="showResetPwdDialog">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>重置密码</AlertDialogTitle>
-          <AlertDialogDescription>
-            为用户 "{{ userToResetPwd?.userName }}" 重置密码
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div class="grid gap-4 py-4">
-          <div class="grid gap-2">
-            <Label for="newPassword">新密码</Label>
-            <PasswordInput v-model="newPassword" placeholder="请输入新密码" />
-          </div>
-        </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction @click="confirmResetPwd"> 确定 </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <UserResetPasswordDialog
+      v-model:open="showResetPwdDialog"
+      v-model:password="newPassword"
+      :user="userToResetPwd"
+      @confirm="confirmResetPwd"
+    />
 
-    <!-- Batch Status Dialog -->
-    <AlertDialog v-model:open="showBatchStatusDialog">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>确认{{ batchStatusType === '0' ? '启用' : '停用' }}?</AlertDialogTitle>
-          <AlertDialogDescription>
-            您确定要{{ batchStatusType === '0' ? '启用' : '停用' }}选中的
-            {{ selectedRows.length }} 个用户吗？
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction @click="confirmBatchStatus"> 确定 </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <UserBatchStatusDialog
+      v-model:open="showBatchStatusDialog"
+      :status="batchStatusType"
+      :selected-count="selectedRows.length"
+      @confirm="confirmBatchStatus"
+    />
 
-    <!-- Import Dialog -->
-    <Dialog v-model:open="showImportDialog">
-      <DialogContent class="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>导入用户</DialogTitle>
-          <DialogDescription> 上传 Excel 文件批量导入用户数据 </DialogDescription>
-        </DialogHeader>
-
-        <div class="space-y-4 py-4">
-          <div class="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-            <div class="text-sm">
-              <p class="font-medium">下载导入模板</p>
-              <p class="text-muted-foreground">请先下载模板，按格式填写数据</p>
-            </div>
-            <Button variant="outline" size="sm" @click="handleDownloadTemplate">
-              <Download class="mr-2 h-4 w-4" />
-              下载模板
-            </Button>
-          </div>
-
-          <div class="grid gap-2">
-            <Label>选择文件</Label>
-            <Input type="file" accept=".xlsx,.xls" @change="handleFileChange" />
-            <p v-if="importFile" class="text-sm text-muted-foreground">
-              已选择: {{ importFile.name }}
-            </p>
-          </div>
-
-          <div class="flex items-center space-x-2">
-            <Checkbox id="updateSupport" v-model:checked="updateSupport" />
-            <Label for="updateSupport" class="text-sm font-normal"> 更新已存在的用户数据 </Label>
-          </div>
-
-          <div v-if="importResult" class="p-4 border rounded-lg space-y-2">
-            <div class="flex gap-4 text-sm">
-              <span class="text-green-600">成功: {{ importResult.success }} 条</span>
-              <span class="text-red-600">失败: {{ importResult.fail }} 条</span>
-            </div>
-            <div v-if="importResult.errors.length > 0" class="max-h-32 overflow-y-auto">
-              <p v-for="(err, idx) in importResult.errors" :key="idx" class="text-sm text-red-600">
-                {{ err }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" @click="showImportDialog = false">关闭</Button>
-          <Button :disabled="importLoading || !importFile" @click="confirmImport">
-            <Loader2 v-if="importLoading" class="mr-2 h-4 w-4 animate-spin" />
-            开始导入
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <UserImportDialog
+      v-model:open="showImportDialog"
+      :import-file="importFile"
+      :import-loading="importLoading"
+      :update-support="updateSupport"
+      :import-result="importResult"
+      @download-template="handleDownloadTemplate"
+      @file-change="handleFileChange"
+      @update-support="(value) => (updateSupport = value)"
+      @confirm="confirmImport"
+    />
 
     <!-- Export Dialog -->
     <ExportDialog

@@ -20,6 +20,8 @@ export interface WorkspaceConfigQuery {
   pageSize?: number
   roleKey?: string
   status?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }
 
 export interface WorkspaceConfigForm {

@@ -3,6 +3,11 @@ export interface PageQuery {
   pageSize?: number
 }
 
+export interface SortablePageQuery extends PageQuery {
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
+}
+
 /** 通用分页响应 */
 export interface PageResult<T> {
   rows: T[]
@@ -10,7 +15,7 @@ export interface PageResult<T> {
 }
 
 /** 用户查询参数 */
-export interface UserQuery extends PageQuery {
+export interface UserQuery extends SortablePageQuery {
   userName?: string
   phonenumber?: string
   status?: string
@@ -21,42 +26,44 @@ export interface UserQuery extends PageQuery {
 }
 
 /** 角色查询参数 */
-export interface RoleQuery extends PageQuery {
+export interface RoleQuery extends SortablePageQuery {
   roleName?: string
   roleKey?: string
   status?: string
+  securityLevelMin?: string | number
+  securityLevelMax?: string | number
 }
 
 /** 岗位查询参数 */
-export interface PostQuery extends PageQuery {
+export interface PostQuery extends SortablePageQuery {
   postCode?: string
   postName?: string
   status?: string
 }
 
 /** 字典类型查询参数 */
-export interface DictTypeQuery extends PageQuery {
+export interface DictTypeQuery extends SortablePageQuery {
   dictName?: string
   dictType?: string
   status?: string
 }
 
 /** 字典数据查询参数 */
-export interface DictDataQuery extends PageQuery {
+export interface DictDataQuery extends SortablePageQuery {
   dictType?: string
   dictLabel?: string
   status?: string
 }
 
 /** 参数配置查询参数 */
-export interface ConfigQuery extends PageQuery {
+export interface ConfigQuery extends SortablePageQuery {
   configName?: string
   configKey?: string
   configType?: string
 }
 
 /** 通知公告查询参数 */
-export interface NoticeQuery extends PageQuery {
+export interface NoticeQuery extends SortablePageQuery {
   noticeTitle?: string
   noticeType?: string
   createBy?: string

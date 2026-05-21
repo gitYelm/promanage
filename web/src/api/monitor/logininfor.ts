@@ -10,6 +10,8 @@ export interface LogininforQuery {
   endTime?: string
   pageNum: number
   pageSize: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }
 
 export function listLogininfor(query: LogininforQuery): Promise<PageResult<SysLoginLog>> {

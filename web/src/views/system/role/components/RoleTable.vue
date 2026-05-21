@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,8 @@ defineProps<{
   roleList: SysRole[]
   selectedIds: string[]
   total: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc' | ''
 }>()
 
 const pageNum = defineModel<number>('pageNum', { required: true })
@@ -39,6 +42,7 @@ const emit = defineEmits<{
   preview: [role: SysRole]
   edit: [role: SysRole]
   delete: [role: SysRole]
+  sort: [key: string]
 }>()
 
 function getDataScopeText(dataScope?: string) {
@@ -71,15 +75,15 @@ const canShowOperationColumn = usePermission(['system:role:query', 'system:role:
           <TableHead class="w-[50px]">
             <Checkbox v-model="selectAll" :disabled="roleList.length === 0" />
           </TableHead>
-          <TableHead>角色编号</TableHead>
-          <TableHead>角色名称</TableHead>
-          <TableHead>权限字符</TableHead>
-          <TableHead>安全等级</TableHead>
+          <SortableTableHead label="角色编号" sort-key="roleId" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead label="角色名称" sort-key="roleName" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead label="权限字符" sort-key="roleKey" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead label="安全等级" sort-key="securityLevel" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
           <TableHead>用户数</TableHead>
           <TableHead>数据权限</TableHead>
-          <TableHead>显示顺序</TableHead>
-          <TableHead>状态</TableHead>
-          <TableHead>创建时间</TableHead>
+          <SortableTableHead label="显示顺序" sort-key="roleSort" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead label="状态" sort-key="status" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead label="创建时间" sort-key="createTime" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
           <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
         </TableRow>
       </TableHeader>
