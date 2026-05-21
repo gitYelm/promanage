@@ -27,22 +27,24 @@ defineExpose({ validate })
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
+    <DialogContent class="grid max-h-[90vh] grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0 sm:max-w-[700px]">
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
         <DialogTitle>{{ props.isEdit ? '修改用户' : '新增用户' }}</DialogTitle>
         <DialogDescription> 请填写用户信息 </DialogDescription>
       </DialogHeader>
 
-      <UserForm
-        ref="userFormRef"
+      <div class="min-h-0 overflow-y-auto overscroll-contain px-6 py-4">
+        <UserForm
+          ref="userFormRef"
         v-model="props.form"
         :is-edit="props.isEdit"
         :depts="props.deptOptions"
         :roles="props.roleOptions"
-        :posts="props.postOptions"
-      />
+          :posts="props.postOptions"
+        />
+      </div>
 
-      <DialogFooter>
+      <DialogFooter class="border-t bg-background px-6 py-4">
         <Button variant="outline" @click="open = false">取消</Button>
         <Button :disabled="props.submitLoading" @click="emit('submit')">
           <Loader2 v-if="props.submitLoading" class="mr-2 h-4 w-4 animate-spin" />

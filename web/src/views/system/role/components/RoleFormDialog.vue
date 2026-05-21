@@ -51,13 +51,13 @@ const currentMaxSecurityLevel = computed(() => {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-      <DialogHeader class="flex-shrink-0">
+    <DialogContent class="grid max-h-[90vh] grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0 sm:max-w-[600px]">
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
         <DialogTitle>{{ isEdit ? '修改角色' : '新增角色' }}</DialogTitle>
         <DialogDescription> 请填写角色信息 </DialogDescription>
       </DialogHeader>
 
-      <div class="flex-1 overflow-y-auto grid gap-4 py-4">
+      <div class="grid min-h-0 gap-4 overflow-y-auto overscroll-contain px-6 py-4">
         <div class="grid grid-cols-2 gap-4">
           <div class="grid gap-2">
             <Label for="roleName">角色名称 *</Label>
@@ -162,7 +162,7 @@ const currentMaxSecurityLevel = computed(() => {
         </div>
       </div>
 
-      <DialogFooter class="flex-shrink-0">
+      <DialogFooter class="border-t bg-background px-6 py-4">
         <Button variant="outline" @click="open = false">取消</Button>
         <Button :permission="isEdit ? 'system:role:edit' : 'system:role:add'" :disabled="submitLoading" @click="emit('submit')">
           <Loader2 v-if="submitLoading" class="mr-2 h-4 w-4 animate-spin" />

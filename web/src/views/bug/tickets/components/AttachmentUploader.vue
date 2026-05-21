@@ -180,21 +180,23 @@ function removeAttachment(id: string) {
 
     <Teleport to="body">
       <div v-if="showAnnotator" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4" @click.self="cancelAnnotator">
-        <div class="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-lg border bg-background p-6 shadow-lg" role="dialog" aria-modal="true" aria-labelledby="bug-annotator-title">
-          <div class="mb-4 flex items-center justify-between gap-4">
+        <div class="relative grid max-h-[90vh] w-full max-w-5xl grid-rows-[auto_1fr] overflow-hidden rounded-lg border bg-background shadow-lg" role="dialog" aria-modal="true" aria-labelledby="bug-annotator-title">
+          <div class="flex items-center justify-between gap-4 border-b bg-background px-6 py-4 pr-14">
             <h3 id="bug-annotator-title" class="text-lg font-semibold leading-none">截图标注</h3>
-            <button type="button" class="rounded-sm px-2 py-1 text-xl leading-none opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring" aria-label="关闭截图标注窗口" @click.stop="cancelAnnotator">
+            <button type="button" class="absolute right-4 top-4 rounded-sm px-2 py-1 text-xl leading-none opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring" aria-label="关闭截图标注窗口" @click.stop="cancelAnnotator">
               ×
             </button>
           </div>
-          <div class="mb-3 rounded-md border border-dashed p-3 text-sm">
-            <label class="flex cursor-pointer items-center gap-2">
-              <input v-model="keepOriginalImage" type="checkbox" class="h-4 w-4 rounded border-input">
-              <span>同时保留原图</span>
-            </label>
-            <p class="mt-1 text-xs text-muted-foreground">默认只上传标注后的图片，勾选后会额外上传未标注原图。</p>
+          <div class="min-h-0 space-y-3 overflow-y-auto overscroll-contain px-6 py-4">
+            <div class="rounded-md border border-dashed p-3 text-sm">
+              <label class="flex cursor-pointer items-center gap-2">
+                <input v-model="keepOriginalImage" type="checkbox" class="h-4 w-4 rounded border-input">
+                <span>同时保留原图</span>
+              </label>
+              <p class="mt-1 text-xs text-muted-foreground">默认只上传标注后的图片，勾选后会额外上传未标注原图。</p>
+            </div>
+            <ImageAnnotator ref="annotatorRef" @save="saveAnnotated" />
           </div>
-          <ImageAnnotator ref="annotatorRef" @save="saveAnnotated" />
         </div>
       </div>
     </Teleport>

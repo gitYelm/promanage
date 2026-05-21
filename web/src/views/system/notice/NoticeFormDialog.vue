@@ -22,16 +22,16 @@ const emit = defineEmits<{ close: []; submit: [] }>()
 <template>
   <Dialog :open="open" @update:open="(val) => (val ? (open = true) : emit('close'))">
     <DialogContent
-      class="sm:max-w-[800px] max-h-[90vh] flex flex-col"
+      class="grid max-h-[90vh] grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0 sm:max-w-[800px]"
       @escape-key-down.prevent="emit('close')"
       @pointer-down-outside.prevent="emit('close')"
     >
-      <DialogHeader>
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
         <DialogTitle>{{ props.isEdit ? '修改公告' : '新增公告' }}</DialogTitle>
         <DialogDescription> 请填写公告信息 </DialogDescription>
       </DialogHeader>
 
-      <div class="flex-1 overflow-y-auto py-4">
+      <div class="min-h-0 overflow-y-auto overscroll-contain px-6 py-4">
         <div class="grid gap-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="grid gap-2">
@@ -69,7 +69,7 @@ const emit = defineEmits<{ close: []; submit: [] }>()
         </div>
       </div>
 
-      <DialogFooter>
+      <DialogFooter class="border-t bg-background px-6 py-4">
         <Button variant="outline" @click="emit('close')">取消</Button>
         <Button :disabled="props.submitLoading" @click="emit('submit')"> 确定 </Button>
       </DialogFooter>

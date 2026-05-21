@@ -22,16 +22,16 @@ const sanitizedPreviewContent = computed(() => sanitizeHtml(props.notice?.notice
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-      <DialogHeader class="flex-shrink-0">
+    <DialogContent class="grid max-h-[90vh] grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0 sm:max-w-[600px]">
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
         <DialogTitle>{{ props.notice?.noticeTitle }}</DialogTitle>
         <DialogDescription>
           <Badge variant="outline" class="mr-2">{{ getNoticeTypeLabel(props.notice?.noticeType || '1') }}</Badge>
           <span class="text-muted-foreground">{{ props.notice?.createBy }} 发布于 {{ formatDate(props.notice?.createTime) }}</span>
         </DialogDescription>
       </DialogHeader>
-      <div class="flex-1 overflow-y-auto py-4 prose prose-sm dark:prose-invert max-w-none" v-html="sanitizedPreviewContent" />
-      <DialogFooter class="flex-shrink-0">
+      <div class="prose prose-sm min-h-0 max-w-none overflow-y-auto overscroll-contain px-6 py-4 dark:prose-invert" v-html="sanitizedPreviewContent" />
+      <DialogFooter class="border-t bg-background px-6 py-4">
         <Button variant="outline" @click="open = false">关闭</Button>
       </DialogFooter>
     </DialogContent>

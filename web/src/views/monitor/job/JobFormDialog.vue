@@ -20,9 +20,9 @@ const emit = defineEmits<{ submit: [] }>()
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-[720px] max-h-[90vh] overflow-y-auto">
-      <DialogHeader><DialogTitle>{{ props.isEdit ? '修改任务' : '新增任务' }}</DialogTitle><DialogDescription>请配置任务基础信息、调用目标和调度策略。</DialogDescription></DialogHeader>
-      <div class="space-y-4 py-4">
+    <DialogContent class="grid max-h-[90vh] grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0 sm:max-w-[720px]">
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14"><DialogTitle>{{ props.isEdit ? '修改任务' : '新增任务' }}</DialogTitle><DialogDescription>请配置任务基础信息、调用目标和调度策略。</DialogDescription></DialogHeader>
+      <div class="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-6 py-4">
         <div class="grid grid-cols-2 gap-4">
           <div class="grid gap-2"><Label for="jobName">任务名称 *</Label><Input id="jobName" v-model="props.form.jobName" placeholder="请输入任务名称" /></div>
           <div class="grid gap-2"><Label for="jobGroup">任务分组</Label><Select v-model="props.form.jobGroup"><SelectTrigger><SelectValue placeholder="选择分组" /></SelectTrigger><SelectContent><SelectItem v-for="opt in props.jobGroupOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</SelectItem></SelectContent></Select></div>
@@ -35,7 +35,7 @@ const emit = defineEmits<{ submit: [] }>()
         </div>
         <div class="flex items-center gap-2"><Switch :model-value="props.form.status === '0'" @update:model-value="(v) => (props.form.status = v ? '0' : '1')" /><span class="text-sm">{{ props.form.status === '0' ? '启用' : '暂停' }}</span></div>
       </div>
-      <DialogFooter><Button variant="outline" @click="open = false">取消</Button><Button :disabled="props.submitting" @click="emit('submit')">保存</Button></DialogFooter>
+      <DialogFooter class="border-t bg-background px-6 py-4"><Button variant="outline" @click="open = false">取消</Button><Button :disabled="props.submitting" @click="emit('submit')">保存</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 </template>

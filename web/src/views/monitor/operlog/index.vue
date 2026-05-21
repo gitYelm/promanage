@@ -47,7 +47,7 @@ import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
 import SuccessFailBadge from '@/components/common/SuccessFailBadge.vue'
 import { FilterRangeField, TableFilterPanel } from '@/components/common/table-filter'
 import { usePermission } from '@/composables/usePermission'
@@ -196,7 +196,6 @@ onMounted(() => {
         <p class="text-muted-foreground">记录系统操作日志信息</p>
       </div>
       <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
         <AlertDialog v-model:open="showCleanDialog">
           <Button variant="destructive" @click="showCleanDialog = true">
             <Trash2 class="mr-2 h-4 w-4" />
@@ -215,6 +214,7 @@ onMounted(() => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
 
@@ -326,13 +326,13 @@ onMounted(() => {
 
     <!-- Detail Dialog -->
     <Dialog v-model:open="showDetail">
-      <DialogContent class="sm:max-w-[700px] max-h-[90vh] flex flex-col">
-        <DialogHeader class="flex-shrink-0">
+      <DialogContent class="grid max-h-[90vh] grid-rows-[auto_1fr] gap-0 overflow-hidden p-0 sm:max-w-[700px]">
+        <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
           <DialogTitle>操作日志详情</DialogTitle>
           <DialogDescription> 查看操作日志的详细信息 </DialogDescription>
         </DialogHeader>
 
-        <div v-if="currentLog" class="flex-1 overflow-y-auto grid gap-4 py-4 text-sm">
+        <div v-if="currentLog" class="grid min-h-0 gap-4 overflow-y-auto overscroll-contain px-6 py-4 text-sm">
           <div class="grid grid-cols-2 gap-4">
             <div><span class="font-medium">操作模块：</span>{{ currentLog.title }}</div>
             <div><span class="font-medium">请求方式：</span>{{ currentLog.requestMethod }}</div>

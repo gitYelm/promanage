@@ -139,13 +139,13 @@ watch(
 
 <template>
   <Dialog v-model:open="dialogOpen">
-    <DialogContent class="sm:max-w-[800px] max-h-[90vh]">
-      <DialogHeader>
+    <DialogContent class="grid max-h-[90vh] grid-rows-[auto_1fr] gap-0 overflow-hidden p-0 sm:max-w-[800px]">
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
         <DialogTitle>用户详情</DialogTitle>
         <DialogDescription>查看用户的详细信息、登录历史和操作记录</DialogDescription>
       </DialogHeader>
 
-      <Tabs default-value="basic" class="w-full">
+      <Tabs default-value="basic" class="min-h-0 w-full overflow-y-auto overscroll-contain px-6 py-4">
         <TabsList class="grid w-full grid-cols-4">
           <TabsTrigger value="basic">基本信息</TabsTrigger>
           <TabsTrigger value="permissions">权限信息</TabsTrigger>
