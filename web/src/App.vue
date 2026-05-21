@@ -4,6 +4,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useColorMode } from '@vueuse/core'
 import { watch } from 'vue'
 import { Toaster } from '@/components/ui/toast'
+import GlobalBackToTopButton from '@/components/common/GlobalBackToTopButton.vue'
 
 const themeStore = useThemeStore()
 const mode = useColorMode()
@@ -79,5 +80,6 @@ watch(
 
 <template>
   <RouterView />
+  <GlobalBackToTopButton />
   <Toaster />
 </template>

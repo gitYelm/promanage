@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -145,5 +145,5 @@ function formatText(template: string, action: string) {
       </AlertDialogContent>
     </AlertDialog>
   </div>
-  <Badge v-else variant="outline">{{ currentStatusLabel }}</Badge>
+  <StatusBadge v-else domain="enabled" :value="status" :label="currentStatusLabel" />
 </template>

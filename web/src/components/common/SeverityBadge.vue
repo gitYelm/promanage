@@ -18,7 +18,7 @@ const props = withDefaults(
 </script>
 
 <template>
-  <Badge variant="outline" :class="cn(getSeverityStyle(value).badgeClass, props.class)">
+  <Badge variant="outline" :class="cn(getSeverityStyle(value).tagClass, props.class)">
     {{ label || getSeverityLabel(value) }}
   </Badge>
 </template>

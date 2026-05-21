@@ -20,6 +20,8 @@ export interface SemanticStyle {
   label: string
   tone: SemanticTone
   badgeClass: string
+  tagClass: string
+  actionButtonClass: string
   textClass: string
   cardClass: string
   iconClass: string
@@ -32,6 +34,8 @@ export const SEMANTIC_STYLES: Record<SemanticTone, SemanticStyle> = {
     label: '中性',
     tone: 'neutral',
     badgeClass: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300',
+    tagClass: 'whitespace-nowrap rounded-full border-slate-200 bg-slate-50 px-2 py-0 text-[11px] font-medium leading-5 text-slate-700 shadow-none cursor-default dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300',
+    actionButtonClass: 'border-slate-300 bg-background text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900',
     textClass: 'text-foreground',
     cardClass: 'border-slate-200/70 bg-slate-50/60 dark:border-slate-800/80 dark:bg-slate-950/20',
     iconClass: 'text-slate-500',
@@ -42,6 +46,8 @@ export const SEMANTIC_STYLES: Record<SemanticTone, SemanticStyle> = {
     label: '正常',
     tone: 'success',
     badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300',
+    tagClass: 'whitespace-nowrap rounded-full border-emerald-200 bg-emerald-50 px-2 py-0 text-[11px] font-medium leading-5 text-emerald-700 shadow-none cursor-default dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300',
+    actionButtonClass: 'border-emerald-600 bg-emerald-600 text-white shadow-sm hover:border-emerald-700 hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500',
     textClass: 'text-emerald-700 dark:text-emerald-300',
     cardClass: 'border-emerald-200/70 bg-emerald-50/70 dark:border-emerald-900/70 dark:bg-emerald-950/20',
     iconClass: 'text-emerald-600 dark:text-emerald-300',
@@ -52,6 +58,8 @@ export const SEMANTIC_STYLES: Record<SemanticTone, SemanticStyle> = {
     label: '低风险',
     tone: 'lowRisk',
     badgeClass: 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900/70 dark:bg-teal-950/30 dark:text-teal-300',
+    tagClass: 'whitespace-nowrap rounded-full border-teal-200 bg-teal-50 px-2 py-0 text-[11px] font-medium leading-5 text-teal-700 shadow-none cursor-default dark:border-teal-900/70 dark:bg-teal-950/30 dark:text-teal-300',
+    actionButtonClass: 'border-teal-600 bg-teal-600 text-white shadow-sm hover:border-teal-700 hover:bg-teal-700 dark:border-teal-500 dark:bg-teal-600 dark:hover:bg-teal-500',
     textClass: 'text-teal-700 dark:text-teal-300',
     cardClass: 'border-teal-200/70 bg-teal-50/70 dark:border-teal-900/70 dark:bg-teal-950/20',
     iconClass: 'text-teal-600 dark:text-teal-300',
@@ -62,6 +70,8 @@ export const SEMANTIC_STYLES: Record<SemanticTone, SemanticStyle> = {
     label: '进行中',
     tone: 'info',
     badgeClass: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-300',
+    tagClass: 'whitespace-nowrap rounded-full border-sky-200 bg-sky-50 px-2 py-0 text-[11px] font-medium leading-5 text-sky-700 shadow-none cursor-default dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-300',
+    actionButtonClass: 'border-sky-600 bg-sky-600 text-white shadow-sm hover:border-sky-700 hover:bg-sky-700 dark:border-sky-500 dark:bg-sky-600 dark:hover:bg-sky-500',
     textClass: 'text-sky-700 dark:text-sky-300',
     cardClass: 'border-sky-200/70 bg-sky-50/70 dark:border-sky-900/70 dark:bg-sky-950/20',
     iconClass: 'text-sky-600 dark:text-sky-300',
@@ -72,6 +82,8 @@ export const SEMANTIC_STYLES: Record<SemanticTone, SemanticStyle> = {
     label: '关注',
     tone: 'warning',
     badgeClass: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-300',
+    tagClass: 'whitespace-nowrap rounded-full border-amber-200 bg-amber-50 px-2 py-0 text-[11px] font-medium leading-5 text-amber-700 shadow-none cursor-default dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-300',
+    actionButtonClass: 'border-amber-500 bg-amber-500 text-white shadow-sm hover:border-amber-600 hover:bg-amber-600 dark:border-amber-500 dark:bg-amber-600 dark:hover:bg-amber-500',
     textClass: 'text-amber-700 dark:text-amber-300',
     cardClass: 'border-amber-200/70 bg-amber-50/70 dark:border-amber-900/70 dark:bg-amber-950/20',
     iconClass: 'text-amber-600 dark:text-amber-300',
@@ -82,6 +94,8 @@ export const SEMANTIC_STYLES: Record<SemanticTone, SemanticStyle> = {
     label: '高风险',
     tone: 'danger',
     badgeClass: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300',
+    tagClass: 'whitespace-nowrap rounded-full border-red-200 bg-red-50 px-2 py-0 text-[11px] font-medium leading-5 text-red-700 shadow-none cursor-default dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300',
+    actionButtonClass: 'border-red-600 bg-red-600 text-white shadow-sm hover:border-red-700 hover:bg-red-700 dark:border-red-500 dark:bg-red-600 dark:hover:bg-red-500',
     textClass: 'text-red-700 dark:text-red-300',
     cardClass: 'border-red-200/70 bg-red-50/70 dark:border-red-900/70 dark:bg-red-950/20',
     iconClass: 'text-red-600 dark:text-red-300',
@@ -92,6 +106,8 @@ export const SEMANTIC_STYLES: Record<SemanticTone, SemanticStyle> = {
     label: '已延期',
     tone: 'overdue',
     badgeClass: 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-900/80 dark:bg-rose-950/40 dark:text-rose-300',
+    tagClass: 'whitespace-nowrap rounded-full border-rose-300 bg-rose-50 px-2 py-0 text-[11px] font-medium leading-5 text-rose-800 shadow-none cursor-default dark:border-rose-900/80 dark:bg-rose-950/40 dark:text-rose-300',
+    actionButtonClass: 'border-rose-700 bg-rose-700 text-white shadow-sm hover:border-rose-800 hover:bg-rose-800 dark:border-rose-500 dark:bg-rose-700 dark:hover:bg-rose-600',
     textClass: 'text-rose-800 dark:text-rose-300',
     cardClass: 'border-rose-300/80 bg-rose-50/80 dark:border-rose-900/80 dark:bg-rose-950/30',
     iconClass: 'text-rose-700 dark:text-rose-300',

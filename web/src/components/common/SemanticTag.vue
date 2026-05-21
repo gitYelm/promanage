@@ -2,24 +2,23 @@
 import type { HTMLAttributes } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { getStatusLabel, getStatusStyle, type StatusDomain } from '@/utils/semantic-styles'
+import { getSemanticStyle, type SemanticTone } from '@/utils/semantic-styles'
 
 const props = withDefaults(
   defineProps<{
-    domain: StatusDomain
-    value?: string
+    tone?: SemanticTone
     label?: string
     class?: HTMLAttributes['class']
   }>(),
   {
-    value: undefined,
+    tone: 'neutral',
     label: undefined,
   },
 )
 </script>
 
 <template>
-  <Badge variant="outline" :class="cn(getStatusStyle(domain, value).tagClass, props.class)">
-    {{ label || getStatusLabel(domain, value) }}
+  <Badge variant="outline" :class="cn(getSemanticStyle(tone).tagClass, props.class)">
+    <slot>{{ label }}</slot>
   </Badge>
 </template>

@@ -14,8 +14,8 @@ const unread = computed(() => !props.notification.readTime)
 const icon = computed(() => (props.notification.businessType === 'bug_ticket' ? Bug : Bell))
 const notificationStatus = computed(() => props.notification.payload?.status)
 const tagLabel = computed(() => getNotificationTypeLabel(props.notification.notificationType, notificationStatus.value))
-const tagClass = computed(() => getNotificationTypeStyle(props.notification.notificationType, notificationStatus.value).badgeClass)
-const unreadClass = computed(() => getSemanticStyle('warning').badgeClass)
+const tagClass = computed(() => getNotificationTypeStyle(props.notification.notificationType, notificationStatus.value).tagClass)
+const unreadClass = computed(() => getSemanticStyle('warning').tagClass)
 const canMarkRead = computed(() => hasAnyPermission(['system:notification:read']))
 </script>
 

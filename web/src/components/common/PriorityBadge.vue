@@ -18,7 +18,7 @@ const props = withDefaults(
 </script>
 
 <template>
-  <Badge variant="outline" :class="cn(getPriorityStyle(value).badgeClass, props.class)">
+  <Badge variant="outline" :class="cn(getPriorityStyle(value).tagClass, props.class)">
     {{ label || getPriorityLabel(value) }}
   </Badge>
 </template>

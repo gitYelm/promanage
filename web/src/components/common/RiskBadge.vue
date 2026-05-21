@@ -18,7 +18,7 @@ const props = withDefaults(
 </script>
 
 <template>
-  <Badge variant="outline" :class="cn(getRiskStyle(value).badgeClass, props.class)">
+  <Badge variant="outline" :class="cn(getRiskStyle(value).tagClass, props.class)">
     {{ label || getRiskLabel(value) }}
   </Badge>
 </template>

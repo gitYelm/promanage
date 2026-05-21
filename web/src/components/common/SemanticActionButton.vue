@@ -59,7 +59,7 @@ function actionTone(action?: string, tone?: SemanticTone) {
     variant="outline"
     size="sm"
     :permission="permissions"
-    :class="cn(getSemanticStyle(actionTone(action, tone)).badgeClass, 'whitespace-nowrap shadow-none', props.class)"
+    :class="cn(getSemanticStyle(actionTone(action, tone)).actionButtonClass, 'whitespace-nowrap font-semibold', props.class)"
   >
     <slot />
   </Button>

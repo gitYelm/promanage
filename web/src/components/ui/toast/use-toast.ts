@@ -4,6 +4,8 @@ import { computed, ref } from 'vue'
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
+const TOAST_DEFAULT_DURATION = 2500
+const TOAST_DESTRUCTIVE_DURATION = 2200
 
 export type StringOrVNode = string | VNode | (() => VNode)
 
@@ -139,6 +141,11 @@ function toast(props: Toast) {
     type: actionTypes.ADD_TOAST,
     toast: {
       ...props,
+      duration:
+        props.duration
+        ?? (props.variant === 'destructive'
+          ? TOAST_DESTRUCTIVE_DURATION
+          : TOAST_DEFAULT_DURATION),
       id,
       open: true,
       onOpenChange: (open: boolean) => {

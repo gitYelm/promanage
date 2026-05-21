@@ -9,9 +9,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import SemanticTag from '@/components/common/SemanticTag.vue'
 import {
   DownloadIcon,
   Trash2Icon,
@@ -65,11 +65,11 @@ const formatIcons = {
 
 // 状态配置
 const statusConfig = {
-  pending: { label: '等待中', variant: 'secondary' as const, icon: ClockIcon },
-  processing: { label: '处理中', variant: 'default' as const, icon: Loader2Icon },
-  completed: { label: '已完成', variant: 'outline' as const, icon: CheckCircle2Icon },
-  failed: { label: '失败', variant: 'destructive' as const, icon: XCircleIcon },
-}
+  pending: { label: '等待中', tone: 'neutral', icon: ClockIcon },
+  processing: { label: '处理中', tone: 'info', icon: Loader2Icon },
+  completed: { label: '已完成', tone: 'success', icon: CheckCircle2Icon },
+  failed: { label: '失败', tone: 'danger', icon: XCircleIcon },
+} as const
 
 // 加载任务列表
 async function loadTasks() {
@@ -235,13 +235,13 @@ watch(
                   <div class="text-xs text-muted-foreground">{{ formatTime(task.createTime) }}</div>
                 </div>
               </div>
-              <Badge :variant="statusConfig[task.status].variant">
+              <SemanticTag :tone="statusConfig[task.status].tone">
                 <component
                   :is="statusConfig[task.status].icon"
                   :class="['h-3 w-3 mr-1', { 'animate-spin': task.status === 'processing' }]"
                 />
                 {{ statusConfig[task.status].label }}
-              </Badge>
+              </SemanticTag>
             </div>
 
             <!-- 进度条 -->
