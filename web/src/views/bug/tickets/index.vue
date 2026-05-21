@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -13,9 +12,12 @@ import { useToast } from '@/components/ui/toast/use-toast'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableColumnSettingsButton from '@/components/common/TableColumnSettingsButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
+import SemanticTag from '@/components/common/SemanticTag.vue'
 import SemanticActionButton from '@/components/common/SemanticActionButton.vue'
 import SeverityBadge from '@/components/common/SeverityBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -23,19 +25,21 @@ import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import { formatDate } from '@/utils/format'
 import { normalizeAllOption } from '@/utils/table-filter'
 import { toggleTableSort } from '@/utils/table-sort'
-import { hasAnyPermission, usePermission } from '@/composables/usePermission'
-import { addBugComment, bugProjectOptions, bugUserOptions, getBugTicket, listBugModules, listBugTickets, runBugAction, updateBugTicket } from '@/api/bug'
+import { usePermission } from '@/composables/usePermission'
+import { bugProjectOptions, bugUserOptions, getBugTicket, listBugModules, listBugTickets, runBugAction, updateBugTicket } from '@/api/bug'
 import { BUG_LIST_STALE_EVENT, BUG_TICKET_OPEN_EVENT, dispatchBugPendingCountRefresh, type BugTicketOpenEventDetail } from '../shared/bug-events'
 import type { BugActionOption, BugModule, BugProject, BugTicket, BugUserRef } from '@/api/bug/types'
-import { BUG_ACTION_LABELS, BUG_ENVIRONMENT_OPTIONS, BUG_PRIORITY_OPTIONS, BUG_SEVERITY_OPTIONS, BUG_TYPE_OPTIONS, actionLabel } from '../shared/bug-options'
-import AttachmentList from './components/AttachmentList.vue'
+import { BUG_ENVIRONMENT_OPTIONS, BUG_PRIORITY_OPTIONS, BUG_SEVERITY_OPTIONS, BUG_TYPE_OPTIONS } from '../shared/bug-options'
 import BugQuickActions from './components/BugQuickActions.vue'
+import BugTicketDetailDialog from './components/BugTicketDetailDialog.vue'
 import BugTicketFilters from './components/BugTicketFilters.vue'
 import DuplicateBugSelector from './components/DuplicateBugSelector.vue'
 import { buildBugTicketListQuery, createBugTicketFilterState } from './bug-ticket-query'
+import { useBugTicketColumns } from './ticket-columns'
 
 const route = useRoute()
 const { toast } = useToast()
+const { columns, visibleColumnMap, toggleColumn, resetColumns } = useBugTicketColumns()
 const loading = ref(false)
 const total = ref(0)
 const rows = ref<BugTicket[]>([])
@@ -62,14 +66,8 @@ const canShowQuickActionColumn = usePermission([
   'bug:ticket:reopen',
 ])
 const canShowOperationColumn = usePermission(['bug:ticket:query'])
-const canShowDetailQuickActions = computed(() =>
-  (detail.value?.availableActions || []).some(
-    (action) => !action.permissions?.length || hasAnyPermission(action.permissions),
-  ),
-)
 const query = reactive(createBugTicketFilterState())
 const actionForm = reactive({ remark: '', assigneeId: '', dueTime: '', duplicateOfId: '' })
-const commentText = ref('')
 const editForm = reactive({ ticketId: '', title: '', type: '', severity: '', priority: '', description: '', reproduceSteps: '', expectedResult: '', actualResult: '', environment: '', deviceInfo: '' })
 
 async function getList() {
@@ -176,14 +174,6 @@ async function submitAction() {
   dispatchBugPendingCountRefresh()
 }
 
-async function comment() {
-  if (!detail.value || !commentText.value.trim()) return
-  await addBugComment(detail.value.ticketId, { content: commentText.value })
-  commentText.value = ''
-  detail.value = await getBugTicket(detail.value.ticketId)
-}
-
-
 function handleListStale() {
   listStale.value = true
 }
@@ -215,8 +205,13 @@ onBeforeUnmount(() => {
     <div class="flex items-center justify-between">
       <div><h2 class="text-2xl font-bold">{{ isMyPage ? '我的缺陷' : '缺陷列表' }}</h2><p class="text-muted-foreground">跟踪缺陷确认、分派、修复和验证闭环。</p></div>
       <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button permission="bug:ticket:add" as-child><router-link to="/bug/create">提交缺陷</router-link></Button>
+        <TableColumnSettingsButton
+          :columns="columns"
+          @toggle="toggleColumn"
+          @reset="resetColumns"
+        />
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
     <Alert v-if="listStale" class="border-primary/30 bg-primary/5">
@@ -236,16 +231,16 @@ onBeforeUnmount(() => {
       @reset="resetQuery"
     />
     <TableSkeleton v-if="loading" :rows="5" :columns="10" />
-    <div v-else class="rounded-md border"><Table><TableHeader><TableRow><SortableTableHead label="编号" sort-key="ticketNo" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead>标题</TableHead><SortableTableHead label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="模块" sort-key="moduleId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="严重" sort-key="severity" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="优先级" sort-key="priority" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="负责人" sort-key="assigneeId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="创建时间" sort-key="createTime" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowQuickActionColumn" class="min-w-48 text-left">快捷操作</TableHead><TableHead v-if="canShowOperationColumn" class="w-24 text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.ticketId" :class="{ 'cursor-pointer': canShowOperationColumn }" @click="canShowOperationColumn && openDetail(row)"><TableCell>{{ row.ticketNo }}</TableCell><TableCell>{{ row.title }}</TableCell><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.module?.moduleName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="bug" :value="row.status" /></TableCell><TableCell class="text-center"><SeverityBadge :value="row.severity" /></TableCell><TableCell class="text-center"><PriorityBadge :value="row.priority" /></TableCell><TableCell>{{ row.assignee?.nickName || '-' }}</TableCell><TableCell>{{ formatDate(row.createTime) }}</TableCell><TableCell v-if="canShowQuickActionColumn"><BugQuickActions :ticket="row" @run="openAction" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end"><Button size="sm" variant="outline" @click.stop="openDetail(row)">详情</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!rows.length" title="暂无 Bug" /></div>
+    <div v-else class="rounded-md border"><Table><TableHeader><TableRow><SortableTableHead v-if="visibleColumnMap.ticketNo" label="编号" sort-key="ticketNo" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="visibleColumnMap.title">标题</TableHead><SortableTableHead v-if="visibleColumnMap.project" label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.module" label="模块" sort-key="moduleId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.status" label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.severity" label="严重" sort-key="severity" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.priority" label="优先级" sort-key="priority" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.assignee" label="负责人" sort-key="assigneeId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.createTime" label="创建时间" sort-key="createTime" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowQuickActionColumn && visibleColumnMap.quickActions" class="min-w-48 text-left">快捷操作</TableHead><TableHead v-if="canShowOperationColumn && visibleColumnMap.actions" class="w-24 text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.ticketId" :class="{ 'cursor-pointer': canShowOperationColumn }" @click="canShowOperationColumn && openDetail(row)"><TableCell v-if="visibleColumnMap.ticketNo">{{ row.ticketNo }}</TableCell><TableCell v-if="visibleColumnMap.title">{{ row.title }}</TableCell><TableCell v-if="visibleColumnMap.project"><ProjectBadge :name="row.project?.projectName" :code="row.project?.projectKey" /></TableCell><TableCell v-if="visibleColumnMap.module">{{ row.module?.moduleName || '-' }}</TableCell><TableCell v-if="visibleColumnMap.status" class="text-center"><StatusBadge domain="bug" :value="row.status" /></TableCell><TableCell v-if="visibleColumnMap.severity" class="text-center"><SeverityBadge :value="row.severity" /></TableCell><TableCell v-if="visibleColumnMap.priority" class="text-center"><PriorityBadge :value="row.priority" /></TableCell><TableCell v-if="visibleColumnMap.assignee">{{ row.assignee?.nickName || '-' }}</TableCell><TableCell v-if="visibleColumnMap.createTime">{{ formatDate(row.createTime) }}</TableCell><TableCell v-if="canShowQuickActionColumn && visibleColumnMap.quickActions"><BugQuickActions :ticket="row" @run="openAction" /></TableCell><TableCell v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right"><div class="flex justify-end"><Button size="sm" variant="outline" @click.stop="openDetail(row)">详情</Button></div></TableCell></TableRow></TableBody></Table><EmptyState v-if="!rows.length" title="暂无 Bug" /></div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
-    <Dialog v-model:open="showDetail"><DialogContent class="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogHeader><DialogTitle>{{ detail?.ticketNo }} {{ detail?.title }}</DialogTitle></DialogHeader><div v-if="detail" class="space-y-4"><div class="flex flex-wrap gap-2"><StatusBadge domain="bug" :value="detail.status" /><PriorityBadge :value="detail.priority" /><SeverityBadge :value="detail.severity" /><Badge variant="outline">{{ detail.project?.projectName }} / {{ detail.module?.moduleName || '-' }}</Badge></div><div class="grid gap-4 md:grid-cols-2"><div><h4 class="font-medium">问题描述</h4><p class="whitespace-pre-wrap text-sm">{{ detail.description }}</p></div><div><h4 class="font-medium">复现步骤</h4><p class="whitespace-pre-wrap text-sm">{{ detail.reproduceSteps }}</p></div><div><h4 class="font-medium">期望结果</h4><p class="whitespace-pre-wrap text-sm">{{ detail.expectedResult }}</p></div><div><h4 class="font-medium">实际结果</h4><p class="whitespace-pre-wrap text-sm">{{ detail.actualResult }}</p></div></div><div><h4 class="mb-2 font-medium">附件</h4><AttachmentList :attachments="detail.attachments || []" empty-text="暂无附件" /></div><div><h4 class="font-medium">评论</h4><div v-for="c in detail.comments" :key="c.commentId" class="border-b py-2 text-sm"><b>{{ c.user?.nickName }}</b>：{{ c.content }} <span class="text-muted-foreground">{{ formatDate(c.createTime) }}</span></div><div class="mt-2 flex gap-2"><Textarea v-model="commentText" placeholder="补充评论" /><Button v-hasPermi="['bug:comment:add']" @click="comment">评论</Button></div></div><div><h4 class="font-medium">操作历史</h4><div v-for="h in detail.histories" :key="h.historyId" class="text-sm text-muted-foreground">{{ formatDate(h.createTime) }} {{ h.operator?.nickName }} {{ actionLabel(h.action) }} {{ h.fromValue }} → {{ h.toValue }} {{ h.remark }}</div></div></div><DialogFooter v-if="detail?.canEdit || canShowDetailQuickActions" class="flex flex-wrap gap-2"><Button v-if="detail?.canEdit" v-hasPermi="['bug:ticket:edit', 'bug:ticket:add', 'bug:ticket:my']" variant="outline" @click="openEdit">编辑</Button><SemanticActionButton v-for="a in detail?.availableActions" :key="a.action" :action="a.action" :permissions="a.permissions" @click="openAction(a)">{{ a.label || BUG_ACTION_LABELS[a.action] || a.action }}</SemanticActionButton></DialogFooter></DialogContent></Dialog>
+    <BugTicketDetailDialog v-model:open="showDetail" :detail="detail" />
     <Dialog v-model:open="editOpen">
-      <DialogContent class="max-h-[90vh] max-w-3xl overflow-y-auto">
-        <DialogHeader>
+      <DialogContent class="grid max-h-[90vh] max-w-3xl grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0">
+        <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
           <DialogTitle>编辑 Bug</DialogTitle>
           <DialogDescription>请更新缺陷基础信息和复现材料，清晰字段有助于后续确认、分派和修复。</DialogDescription>
         </DialogHeader>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="min-h-0 overflow-y-auto overscroll-contain px-6 py-4"><div class="grid gap-4 md:grid-cols-2">
           <FormFieldBlock label="标题" field-id="bug-edit-title" required class="md:col-span-2" description="用一句话描述问题现象，便于列表中快速识别。">
             <Input id="bug-edit-title" v-model="editForm.title" placeholder="例如：需求管理新增弹窗无法保存" />
           </FormFieldBlock>
@@ -276,8 +271,8 @@ onBeforeUnmount(() => {
           <FormFieldBlock label="设备信息" field-id="bug-edit-device" optional class="md:col-span-2" description="记录浏览器、系统、设备或网络信息，便于排查环境相关问题。">
             <Textarea id="bug-edit-device" v-model="editForm.deviceInfo" placeholder="例如：Chrome 版本、macOS、屏幕尺寸或接口环境" />
           </FormFieldBlock>
-        </div>
-        <DialogFooter><Button permission="bug:ticket:edit" @click="submitEdit">保存</Button></DialogFooter>
+        </div></div>
+        <DialogFooter class="border-t bg-background px-6 py-4"><Button permission="bug:ticket:edit" @click="submitEdit">保存</Button></DialogFooter>
       </DialogContent>
     </Dialog>
     <Dialog v-model:open="showAction">

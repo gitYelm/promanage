@@ -7,7 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableColumnSettingsButton from '@/components/common/TableColumnSettingsButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
+import ProjectSelectOption from '@/components/common/ProjectSelectOption.vue'
+import ProjectSelectValue from '@/components/common/ProjectSelectValue.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
@@ -18,8 +22,10 @@ import { addBugVersion, bugProjectOptions, deleteBugVersions, listBugVersions, u
 import type { BugProject, BugVersion } from '@/api/bug/types'
 import { toggleTableSort } from '@/utils/table-sort'
 import { ALL_OPTION_VALUE, BUG_VERSION_STATUS_OPTIONS, normalizeAll } from '../shared/bug-options'
+import { useBugVersionColumns } from './version-columns'
 
 const { toast } = useToast()
+const { columns, visibleColumnMap, toggleColumn, resetColumns } = useBugVersionColumns()
 const loading = ref(false)
 const rows = ref<BugVersion[]>([])
 const projects = ref<BugProject[]>([])
@@ -96,15 +102,16 @@ onMounted(async () => {
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold">版本管理</h2>
       <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button v-hasPermi="['bug:version:add']" @click="add">新增版本</Button>
+        <TableColumnSettingsButton :columns="columns" @toggle="toggleColumn" @reset="resetColumns" />
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
     <TableFilterPanel description="默认展示所属项目和版本关键词，展开后可按版本状态完整筛选。">
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div class="space-y-1">
           <label for="bug-version-filter-project" class="text-sm font-medium">所属项目</label>
-          <Select v-model="query.projectId"><SelectTrigger id="bug-version-filter-project"><SelectValue placeholder="全部项目" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select>
+          <Select v-model="query.projectId"><SelectTrigger id="bug-version-filter-project"><ProjectSelectValue :model-value="query.projectId" :projects="projects" :all-value="ALL_OPTION_VALUE" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId"><ProjectSelectOption :name="p.projectName" :code="p.projectKey" :stage="p.projectStage" :owner-name="p.owner?.nickName || p.owner?.userName" /></SelectItem></SelectContent></Select>
         </div>
         <div class="space-y-1">
           <label for="bug-version-filter-keyword" class="text-sm font-medium">关键词</label>
@@ -131,7 +138,7 @@ onMounted(async () => {
       </template>
     </TableFilterPanel>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><SortableTableHead label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="版本号" sort-key="versionNo" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="版本名" sort-key="versionName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.versionId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.versionNo }}</TableCell><TableCell>{{ row.versionName }}</TableCell><TableCell class="text-center"><StatusBadge domain="bugVersion" :value="row.status" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:version:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:version:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><SortableTableHead v-if="visibleColumnMap.project" label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.versionNo" label="版本号" sort-key="versionNo" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.versionName" label="版本名" sort-key="versionName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.status" label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.versionId"><TableCell v-if="visibleColumnMap.project"><ProjectBadge :name="row.project?.projectName" :code="row.project?.projectKey" /></TableCell><TableCell v-if="visibleColumnMap.versionNo">{{ row.versionNo }}</TableCell><TableCell v-if="visibleColumnMap.versionName">{{ row.versionName }}</TableCell><TableCell v-if="visibleColumnMap.status" class="text-center"><StatusBadge domain="bugVersion" :value="row.status" /></TableCell><TableCell v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:version:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:version:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
@@ -144,8 +151,8 @@ onMounted(async () => {
         <div class="space-y-4">
           <FormFieldBlock label="所属项目" field-id="bug-version-project" required description="决定版本归属，提交或筛选 Bug 时将按项目展示对应版本。">
             <Select v-model="form.projectId">
-              <SelectTrigger id="bug-version-project"><SelectValue placeholder="请选择所属项目" /></SelectTrigger>
-              <SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent>
+              <SelectTrigger id="bug-version-project"><ProjectSelectValue :model-value="form.projectId" :projects="projects" placeholder="请选择所属项目" /></SelectTrigger>
+              <SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId"><ProjectSelectOption :name="p.projectName" :code="p.projectKey" :stage="p.projectStage" :owner-name="p.owner?.nickName || p.owner?.userName" /></SelectItem></SelectContent>
             </Select>
           </FormFieldBlock>
           <FormFieldBlock label="版本号" field-id="bug-version-no" required description="用于唯一识别版本，建议与发布或测试版本命名保持一致。">

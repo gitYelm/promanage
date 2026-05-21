@@ -16,7 +16,7 @@ import { toggleTableSort } from '@/utils/table-sort'
 import { Plus } from 'lucide-vue-next'
 import TablePagination from '@/components/common/TablePagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
 import { SimpleTableFilters } from '@/components/common/table-filter'
 import JobFormDialog from './JobFormDialog.vue'
 import JobRunResultDialog from './JobRunResultDialog.vue'
@@ -334,11 +334,11 @@ onMounted(() => {
         <p class="text-muted-foreground">管理系统定时调度任务</p>
       </div>
       <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button @click="handleAdd">
           <Plus class="mr-2 h-4 w-4" />
           新增任务
         </Button>
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
 

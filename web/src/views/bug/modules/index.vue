@@ -7,7 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableColumnSettingsButton from '@/components/common/TableColumnSettingsButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
+import ProjectSelectOption from '@/components/common/ProjectSelectOption.vue'
+import ProjectSelectValue from '@/components/common/ProjectSelectValue.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
@@ -18,8 +22,10 @@ import { addBugModule, bugProjectOptions, bugUserOptions, deleteBugModules, list
 import type { BugModule, BugProject, BugUserRef } from '@/api/bug/types'
 import { toggleTableSort } from '@/utils/table-sort'
 import { ALL_OPTION_VALUE, NONE_OPTION_VALUE, normalizeAll, normalizeOptional } from '../shared/bug-options'
+import { useBugModuleColumns } from './module-columns'
 
 const { toast } = useToast()
+const { columns, visibleColumnMap, toggleColumn, resetColumns } = useBugModuleColumns()
 const loading = ref(false)
 const rows = ref<BugModule[]>([])
 const projects = ref<BugProject[]>([])
@@ -105,15 +111,16 @@ onMounted(async () => {
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold">模块管理</h2>
       <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button v-hasPermi="['bug:module:add']" @click="add">新增模块</Button>
+        <TableColumnSettingsButton :columns="columns" @toggle="toggleColumn" @reset="resetColumns" />
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
     <TableFilterPanel description="默认展示所属项目和模块名称，展开后可按模块状态完整筛选。">
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div class="space-y-1">
           <label for="bug-module-filter-project" class="text-sm font-medium">所属项目</label>
-          <Select v-model="query.projectId"><SelectTrigger id="bug-module-filter-project"><SelectValue placeholder="全部项目" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select>
+          <Select v-model="query.projectId"><SelectTrigger id="bug-module-filter-project"><ProjectSelectValue :model-value="query.projectId" :projects="projects" :all-value="ALL_OPTION_VALUE" /></SelectTrigger><SelectContent><SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId"><ProjectSelectOption :name="p.projectName" :code="p.projectKey" :stage="p.projectStage" :owner-name="p.owner?.nickName || p.owner?.userName" /></SelectItem></SelectContent></Select>
         </div>
         <div class="space-y-1">
           <label for="bug-module-filter-keyword" class="text-sm font-medium">模块名称</label>
@@ -137,7 +144,7 @@ onMounted(async () => {
       </template>
     </TableFilterPanel>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><SortableTableHead label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="模块" sort-key="moduleName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="排序" sort-key="orderNum" align="right" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.moduleId"><TableCell>{{ row.project?.projectName }}</TableCell><TableCell>{{ row.moduleName }}</TableCell><TableCell class="text-right tabular-nums">{{ row.orderNum }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:module:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:module:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><SortableTableHead v-if="visibleColumnMap.project" label="项目" sort-key="projectId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.moduleName" label="模块" sort-key="moduleName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.orderNum" label="排序" sort-key="orderNum" align="right" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.status" label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.moduleId"><TableCell v-if="visibleColumnMap.project"><ProjectBadge :name="row.project?.projectName" :code="row.project?.projectKey" /></TableCell><TableCell v-if="visibleColumnMap.moduleName">{{ row.moduleName }}</TableCell><TableCell v-if="visibleColumnMap.orderNum" class="text-right tabular-nums">{{ row.orderNum }}</TableCell><TableCell v-if="visibleColumnMap.status" class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right"><div class="flex justify-end gap-2"><Button v-hasPermi="['bug:module:edit']" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button v-hasPermi="['bug:module:remove']" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
@@ -150,8 +157,8 @@ onMounted(async () => {
         <div class="space-y-4">
           <FormFieldBlock label="所属项目" field-id="bug-module-project" required description="决定模块归属和默认负责人候选范围，切换项目会重置默认负责人。">
             <Select v-model="form.projectId" @update:model-value="(v) => { form.projectId = String(v); form.defaultAssigneeId = NONE_OPTION_VALUE; refreshAssignableUsers(form.projectId) }">
-              <SelectTrigger id="bug-module-project"><SelectValue placeholder="请选择所属项目" /></SelectTrigger>
-              <SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent>
+              <SelectTrigger id="bug-module-project"><ProjectSelectValue :model-value="form.projectId" :projects="projects" placeholder="请选择所属项目" /></SelectTrigger>
+              <SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId"><ProjectSelectOption :name="p.projectName" :code="p.projectKey" :stage="p.projectStage" :owner-name="p.owner?.nickName || p.owner?.userName" /></SelectItem></SelectContent>
             </Select>
           </FormFieldBlock>
           <FormFieldBlock label="模块名称" field-id="bug-module-name" required description="建议使用用户能理解的业务或功能名称，便于提交 Bug 时选择。">

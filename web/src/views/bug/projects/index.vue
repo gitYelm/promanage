@@ -10,7 +10,9 @@ import { useToast } from '@/components/ui/toast/use-toast'
 import { usePermission } from '@/composables/usePermission'
 import TablePagination from '@/components/common/TablePagination.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableColumnSettingsButton from '@/components/common/TableColumnSettingsButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
@@ -28,8 +30,10 @@ import {
 import type { BugMember, BugProject, BugUserRef } from '@/api/bug/types'
 import { toggleTableSort } from '@/utils/table-sort'
 import { ALL_OPTION_VALUE, BUG_MEMBER_ROLE_OPTIONS, NONE_OPTION_VALUE, normalizeAll, normalizeOptional, optionLabel } from '../shared/bug-options'
+import { useBugProjectColumns } from './project-columns'
 
 const { toast } = useToast()
+const { columns, visibleColumnMap, toggleColumn, resetColumns } = useBugProjectColumns()
 const loading = ref(false)
 const rows = ref<BugProject[]>([])
 const users = ref<BugUserRef[]>([])
@@ -141,8 +145,9 @@ onMounted(async () => {
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold">项目管理</h2>
       <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
         <Button permission="bug:project:add" @click="add">新增项目</Button>
+        <TableColumnSettingsButton :columns="columns" @toggle="toggleColumn" @reset="resetColumns" />
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
     <TableFilterPanel description="默认展示项目名称或标识等高频条件；展开后可按状态完整筛选。">
@@ -173,7 +178,7 @@ onMounted(async () => {
       </template>
     </TableFilterPanel>
     <div class="rounded-md border">
-      <Table><TableHeader><TableRow><SortableTableHead label="名称" sort-key="projectName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="标识" sort-key="projectKey" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="负责人" sort-key="ownerId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead>描述</TableHead><TableHead v-if="canShowQuickActionColumn">快捷操作</TableHead><TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.projectId"><TableCell>{{ row.projectName }}</TableCell><TableCell>{{ row.projectKey }}</TableCell><TableCell>{{ row.owner?.nickName || '-' }}</TableCell><TableCell class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell>{{ row.description }}</TableCell><TableCell v-if="canShowQuickActionColumn"><Button permission="bug:project:member" size="sm" variant="outline" @click="openMembers(row)">成员</Button></TableCell><TableCell v-if="canShowOperationColumn" class="text-right"><div class="flex justify-end gap-2"><Button permission="bug:project:edit" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button permission="bug:project:remove" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
+      <Table><TableHeader><TableRow><SortableTableHead v-if="visibleColumnMap.projectName" label="名称" sort-key="projectName" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.projectKey" label="标识" sort-key="projectKey" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.owner" label="负责人" sort-key="ownerId" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><SortableTableHead v-if="visibleColumnMap.status" label="状态" sort-key="status" align="center" :sort-by="query.sortBy" :sort-order="query.sortOrder" @sort="handleSort" /><TableHead v-if="visibleColumnMap.description">描述</TableHead><TableHead v-if="canShowQuickActionColumn && visibleColumnMap.quickActions">快捷操作</TableHead><TableHead v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right">操作</TableHead></TableRow></TableHeader><TableBody><TableRow v-for="row in rows" :key="row.projectId"><TableCell v-if="visibleColumnMap.projectName"><ProjectBadge :name="row.projectName" :code="row.projectKey" :compact="visibleColumnMap.projectKey" /></TableCell><TableCell v-if="visibleColumnMap.projectKey">{{ row.projectKey }}</TableCell><TableCell v-if="visibleColumnMap.owner">{{ row.owner?.nickName || '-' }}</TableCell><TableCell v-if="visibleColumnMap.status" class="text-center"><StatusBadge domain="enabled" :value="row.status" /></TableCell><TableCell v-if="visibleColumnMap.description">{{ row.description }}</TableCell><TableCell v-if="canShowQuickActionColumn && visibleColumnMap.quickActions"><Button permission="bug:project:member" size="sm" variant="outline" @click="openMembers(row)">成员</Button></TableCell><TableCell v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right"><div class="flex justify-end gap-2"><Button permission="bug:project:edit" size="sm" variant="outline" @click="edit(row)">编辑</Button><Button permission="bug:project:remove" size="sm" variant="destructive" @click="remove(row)">删除</Button></div></TableCell></TableRow></TableBody></Table>
       <EmptyState v-if="!rows.length" />
     </div>
     <TablePagination v-model:page-num="query.pageNum" v-model:page-size="query.pageSize" :total="total" @change="getList" />
@@ -212,7 +217,7 @@ onMounted(async () => {
     <Dialog v-model:open="memberOpen">
       <DialogContent class="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{{ currentProject?.projectName }} 成员</DialogTitle>
+          <DialogTitle><ProjectBadge :name="currentProject?.projectName" :code="currentProject?.projectKey" /> 成员</DialogTitle>
           <DialogDescription>配置项目成员角色和默认负责人；带 * 的字段为必填。</DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 md:grid-cols-2">

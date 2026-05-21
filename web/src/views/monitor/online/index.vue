@@ -24,6 +24,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { LogOut, RefreshCw, Search, Loader2, Copy } from 'lucide-vue-next'
+import TableColumnSettingsButton from '@/components/common/TableColumnSettingsButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -33,9 +35,11 @@ import { listOnline, forceLogout, type SysUserOnline } from '@/api/monitor/onlin
 import { useUserStore } from '@/stores/modules/user'
 import { usePermission } from '@/composables/usePermission'
 import { toggleTableSort } from '@/utils/table-sort'
+import { useOnlineColumns } from './online-columns'
 
 const { toast } = useToast()
 const userStore = useUserStore()
+const { columns, visibleColumnMap, toggleColumn, resetColumns } = useOnlineColumns()
 const canShowOperationColumn = usePermission(['monitor:online:forceLogout'])
 
 // State
@@ -240,11 +244,6 @@ onUnmounted(() => {
         <p class="text-muted-foreground">监控当前系统活跃用户</p>
       </div>
       <div class="flex gap-2">
-        <Button variant="outline" size="sm" :disabled="loading" @click="getList">
-          <Loader2 v-if="loading" class="w-4 h-4 mr-2 animate-spin" />
-          <RefreshCw v-else class="w-4 h-4 mr-2" />
-          刷新
-        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -253,6 +252,8 @@ onUnmounted(() => {
         >
           {{ autoRefresh ? '关闭自动刷新' : '自动刷新' }}
         </Button>
+        <TableColumnSettingsButton :columns="columns" @toggle="toggleColumn" @reset="resetColumns" />
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
 
@@ -308,15 +309,15 @@ onUnmounted(() => {
             <TableHead class="w-[50px]">
               <Checkbox v-model="selectAll" :disabled="onlineList.length === 0" />
             </TableHead>
-            <SortableTableHead label="会话编号" sort-key="tokenId" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <SortableTableHead label="用户名称" sort-key="userName" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <SortableTableHead label="主机" sort-key="ipaddr" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <SortableTableHead label="登录地点" sort-key="loginLocation" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <SortableTableHead label="浏览器" sort-key="browser" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <SortableTableHead label="操作系统" sort-key="os" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <SortableTableHead label="登录时间" sort-key="loginTime" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <SortableTableHead label="在线时长" sort-key="onlineDuration" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
-            <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
+            <SortableTableHead v-if="visibleColumnMap.tokenId" label="会话编号" sort-key="tokenId" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead v-if="visibleColumnMap.userName" label="用户名称" sort-key="userName" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead v-if="visibleColumnMap.ipaddr" label="主机" sort-key="ipaddr" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead v-if="visibleColumnMap.loginLocation" label="登录地点" sort-key="loginLocation" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead v-if="visibleColumnMap.browser" label="浏览器" sort-key="browser" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead v-if="visibleColumnMap.os" label="操作系统" sort-key="os" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead v-if="visibleColumnMap.loginTime" label="登录时间" sort-key="loginTime" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <SortableTableHead v-if="visibleColumnMap.onlineDuration" label="在线时长" sort-key="onlineDuration" :sort-by="queryParams.sortBy" :sort-order="queryParams.sortOrder" @sort="handleSort" />
+            <TableHead v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -331,7 +332,7 @@ onUnmounted(() => {
                 @update:model-value="() => toggleSelect(item.tokenId)"
               />
             </TableCell>
-            <TableCell>
+            <TableCell v-if="visibleColumnMap.tokenId">
               <div class="flex items-center gap-1">
                 <TooltipProvider>
                   <Tooltip>
@@ -354,7 +355,7 @@ onUnmounted(() => {
                 </Button>
               </div>
             </TableCell>
-            <TableCell>
+            <TableCell v-if="visibleColumnMap.userName">
               <span class="flex items-center gap-1">
                 {{ item.userName }}
                 <span
@@ -365,17 +366,17 @@ onUnmounted(() => {
                 </span>
               </span>
             </TableCell>
-            <TableCell class="font-mono text-sm">{{ item.ipaddr }}</TableCell>
-            <TableCell>{{ item.loginLocation || '-' }}</TableCell>
-            <TableCell>{{ item.browser || '-' }}</TableCell>
-            <TableCell>{{ item.os || '-' }}</TableCell>
-            <TableCell>{{ formatTime(item.loginTime) }}</TableCell>
-            <TableCell>
+            <TableCell v-if="visibleColumnMap.ipaddr" class="font-mono text-sm">{{ item.ipaddr }}</TableCell>
+            <TableCell v-if="visibleColumnMap.loginLocation">{{ item.loginLocation || '-' }}</TableCell>
+            <TableCell v-if="visibleColumnMap.browser">{{ item.browser || '-' }}</TableCell>
+            <TableCell v-if="visibleColumnMap.os">{{ item.os || '-' }}</TableCell>
+            <TableCell v-if="visibleColumnMap.loginTime">{{ formatTime(item.loginTime) }}</TableCell>
+            <TableCell v-if="visibleColumnMap.onlineDuration">
               <span class="text-sm text-muted-foreground">{{
                 formatDuration(item.onlineDuration)
               }}</span>
             </TableCell>
-            <TableCell v-if="canShowOperationColumn" class="text-right">
+            <TableCell v-if="canShowOperationColumn && visibleColumnMap.actions" class="text-right">
               <Button
                 variant="ghost"
                 size="sm"

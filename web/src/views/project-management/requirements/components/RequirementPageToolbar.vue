@@ -7,7 +7,7 @@ import type { TableColumnConfig } from '@/composables/useTableColumns'
 defineProps<{
   loading: boolean
   canBatchAssign: boolean
-  columns: RequirementColumnConfig[]
+  columns: TableColumnConfig[]
 }>()
 
 const emit = defineEmits<{

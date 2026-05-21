@@ -20,6 +20,7 @@ import { formatDate } from '@/utils/format'
 import { usePermission } from '@/composables/usePermission'
 import { changeRoleStatus } from '@/api/system/role'
 import type { SysRole } from '@/api/system/types'
+import type { TableColumnConfig } from '@/composables/useTableColumns'
 
 defineProps<{
   loading: boolean
@@ -28,6 +29,7 @@ defineProps<{
   total: number
   sortBy?: string
   sortOrder?: 'asc' | 'desc' | ''
+  columns: TableColumnConfig[]
 }>()
 
 const pageNum = defineModel<number>('pageNum', { required: true })
@@ -44,6 +46,11 @@ const emit = defineEmits<{
   delete: [role: SysRole]
   sort: [key: string]
 }>()
+
+function isColumnVisible(columns: TableColumnConfig[], key: string) {
+  const col = columns.find((item) => item.key === key)
+  return col ? col.visible : true
+}
 
 function getDataScopeText(dataScope?: string) {
   const scopeMap: Record<string, string> = {
@@ -75,16 +82,16 @@ const canShowOperationColumn = usePermission(['system:role:query', 'system:role:
           <TableHead class="w-[50px]">
             <Checkbox v-model="selectAll" :disabled="roleList.length === 0" />
           </TableHead>
-          <SortableTableHead label="角色编号" sort-key="roleId" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
-          <SortableTableHead label="角色名称" sort-key="roleName" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
-          <SortableTableHead label="权限字符" sort-key="roleKey" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
-          <SortableTableHead label="安全等级" sort-key="securityLevel" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
-          <TableHead>用户数</TableHead>
-          <TableHead>数据权限</TableHead>
-          <SortableTableHead label="显示顺序" sort-key="roleSort" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
-          <SortableTableHead label="状态" sort-key="status" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
-          <SortableTableHead label="创建时间" sort-key="createTime" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
-          <TableHead v-if="canShowOperationColumn" class="text-right">操作</TableHead>
+          <SortableTableHead v-if="isColumnVisible(columns, 'roleId')" label="角色编号" sort-key="roleId" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead v-if="isColumnVisible(columns, 'roleName')" label="角色名称" sort-key="roleName" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead v-if="isColumnVisible(columns, 'roleKey')" label="权限字符" sort-key="roleKey" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead v-if="isColumnVisible(columns, 'securityLevel')" label="安全等级" sort-key="securityLevel" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <TableHead v-if="isColumnVisible(columns, 'userCount')">用户数</TableHead>
+          <TableHead v-if="isColumnVisible(columns, 'dataScope')">数据权限</TableHead>
+          <SortableTableHead v-if="isColumnVisible(columns, 'roleSort')" label="显示顺序" sort-key="roleSort" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead v-if="isColumnVisible(columns, 'status')" label="状态" sort-key="status" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <SortableTableHead v-if="isColumnVisible(columns, 'createTime')" label="创建时间" sort-key="createTime" :sort-by="sortBy" :sort-order="sortOrder" @sort="emit('sort', $event)" />
+          <TableHead v-if="canShowOperationColumn && isColumnVisible(columns, 'actions')" class="text-right">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -95,28 +102,28 @@ const canShowOperationColumn = usePermission(['system:role:query', 'system:role:
               @update:model-value="() => emit('toggleSelect', item.roleId)"
             />
           </TableCell>
-          <TableCell>{{ item.roleId }}</TableCell>
-          <TableCell>{{ item.roleName }}</TableCell>
-          <TableCell><Badge variant="outline">{{ item.roleKey }}</Badge></TableCell>
-          <TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'roleId')">{{ item.roleId }}</TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'roleName')">{{ item.roleName }}</TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'roleKey')"><Badge variant="outline">{{ item.roleKey }}</Badge></TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'securityLevel')">
             <div class="flex flex-col gap-1">
               <Badge variant="default" class="w-fit font-mono">{{ item.securityLevel ?? 0 }}</Badge>
             </div>
           </TableCell>
-          <TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'userCount')">
             <Badge variant="outline" class="font-mono">
               <Users class="w-3 h-3 mr-1" />
               {{ item.userCount || 0 }}
             </Badge>
           </TableCell>
-          <TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'dataScope')">
             <Badge variant="secondary">
               <Shield class="w-3 h-3 mr-1" />
               {{ getDataScopeText(item.dataScope) }}
             </Badge>
           </TableCell>
-          <TableCell>{{ item.roleSort }}</TableCell>
-          <TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'roleSort')">{{ item.roleSort }}</TableCell>
+          <TableCell v-if="isColumnVisible(columns, 'status')">
             <StatusSwitch
               :status="item.status"
               :name="item.roleName"
@@ -124,8 +131,8 @@ const canShowOperationColumn = usePermission(['system:role:query', 'system:role:
               @update:status="emit('statusChange', item, $event as '0' | '1')"
             />
           </TableCell>
-          <TableCell>{{ formatDate(item.createTime) }}</TableCell>
-          <TableCell v-if="canShowOperationColumn" class="text-right space-x-2">
+          <TableCell v-if="isColumnVisible(columns, 'createTime')">{{ formatDate(item.createTime) }}</TableCell>
+          <TableCell v-if="canShowOperationColumn && isColumnVisible(columns, 'actions')" class="text-right space-x-2">
             <Button permission="system:role:query" variant="ghost" size="icon" title="查看权限" @click="emit('preview', item)">
               <Eye class="w-4 h-4" />
             </Button>

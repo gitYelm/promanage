@@ -2,15 +2,15 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Plus } from 'lucide-vue-next'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
 import RoleFilters from './components/RoleFilters.vue'
 import RoleBatchActions from './components/RoleBatchActions.vue'
 import RoleTable from './components/RoleTable.vue'
 import RoleFormDialog from './components/RoleFormDialog.vue'
 import RolePreviewDialog from './components/RolePreviewDialog.vue'
 import RoleConfirmDialogs from './components/RoleConfirmDialogs.vue'
+import RoleToolbar from './RoleToolbar.vue'
 import { toQueryValue, ALL_OPTION_VALUE } from '@/utils/options'
+import { normalizeAllOption } from '@/utils/table-filter'
 import { toggleTableSort } from '@/utils/table-sort'
 import {
   listRole,
@@ -28,9 +28,11 @@ import {
   getCurrentMaxSecurityLevel,
   validateEditableSecurityLevel,
 } from './utils/securityLevel'
+import { useRoleColumns } from './useRoleColumns'
 
 const { toast } = useToast()
 const userStore = useUserStore()
+const { columns, toggleColumn, resetColumns } = useRoleColumns()
 
 // State
 const loading = ref(true)
@@ -101,7 +103,12 @@ const form = reactive<Partial<SysRole>>({
 async function getList() {
   loading.value = true
   try {
-    const res = await listRole({ ...queryParams, status: toQueryValue(queryParams.status) })
+    const res = await listRole({
+      ...queryParams,
+      status: toQueryValue(queryParams.status),
+      securityLevelMin: normalizeAllOption(queryParams.securityLevelMin),
+      securityLevelMax: normalizeAllOption(queryParams.securityLevelMax),
+    })
     roleList.value = res.rows
     total.value = res.total
     // 清除已不存在的选中项
@@ -378,13 +385,14 @@ onMounted(() => {
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight">角色管理</h2>
         <p class="text-muted-foreground">管理系统角色及其权限分配</p>
       </div>
-      <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
-        <Button @click="handleAdd">
-          <Plus class="mr-2 h-4 w-4" />
-          新增角色
-        </Button>
-      </div>
+      <RoleToolbar
+        :loading="loading"
+        :columns="columns"
+        @refresh="getList"
+        @toggle-column="toggleColumn"
+        @reset-columns="resetColumns"
+        @add="handleAdd"
+      />
     </div>
 
     <RoleFilters
@@ -409,6 +417,7 @@ onMounted(() => {
       :total="total"
       :sort-by="queryParams.sortBy"
       :sort-order="queryParams.sortOrder"
+      :columns="columns"
       @add="handleAdd"
       @toggle-select="toggleSelect"
       @status-change="handleRoleStatusChange"

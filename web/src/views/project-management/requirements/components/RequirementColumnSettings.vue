@@ -10,10 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { RequirementColumnConfig } from '../useRequirementColumns'
+import type { TableColumnConfig } from '@/composables/useTableColumns'
 
 defineProps<{
-  columns: RequirementColumnConfig[]
+  columns: TableColumnConfig[]
 }>()
 
 const emit = defineEmits<{

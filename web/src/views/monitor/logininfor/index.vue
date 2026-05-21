@@ -44,7 +44,7 @@ import SortableTableHead from '@/components/common/SortableTableHead.vue'
 import TableSkeleton from '@/components/common/TableSkeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
 import SuccessFailBadge from '@/components/common/SuccessFailBadge.vue'
 import { FilterRangeField, TableFilterPanel } from '@/components/common/table-filter'
 import { toggleTableSort } from '@/utils/table-sort'
@@ -179,7 +179,6 @@ onMounted(() => {
         <p class="text-muted-foreground">记录系统登录日志信息</p>
       </div>
       <div class="flex items-center gap-2">
-        <DataRefreshButton :loading="loading" @refresh="getList" />
         <AlertDialog v-model:open="showCleanDialog">
           <Button variant="destructive" @click="showCleanDialog = true">
             <Trash2 class="mr-2 h-4 w-4" />
@@ -198,6 +197,7 @@ onMounted(() => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <TableRefreshIconButton :loading="loading" @refresh="getList" />
       </div>
     </div>
 
