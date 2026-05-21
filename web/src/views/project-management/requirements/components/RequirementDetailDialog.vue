@@ -22,12 +22,12 @@ defineProps<{
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="max-h-[90vh] max-w-3xl overflow-y-auto">
-      <DialogHeader>
+    <DialogContent class="grid max-h-[90vh] max-w-3xl grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0">
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
         <DialogTitle>{{ detail?.requirementNo }} {{ detail?.title }}</DialogTitle>
         <DialogDescription>查看需求基础信息、人员分工、排期和验收标准。</DialogDescription>
       </DialogHeader>
-      <div v-if="detail" class="space-y-4">
+      <div v-if="detail" class="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-6 py-4">
         <div class="flex flex-wrap gap-2">
           <StatusBadge domain="requirement" :value="detail.status" />
           <PriorityBadge :value="detail.priority" />
@@ -90,7 +90,7 @@ defineProps<{
           <p class="whitespace-pre-wrap text-sm text-muted-foreground">{{ detail.remark }}</p>
         </div>
       </div>
-      <DialogFooter>
+      <DialogFooter class="border-t bg-background px-6 py-4">
         <Button data-permission-neutral variant="outline" @click="open = false">关闭</Button>
       </DialogFooter>
     </DialogContent>

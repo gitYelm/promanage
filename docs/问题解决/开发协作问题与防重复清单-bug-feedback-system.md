@@ -729,13 +729,17 @@
 2. 卡片内容区默认采用 `max-h-[30rem] overflow-y-auto overscroll-contain pr-3` 或等效容器，避免子项无限撑高页面。
 3. 项目看板列必须列内滚动；横向看板只允许列容器横向滚动，单列内部仍要纵向限高。
 4. 弹窗内长列表必须限制在弹窗视口内滚动，避免弹窗撑出屏幕。
-5. 超过 10 条时应评估分页、加载更多、折叠或筛选；超过 100 条时优先服务端分页或虚拟列表。
-6. 子项如有详情能力，必须提供可见“详情”按钮；表格行可额外支持双击详情，但不能只依赖双击。
-7. 正式规范已经写入 `docs/开发规范/前端页面交互与视觉规范.md#7-长列表与看板滚动容器规范`，新增或改造页面必须先按该章节检查。
+5. 长弹窗禁止把整个 `DialogContent` 设为 `overflow-y-auto`；必须固定 Header/Footer，只让中间内容区滚动，避免标题、关闭按钮和底部主操作被滚走。
+6. 长弹窗推荐使用 `grid max-h-[90vh] grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0`；如果没有底部操作区，可使用 `grid-rows-[auto_1fr]`。仅使用 `max-h-[90vh] flex flex-col` 但未给容器 `overflow-hidden`、内容区 `min-h-0` 的写法不合格。
+7. 超过 10 条时应评估分页、加载更多、折叠或筛选；超过 100 条时优先服务端分页或虚拟列表。
+8. 子项如有详情能力，必须提供可见“详情”按钮；表格行可额外支持双击详情，但不能只依赖双击。
+9. 正式规范已经写入 `docs/开发规范/前端页面交互与视觉规范.md#7-长列表与看板滚动容器规范`，新增或改造页面必须先按该章节检查。
 
 ### 写入前检查
 
 - 是否存在项目看板列、仪表盘列表、项目概览列表、详情子列表、动态流、历史记录等可能增长的区域。
+- 是否存在 `DialogContent class="max-h-[90vh] overflow-y-auto"` 这类整弹窗滚动写法；如有必须改为固定头尾、中间滚动。
+- 是否存在 `max-h-[90vh] flex flex-col` 但缺少 `overflow-hidden`、内容区缺少 `min-h-0 overflow-y-auto overscroll-contain` 的半成品长弹窗写法；如有必须统一修正。
 - 是否模拟过 20 条以上数据时的展示效果。
 - 是否有页面级刷新入口，并且刷新不重置筛选和滚动上下文。
 - 是否需要拆成子组件，避免页面文件因列表逻辑继续膨胀接近 500 行。
@@ -746,6 +750,7 @@
 - 滚动条在列表内部，且不遮挡详情按钮、状态标签和文字。
 - 空状态、加载状态、错误状态仍在限高容器内可见。
 - 详情按钮、双击详情、刷新和筛选在长列表场景下仍可用。
+- 长弹窗滚动到内容底部时，标题、关闭按钮和底部主要操作仍保持可见，且关闭按钮无障碍文案显示为中文“关闭”。
 - 移动端和窄屏下不出现横向撑破或多个难以操作的嵌套滚动。
 
 ### 相关文件路径
@@ -799,3 +804,91 @@
 - `web/src/views/project-management/overview/index.vue`
 - `web/src/components/ui/tooltip/TooltipProvider.vue`
 
+## 项目选择器内部枚举暴露防重复规则
+
+### 现象
+
+需求新增/编辑弹窗的项目下拉选项曾直接显示 `internal_test` 这类后端阶段枚举值，业务用户看到技术 Key 后无法理解其业务含义。
+
+### 根因
+
+1. `ProjectSelectOption` 将 `projectStage` 原始值直接拼接到辅助信息里，没有统一转换为中文业务文案。
+2. 下拉选项和表格状态标签的展示链路不同：表格使用 `StatusBadge` 会自动映射阶段文案，项目选择器却绕过了语义映射。
+3. 项目 Tag 规范只要求使用统一组件，曾缺少“禁止暴露内部枚举”的明确约束。
+
+### 错误决策链路
+
+- 不能认为后端字段值等同于可展示文案。
+- 不能只修某一个需求页面；项目选择器是全局组件，应该在公共组件层兜底。
+- 不能把未知的纯英文/下划线枚举值直接显示出来，避免继续暴露内部 Key。
+
+### 防重复规则
+
+1. 项目下拉选项必须使用 `ProjectSelectOption`；项目阶段等辅助信息必须先映射为业务可读文案。
+2. `internal_test`、`release_ready`、`self_test` 等后端枚举只能显示为“内测阶段”“待发布”“自测阶段”等中文文案。
+3. 无法识别的纯技术枚举默认不展示；如确需展示，必须先补充统一映射。
+4. 新增状态/阶段字段时，必须同步检查 `web/src/utils/semantic-styles.ts`、`ProjectSelectOption` 和正式前端交互规范。
+5. 正式规范已写入 `docs/开发规范/前端页面交互与视觉规范.md#49-字段-tag--badge-使用规范`。
+
+### 写入前检查
+
+- 搜索 `ProjectSelectOption` 使用点，确认没有页面绕过公共组件临时拼接阶段。
+- 搜索 `label: value`、`projectStage`、常见枚举值，确认筛选器和下拉框没有直接显示原始枚举。
+- 修改自有 Vue/TS 文件前检查行数，避免超过 500 行。
+
+### 写入后验收
+
+- 在需求新增/编辑弹窗打开项目下拉，选项中不出现 `internal_test`、`release_ready` 等内部 Key。
+- 下拉选项仍保留项目名、项目编码和负责人信息，辅助阶段显示中文业务文案。
+- 其它复用 `ProjectSelectOption` 的 Bug、迭代、里程碑、项目概览/看板页面自动生效。
+
+### 相关文件路径
+
+- `web/src/components/common/ProjectSelectOption.vue`
+- `web/src/utils/semantic-styles.ts`
+- `docs/开发规范/前端页面交互与视觉规范.md`
+
+## Bug 操作历史枚举暴露防重复规则
+
+### 现象
+
+Bug 详情弹窗的操作历史曾直接显示 `pending_confirm`、`confirmed`、`assigned`、`pending_verify`、`closed`、`reopened` 等后端状态枚举，用户需要理解技术 Key 才能读懂流转记录。
+
+### 根因
+
+1. 操作历史模板直接渲染 `history.fromValue` 和 `history.toValue`，没有复用状态文案映射。
+2. 列表状态列已使用 `StatusBadge`，但历史记录属于单独文本链路，容易漏掉国际化/中文映射。
+3. 旧的 Bug 列表详情弹窗和新的 `BugTicketDetailDialog` 同时存在，导致修一个组件仍可能在另一个入口继续暴露内部枚举。
+
+### 错误决策链路
+
+- 不能认为历史记录是“技术审计日志”就允许直接展示后端枚举；当前详情弹窗面向业务用户。
+- 不能只映射 `action`，还必须映射 `fromValue`、`toValue`、环境、类型等可见枚举值。
+- 不能在每个页面临时写 `pending_confirm === '待确认'`；必须收敛到统一工具函数。
+
+### 防重复规则
+
+1. Bug 操作历史必须通过 `bugHistoryDescription` 生成用户可读描述。
+2. Bug 状态文案必须通过 `bugStatusLabel`、`StatusBadge domain="bug"` 或统一 options 映射，禁止模板直接渲染原始状态枚举。
+3. 未知纯技术枚举必须显示“未知状态/未知操作”，或先补齐统一映射后再展示。
+4. 新增历史/动态/通知展示时，必须搜索 `fromValue`、`toValue`、`action` 和常见枚举值，确认没有内部 Key 直出。
+5. 正式规范已写入 `docs/开发规范/前端页面交互与视觉规范.md#49-字段-tag--badge-使用规范`。
+
+### 写入前检查
+
+- 检查 `web/src/views/bug/shared/bug-options.ts` 是否已有可复用映射。
+- 搜索 `history.fromValue`、`history.toValue`、`actionLabel`、`pending_confirm` 等关键字。
+- 修改自有 Vue/TS 文件前检查行数，避免超过 500 行。
+
+### 写入后验收
+
+- 打开 Bug 详情弹窗，操作历史显示“创建 → 待确认”“确认有效 待确认 → 已确认”等中文文案。
+- 页面不再出现 `pending_confirm`、`pending_verify`、`reopened` 等内部状态 Key。
+- Bug 列表详情、项目看板和仪表盘中复用的详情弹窗都使用同一套展示逻辑。
+
+### 相关文件路径
+
+- `web/src/views/bug/shared/bug-options.ts`
+- `web/src/views/bug/tickets/components/BugTicketDetailDialog.vue`
+- `web/src/views/bug/tickets/index.vue`
+- `docs/开发规范/前端页面交互与视觉规范.md`

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,11 +9,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
+import SemanticTag from '@/components/common/SemanticTag.vue'
 import SeverityBadge from '@/components/common/SeverityBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import type { BugTicket } from '@/api/bug/types'
 import { formatDate } from '@/utils/format'
-import { actionLabel } from '../../shared/bug-options'
+import { bugHistoryDescription, optionLabel, BUG_ENVIRONMENT_OPTIONS } from '../../shared/bug-options'
 import AttachmentList from './AttachmentList.vue'
 
 const open = defineModel<boolean>('open', { required: true })
@@ -25,20 +26,20 @@ defineProps<{
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="max-h-[90vh] max-w-5xl overflow-y-auto">
-      <DialogHeader>
+    <DialogContent class="grid max-h-[90vh] max-w-5xl grid-rows-[auto_1fr_auto] gap-0 overflow-hidden p-0">
+      <DialogHeader class="border-b bg-background px-6 py-4 pr-14">
         <DialogTitle>{{ detail?.ticketNo }} {{ detail?.title }}</DialogTitle>
         <DialogDescription>查看缺陷基础信息、复现内容、附件、评论和操作历史。</DialogDescription>
       </DialogHeader>
-      <div v-if="detail" class="space-y-4">
+      <div v-if="detail" class="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-6 py-4">
         <div class="flex flex-wrap gap-2">
           <StatusBadge domain="bug" :value="detail.status" />
           <PriorityBadge :value="detail.priority" />
           <SeverityBadge :value="detail.severity" />
-          <Badge variant="outline">{{ detail.project?.projectName || '-' }}</Badge>
-          <Badge v-if="detail.module?.moduleName" variant="outline">{{
+          <ProjectBadge :name="detail.project?.projectName" :code="detail.project?.projectKey" />
+          <SemanticTag v-if="detail.module?.moduleName" tone="neutral">{{
             detail.module.moduleName
-          }}</Badge>
+          }}</SemanticTag>
         </div>
         <div class="grid gap-3 text-sm md:grid-cols-2">
           <div><span class="text-muted-foreground">提交人：</span>{{ detail.submitter?.nickName || detail.submitter?.userName || '-' }}</div>
@@ -46,7 +47,7 @@ defineProps<{
           <div><span class="text-muted-foreground">验证人：</span>{{ detail.verifier?.nickName || detail.verifier?.userName || '-' }}</div>
           <div><span class="text-muted-foreground">期望完成：</span>{{ formatDate(detail.dueTime) }}</div>
           <div><span class="text-muted-foreground">版本：</span>{{ detail.version?.versionName || detail.version?.versionNo || '-' }}</div>
-          <div><span class="text-muted-foreground">环境：</span>{{ detail.environment || '-' }}</div>
+          <div><span class="text-muted-foreground">环境：</span>{{ optionLabel(BUG_ENVIRONMENT_OPTIONS, detail.environment) }}</div>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
@@ -109,14 +110,13 @@ defineProps<{
             >
               {{ formatDate(history.createTime) }}
               {{ history.operator?.nickName || history.operator?.userName || '-' }}
-              {{ actionLabel(history.action) }} {{ history.fromValue || '-' }} →
-              {{ history.toValue || '-' }} {{ history.remark || '' }}
+              {{ bugHistoryDescription(history) }}
             </div>
           </div>
           <p v-else class="text-sm text-muted-foreground">暂无操作历史</p>
         </div>
       </div>
-      <DialogFooter>
+      <DialogFooter class="border-t bg-background px-6 py-4">
         <Button data-permission-neutral variant="outline" @click="open = false">关闭</Button>
       </DialogFooter>
     </DialogContent>

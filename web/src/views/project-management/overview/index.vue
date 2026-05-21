@@ -21,9 +21,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
 import MetricCard from '@/components/common/MetricCard.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
+import ProjectSelectOption from '@/components/common/ProjectSelectOption.vue'
+import ProjectSelectValue from '@/components/common/ProjectSelectValue.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 import SemanticProgress from '@/components/common/SemanticProgress.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -188,11 +191,9 @@ onMounted(async () => {
       </div>
       <div class="flex flex-wrap gap-2">
         <Select v-model="selectedProjectId" @update:model-value="load"
-          ><SelectTrigger class="w-64"><SelectValue placeholder="选择项目" /></SelectTrigger
+          ><SelectTrigger class="w-64"><ProjectSelectValue :model-value="selectedProjectId" :projects="projects" placeholder="选择项目" /></SelectTrigger
           ><SelectContent
-            ><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{
-              p.projectName
-            }}</SelectItem></SelectContent
+            ><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId"><ProjectSelectOption :name="p.projectName" :code="p.projectKey" :stage="p.projectStage" :owner-name="p.owner?.nickName || p.owner?.userName" /></SelectItem></SelectContent
           ></Select
         ><Button
           v-if="overview"
@@ -200,7 +201,7 @@ onMounted(async () => {
           variant="outline"
           @click="openProgress"
           >更新进度</Button
-        ><DataRefreshButton :loading="loading" @refresh="load" />
+        ><TableRefreshIconButton :loading="loading" @refresh="load" />
       </div>
     </div>
     <div v-if="overview" class="grid gap-4 lg:grid-cols-[2fr_1fr]">
@@ -213,7 +214,7 @@ onMounted(async () => {
         @dblclick="goProjectList"
         @keyup.enter="goProjectList"
         ><CardHeader
-          ><CardTitle>{{ overview.project.projectName }}</CardTitle></CardHeader
+          ><CardTitle><ProjectBadge :name="overview.project.projectName" :code="overview.project.projectKey" class="max-w-full" /></CardTitle></CardHeader
         ><CardContent class="space-y-4"
           ><div class="flex flex-wrap gap-2">
             <StatusBadge domain="projectStage" :value="overview.project.projectStage" /><RiskBadge

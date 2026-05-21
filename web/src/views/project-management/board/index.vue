@@ -6,10 +6,11 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
+import ProjectSelectOption from '@/components/common/ProjectSelectOption.vue'
+import ProjectSelectValue from '@/components/common/ProjectSelectValue.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import RequirementDetailDialog from '../requirements/components/RequirementDetailDialog.vue'
 import BugTicketDetailDialog from '@/views/bug/tickets/components/BugTicketDetailDialog.vue'
@@ -91,11 +92,11 @@ function bugOwner(row: BugTicket) {
 }
 
 function requirementMeta(row: Requirement) {
-  return `${row.project?.projectName || '-'} · ${requirementOwner(row)}`
+  return requirementOwner(row)
 }
 
 function bugMeta(row: BugTicket) {
-  return `${row.project?.projectName || '-'} · ${bugOwner(row)}`
+  return bugOwner(row)
 }
 
 function bugTime(row: BugTicket) {
@@ -138,16 +139,16 @@ onMounted(async () => {
       <div class="flex flex-wrap gap-2">
         <Select v-model="query.projectId" @update:model-value="load">
           <SelectTrigger class="w-64">
-            <SelectValue />
+            <ProjectSelectValue :model-value="query.projectId" :projects="projects" :all-value="PM_ALL_OPTION_VALUE" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem :value="PM_ALL_OPTION_VALUE">全部项目</SelectItem>
             <SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">
-              {{ p.projectName }}
+              <ProjectSelectOption :name="p.projectName" :code="p.projectKey" :stage="p.projectStage" :owner-name="p.owner?.nickName || p.owner?.userName" />
             </SelectItem>
           </SelectContent>
         </Select>
-        <DataRefreshButton :loading="loading" @refresh="load" />
+        <TableRefreshIconButton :loading="loading" @refresh="load" />
       </div>
     </div>
 

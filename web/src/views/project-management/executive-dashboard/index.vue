@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import DataRefreshButton from '@/components/common/DataRefreshButton.vue'
+import TableRefreshIconButton from '@/components/common/TableRefreshIconButton.vue'
 import MetricCard from '@/components/common/MetricCard.vue'
 import PmBugSummaryCard from '../components/PmBugSummaryCard.vue'
 import PmRequirementSummaryCard from '../components/PmRequirementSummaryCard.vue'
@@ -31,7 +31,7 @@ import type {
 import type { BugTicket } from '@/api/bug/types'
 import { formatDate } from '../shared/options'
 import { sortRowsByState, toggleTableSort } from '@/utils/table-sort'
-import { type SemanticTone } from '@/utils/semantic-styles'
+import { getRiskLabel, getStatusLabel, type SemanticTone } from '@/utils/semantic-styles'
 import ProjectHealthTable from './ProjectHealthTable.vue'
 
 const loading = ref(false)
@@ -63,8 +63,8 @@ const projectFilterQuery = reactive({
 })
 const projectFilterFields = computed(() => [
   { label: '项目', key: 'projectName', placeholder: '请输入项目名称' },
-  { label: '阶段', key: 'stage', type: 'select' as const, options: toOptions(projects.value.map((item) => item.project.projectStage).filter((value): value is string => Boolean(value))) },
-  { label: '风险', key: 'risk', type: 'select' as const, options: toOptions(projects.value.map((item) => item.health)) },
+  { label: '阶段', key: 'stage', type: 'select' as const, options: toOptions(projects.value.map((item) => item.project.projectStage), (value) => getStatusLabel('projectStage', value)) },
+  { label: '风险', key: 'risk', type: 'select' as const, options: toOptions(projects.value.map((item) => item.health), (value) => getRiskLabel(value)) },
 ])
 const projectExpandedFields = [
   { label: '进度', type: 'number-range' as const, startKey: 'progressMin', endKey: 'progressMax', min: 0, max: 100 },
@@ -92,10 +92,10 @@ const filteredProjects = computed(() =>
   ),
 )
 
-function toOptions(values: string[]) {
+function toOptions(values: Array<string | undefined>, getLabel = (value: string) => value) {
   return [
     { label: '全部', value: ALL_VALUE },
-    ...Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: value, value })),
+    ...Array.from(new Set(values.filter(Boolean) as string[])).map((value) => ({ label: getLabel(value), value })),
   ]
 }
 function inNumberRange(value: number, min?: number, max?: number) {
@@ -199,10 +199,6 @@ const cards: Array<{
 function bugTitle(item: Record<string, unknown>) {
   return String(item.title || item.ticketNo || '-')
 }
-function itemProjectName(item: Record<string, unknown>) {
-  const project = item.project as { projectName?: string } | undefined
-  return project?.projectName || '-'
-}
 function itemStatus(item: Record<string, unknown>) {
   return typeof item.status === 'string' ? item.status : undefined
 }
@@ -210,7 +206,7 @@ function requirementOwner(row: Requirement) {
   return row.developer?.nickName || row.owner?.nickName || row.owner?.userName || '-'
 }
 function requirementMeta(row: Requirement) {
-  return `${row.project?.projectName || '-'} · ${requirementOwner(row)}`
+  return requirementOwner(row)
 }
 function jumpFromMetric(path: string) {
   router.push(path)
@@ -219,10 +215,9 @@ function bugTicketId(row: Record<string, unknown>) {
   return typeof row.ticketId === 'string' ? row.ticketId : ''
 }
 function bugMeta(row: Record<string, unknown>) {
-  const assignee = (row.assignee as { nickName?: string; userName?: string } | undefined)?.nickName
+  return (row.assignee as { nickName?: string; userName?: string } | undefined)?.nickName
     || (row.assignee as { nickName?: string; userName?: string } | undefined)?.userName
     || '-'
-  return `${itemProjectName(row)} · ${assignee}`
 }
 async function openRequirementDetail(row: Requirement) {
   try {
@@ -278,7 +273,7 @@ onMounted(load)
           实时查看项目进度、当前处理、历史完成和未处理事项
         </p>
       </div>
-      <DataRefreshButton :loading="loading" @refresh="load" />
+      <TableRefreshIconButton :loading="loading" @refresh="load" />
     </div>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
       <MetricCard
@@ -383,7 +378,7 @@ onMounted(load)
           :key="row.requirementId"
           :row="row"
           interactive
-          :meta-text="row.project?.projectName || '-'"
+          :meta-text="requirementOwner(row)"
           @detail="openRequirementDetail"
         />
         <PmBugSummaryCard
@@ -392,7 +387,7 @@ onMounted(load)
           :row="row"
           interactive
           :show-ticket-no="false"
-          :meta-text="itemProjectName(row)"
+          :meta-text="bugMeta(row)"
           @detail="(row) => openBugDetail(row as Record<string, unknown>)"
         />
       </PmScrollableSectionCard>

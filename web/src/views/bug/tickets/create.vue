@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import FormFieldBlock from '@/components/common/FormFieldBlock.vue'
+import ProjectSelectOption from '@/components/common/ProjectSelectOption.vue'
+import ProjectSelectValue from '@/components/common/ProjectSelectValue.vue'
 import { useToast } from '@/components/ui/toast/use-toast'
 import { addBugTicket, bugProjectOptions, listBugModules, listBugVersions } from '@/api/bug'
 import { dispatchBugPendingCountRefresh } from '../shared/bug-events'
@@ -94,7 +96,7 @@ onMounted(loadBase)
     <div class="grid gap-6 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(34rem,1.15fr)]">
       <section class="grid gap-4 rounded-lg border bg-background p-4 md:grid-cols-2">
         <FormFieldBlock label="标题" field-id="bug-create-title" required class="md:col-span-2" description="用一句话描述问题现象，是最少必填信息。"><Input id="bug-create-title" v-model="form.title" placeholder="例如：新增需求弹窗保存失败" /></FormFieldBlock>
-        <FormFieldBlock label="项目" field-id="bug-create-project" description="决定 Bug 归属、模块和版本候选范围。"><Select v-model="form.projectId" @update:model-value="loadProjectData"><SelectTrigger id="bug-create-project"><SelectValue placeholder="请选择项目" /></SelectTrigger><SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId">{{ p.projectName }}</SelectItem></SelectContent></Select></FormFieldBlock>
+        <FormFieldBlock label="项目" field-id="bug-create-project" description="决定 Bug 归属、模块和版本候选范围。"><Select v-model="form.projectId" @update:model-value="loadProjectData"><SelectTrigger id="bug-create-project"><ProjectSelectValue :model-value="form.projectId" :projects="projects" placeholder="请选择项目" /></SelectTrigger><SelectContent><SelectItem v-for="p in projects" :key="p.projectId" :value="p.projectId"><ProjectSelectOption :name="p.projectName" :code="p.projectKey" :stage="p.projectStage" :owner-name="p.owner?.nickName || p.owner?.userName" /></SelectItem></SelectContent></Select></FormFieldBlock>
         <FormFieldBlock label="模块" field-id="bug-create-module" optional description="用于定位功能范围；暂不选择时不会按模块自动带默认处理人。"><Select v-model="form.moduleId"><SelectTrigger id="bug-create-module"><SelectValue placeholder="请选择模块" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不选择模块</SelectItem><SelectItem v-for="m in modules" :key="m.moduleId" :value="m.moduleId">{{ m.moduleName }}</SelectItem></SelectContent></Select></FormFieldBlock>
         <FormFieldBlock label="版本" field-id="bug-create-version" optional description="用于记录问题出现或修复的版本；暂不选择时后续可补充。"><Select v-model="form.versionId"><SelectTrigger id="bug-create-version"><SelectValue placeholder="请选择版本" /></SelectTrigger><SelectContent><SelectItem :value="NONE_OPTION_VALUE">暂不选择版本</SelectItem><SelectItem v-for="v in versions" :key="v.versionId" :value="v.versionId">{{ v.versionNo }}</SelectItem></SelectContent></Select></FormFieldBlock>
         <FormFieldBlock label="运行环境" field-id="bug-create-environment" description="说明问题出现在哪类环境，便于复现和定位。"><Select v-model="form.environment"><SelectTrigger id="bug-create-environment"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="o in BUG_ENVIRONMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select></FormFieldBlock>

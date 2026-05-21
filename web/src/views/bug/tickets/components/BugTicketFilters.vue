@@ -10,6 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/toast/use-toast'
+import ProjectSelectOption from '@/components/common/ProjectSelectOption.vue'
+import ProjectSelectValue from '@/components/common/ProjectSelectValue.vue'
 import { FilterRangeField, TableFilterPanel } from '@/components/common/table-filter'
 import type { BugModule, BugProject, BugUserRef } from '@/api/bug/types'
 import type { BugTicketFilterState } from '../bug-ticket-query'
@@ -73,11 +75,11 @@ function validateDateRange(label: string, start: string, end: string) {
       <div class="space-y-1">
         <Label for="bug-filter-project">所属项目</Label>
         <Select v-model="props.query.projectId" @update:model-value="emit('projectChange')">
-          <SelectTrigger id="bug-filter-project"><SelectValue placeholder="项目" /></SelectTrigger>
+          <SelectTrigger id="bug-filter-project"><ProjectSelectValue :model-value="props.query.projectId" :projects="props.projects" :all-value="ALL_OPTION_VALUE" all-label="全部项目" placeholder="项目" /></SelectTrigger>
           <SelectContent>
             <SelectItem :value="ALL_OPTION_VALUE">全部项目</SelectItem>
             <SelectItem v-for="project in props.projects" :key="project.projectId" :value="project.projectId">
-              {{ project.projectName }}
+              <ProjectSelectOption :name="project.projectName" :code="project.projectKey" :stage="project.projectStage" :owner-name="project.owner?.nickName || project.owner?.userName" />
             </SelectItem>
           </SelectContent>
         </Select>

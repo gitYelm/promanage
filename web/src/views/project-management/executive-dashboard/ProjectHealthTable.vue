@@ -2,6 +2,7 @@
 import { Info } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 import SemanticProgress from '@/components/common/SemanticProgress.vue'
 import SortableTableHead from '@/components/common/SortableTableHead.vue'
@@ -38,7 +39,7 @@ const emit = defineEmits<{ sort: [key: string] }>()
       </TableHeader>
       <TableBody>
         <TableRow v-for="item in rows" :key="item.project.projectId">
-          <TableCell>{{ item.project.projectName }}</TableCell>
+          <TableCell><ProjectBadge :name="item.project.projectName" :code="item.project.projectKey" /></TableCell>
           <TableCell class="text-center"><StatusBadge domain="projectStage" :value="item.project.projectStage" /></TableCell>
           <TableCell class="min-w-36"><div class="ml-auto flex max-w-44 items-center justify-end gap-2"><SemanticProgress :model-value="item.progress" :tone="getRiskStyle(item.health).tone" class="h-2" /><span class="w-10 text-right text-xs tabular-nums">{{ item.progress }}%</span></div></TableCell>
           <TableCell class="text-right tabular-nums">{{ item.requirementDoneRate }}%</TableCell>

@@ -22,11 +22,12 @@ function openRequirementDetail(row: Requirement) {
   emit('requirementDetail', row)
 }
 function requirementMeta(row: Requirement) {
-  return `${row.project?.projectName || '-'} · ${ownerName(row)}`
+  return ownerName(row)
 }
 function bugMeta(row: Record<string, unknown>) {
-  const project = (row.project as { projectName?: string } | undefined)?.projectName || '-'
-  return project
+  return (row.assignee as { nickName?: string; userName?: string } | undefined)?.nickName
+    || (row.assignee as { nickName?: string; userName?: string } | undefined)?.userName
+    || '-'
 }
 function activityText(item: {
   targetType: string

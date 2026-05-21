@@ -2,6 +2,7 @@
 import type { HTMLAttributes } from 'vue'
 import { Button } from '@/components/ui/button'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { cn } from '@/lib/utils'
 import type { Requirement } from '@/api/project-management/types'
@@ -62,6 +63,12 @@ function openDetail() {
     <div class="mt-2 flex flex-wrap items-center gap-2">
       <StatusBadge domain="requirement" :value="props.row.status" />
       <PriorityBadge v-if="props.showPriority" :value="props.row.priority" />
+      <ProjectBadge
+        v-if="props.row.project"
+        :name="props.row.project?.projectName"
+        :code="props.row.project?.projectKey"
+        compact
+      />
     </div>
     <div v-if="props.metaText" class="mt-2 text-xs text-muted-foreground">
       {{ props.metaText }}

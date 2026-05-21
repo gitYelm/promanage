@@ -2,6 +2,7 @@
 import type { HTMLAttributes } from 'vue'
 import { Button } from '@/components/ui/button'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { cn } from '@/lib/utils'
 import type { BugTicket } from '@/api/bug/types'
@@ -46,6 +47,10 @@ function itemPriority() {
   return typeof props.row.priority === 'string' ? props.row.priority : undefined
 }
 
+function itemProject() {
+  return props.row.project as { projectName?: string; projectKey?: string } | undefined
+}
+
 function openDetail() {
   if (!props.interactive) return
   emit('detail', props.row)
@@ -83,6 +88,12 @@ function openDetail() {
     <div class="mt-2 flex flex-wrap items-center gap-2">
       <StatusBadge domain="bug" :value="itemStatus()" />
       <PriorityBadge :value="itemPriority()" />
+      <ProjectBadge
+        v-if="itemProject()"
+        :name="itemProject()?.projectName"
+        :code="itemProject()?.projectKey"
+        compact
+      />
     </div>
     <div v-if="props.metaText" class="mt-2 text-xs text-muted-foreground">
       {{ props.metaText }}

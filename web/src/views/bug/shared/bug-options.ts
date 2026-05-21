@@ -77,6 +77,24 @@ export const BUG_ACTION_LABELS: Record<string, string> = {
   reopen: '重新打开',
   close: '关闭',
   comment: '评论',
+  delete: '删除',
+  attachment: '附件',
+}
+
+const BUG_HISTORY_STATUS_LABELS: Record<string, string> = {
+  ...Object.fromEntries(BUG_STATUS_OPTIONS.map((item) => [item.value, item.label])),
+  deleted: '已删除',
+}
+
+interface BugHistoryLike {
+  action?: string
+  fromValue?: string
+  toValue?: string
+  remark?: string
+}
+
+function isTechnicalEnumValue(value: string) {
+  return /^[a-z][a-z0-9_-]*$/i.test(value)
 }
 
 export function optionLabel(options: Array<{ label: string; value: string }>, value?: string) {
@@ -84,7 +102,30 @@ export function optionLabel(options: Array<{ label: string; value: string }>, va
 }
 
 export function actionLabel(action?: string) {
-  return action ? BUG_ACTION_LABELS[action] || action : '-'
+  if (!action) return '-'
+  return BUG_ACTION_LABELS[action] || (isTechnicalEnumValue(action) ? '未知操作' : action)
+}
+
+export function bugStatusLabel(value?: string) {
+  const normalized = value?.trim()
+  if (!normalized) return '-'
+  return BUG_HISTORY_STATUS_LABELS[normalized] || (isTechnicalEnumValue(normalized) ? '未知状态' : normalized)
+}
+
+function bugHistoryStatusChange(fromValue?: string, toValue?: string) {
+  const hasFrom = Boolean(fromValue?.trim())
+  const hasTo = Boolean(toValue?.trim())
+  if (hasFrom && hasTo) return `${bugStatusLabel(fromValue)} → ${bugStatusLabel(toValue)}`
+  if (hasTo) return `→ ${bugStatusLabel(toValue)}`
+  if (hasFrom) return `从 ${bugStatusLabel(fromValue)}`
+  return ''
+}
+
+export function bugHistoryDescription(history: BugHistoryLike) {
+  const remark = history.remark?.trim()
+  return [actionLabel(history.action), bugHistoryStatusChange(history.fromValue, history.toValue), remark]
+    .filter(Boolean)
+    .join(' ')
 }
 
 export function normalizeAll(value?: string) {

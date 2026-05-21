@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import ProjectBadge from '@/components/common/ProjectBadge.vue'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -53,7 +54,9 @@ const canSave = computed(
       <DialogHeader>
         <DialogTitle>批量修改人员分工</DialogTitle>
         <DialogDescription>
-          已选择 {{ props.selectedCount }} 条需求（项目：{{ props.projectName }}），可统一修改需求负责人、开发负责人、测试负责人。
+          已选择 {{ props.selectedCount }} 条需求，可统一修改
+          <ProjectBadge :name="props.projectName" compact class="mx-1 align-middle" />
+          的需求负责人、开发负责人、测试负责人。
         </DialogDescription>
       </DialogHeader>
       <div class="grid gap-4">
