@@ -5,6 +5,7 @@ import { CreateJobDto } from './dto/create-job.dto'
 import { UpdateJobDto } from './dto/update-job.dto'
 import { JobExecutorService } from './job-executor.service'
 import { Prisma } from '@prisma/client'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
 export class JobService {
@@ -18,6 +19,8 @@ export class JobService {
     if (query.jobName) where.jobName = { contains: query.jobName }
     if (query.jobGroup) where.jobGroup = { contains: query.jobGroup }
     if (query.status) where.status = query.status
+    if (query.invokeTarget) where.invokeTarget = { contains: query.invokeTarget }
+    if (query.cronExpression) where.cronExpression = { contains: query.cronExpression }
     const pageNum = Number(query.pageNum ?? 1)
     const pageSize = Number(query.pageSize ?? 20)
 
@@ -27,7 +30,7 @@ export class JobService {
         where,
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
-        orderBy: { jobId: 'asc' },
+        orderBy: this.buildOrderBy(query),
       }),
     ])
 
@@ -38,6 +41,21 @@ export class JobService {
     }))
 
     return { total, rows: safeRows }
+  }
+
+  private buildOrderBy(query: QueryJobDto): Prisma.SysJobOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysJobOrderByWithRelationInput> = {
+      jobId: { jobId: direction },
+      jobName: { jobName: direction },
+      jobGroup: { jobGroup: direction },
+      invokeTarget: { invokeTarget: direction },
+      cronExpression: { cronExpression: direction },
+      status: { status: direction },
+      createTime: { createTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { jobId: 'asc' }]
+    return [{ jobId: 'asc' }]
   }
 
   async findOne(jobId: string) {

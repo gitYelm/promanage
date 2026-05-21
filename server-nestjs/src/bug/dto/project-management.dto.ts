@@ -1,17 +1,36 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger'
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator'
+import { ArrayNotEmpty, IsArray, IsInt, IsOptional, IsString, Max, Min } from 'class-validator'
 import { Type } from 'class-transformer'
 import { BugPageDto } from './common.dto'
 
 export class QueryRequirementDto extends BugPageDto {
   @ApiPropertyOptional({ description: '关键词' }) @IsOptional() @IsString() keyword?: string
+  @ApiPropertyOptional({ description: '需求编号' }) @IsOptional() @IsString() requirementNo?: string
+  @ApiPropertyOptional({ description: '需求标题' }) @IsOptional() @IsString() title?: string
   @ApiPropertyOptional({ description: '项目ID' }) @IsOptional() @IsString() projectId?: string
   @ApiPropertyOptional({ description: '模块ID' }) @IsOptional() @IsString() moduleId?: string
+  @ApiPropertyOptional({ description: '需求类型' }) @IsOptional() @IsString() type?: string
+  @ApiPropertyOptional({ description: '需求来源' }) @IsOptional() @IsString() source?: string
   @ApiPropertyOptional({ description: '状态' }) @IsOptional() @IsString() status?: string
   @ApiPropertyOptional({ description: '优先级' }) @IsOptional() @IsString() priority?: string
   @ApiPropertyOptional({ description: '负责人ID' }) @IsOptional() @IsString() ownerId?: string
   @ApiPropertyOptional({ description: '开发负责人ID' }) @IsOptional() @IsString() developerId?: string
+  @ApiPropertyOptional({ description: '测试负责人ID' }) @IsOptional() @IsString() testerId?: string
   @ApiPropertyOptional({ description: '迭代ID' }) @IsOptional() @IsString() iterationId?: string
+  @ApiPropertyOptional({ description: '里程碑ID' }) @IsOptional() @IsString() milestoneId?: string
+  @ApiPropertyOptional({ description: '目标版本ID' }) @IsOptional() @IsString() versionId?: string
+  @ApiPropertyOptional({ description: '业务价值分最小值' }) @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100) valueScoreMin?: number
+  @ApiPropertyOptional({ description: '业务价值分最大值' }) @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100) valueScoreMax?: number
+  @ApiPropertyOptional({ description: '实现难度分最小值' }) @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100) difficultyScoreMin?: number
+  @ApiPropertyOptional({ description: '实现难度分最大值' }) @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100) difficultyScoreMax?: number
+  @ApiPropertyOptional({ description: '计划开始时间起' }) @IsOptional() @IsString() plannedStartTimeStart?: string
+  @ApiPropertyOptional({ description: '计划开始时间止' }) @IsOptional() @IsString() plannedStartTimeEnd?: string
+  @ApiPropertyOptional({ description: '计划完成时间起' }) @IsOptional() @IsString() plannedEndTimeStart?: string
+  @ApiPropertyOptional({ description: '计划完成时间止' }) @IsOptional() @IsString() plannedEndTimeEnd?: string
+  @ApiPropertyOptional({ description: '创建时间起' }) @IsOptional() @IsString() createTimeStart?: string
+  @ApiPropertyOptional({ description: '创建时间止' }) @IsOptional() @IsString() createTimeEnd?: string
+  @ApiPropertyOptional({ description: '排序字段' }) @IsOptional() @IsString() sortBy?: string
+  @ApiPropertyOptional({ description: '排序方向 asc/desc' }) @IsOptional() @IsString() sortOrder?: string
 }
 
 export class CreateRequirementDto {
@@ -38,6 +57,13 @@ export class CreateRequirementDto {
 
 export class UpdateRequirementDto extends PartialType(CreateRequirementDto) {}
 
+export class BatchAssignRequirementsDto {
+  @ApiProperty({ description: '需求ID列表', type: [String] }) @IsArray() @ArrayNotEmpty() @IsString({ each: true }) ids!: string[]
+  @ApiPropertyOptional({ description: '需求负责人ID，传 null 表示清空，不传表示不修改' }) @IsOptional() @IsString() ownerId?: string | null
+  @ApiPropertyOptional({ description: '开发负责人ID，传 null 表示清空，不传表示不修改' }) @IsOptional() @IsString() developerId?: string | null
+  @ApiPropertyOptional({ description: '测试负责人ID，传 null 表示清空，不传表示不修改' }) @IsOptional() @IsString() testerId?: string | null
+}
+
 export class RequirementActionDto {
   @ApiPropertyOptional({ description: '操作说明' }) @IsOptional() @IsString() remark?: string
 }
@@ -46,6 +72,13 @@ export class QueryIterationDto extends BugPageDto {
   @ApiPropertyOptional({ description: '关键词' }) @IsOptional() @IsString() keyword?: string
   @ApiPropertyOptional({ description: '项目ID' }) @IsOptional() @IsString() projectId?: string
   @ApiPropertyOptional({ description: '状态' }) @IsOptional() @IsString() status?: string
+  @ApiPropertyOptional({ description: '负责人ID' }) @IsOptional() @IsString() ownerId?: string
+  @ApiPropertyOptional({ description: '开始日期起' }) @IsOptional() @IsString() startDateStart?: string
+  @ApiPropertyOptional({ description: '开始日期止' }) @IsOptional() @IsString() startDateEnd?: string
+  @ApiPropertyOptional({ description: '结束日期起' }) @IsOptional() @IsString() endDateStart?: string
+  @ApiPropertyOptional({ description: '结束日期止' }) @IsOptional() @IsString() endDateEnd?: string
+  @ApiPropertyOptional({ description: '排序字段' }) @IsOptional() @IsString() sortBy?: string
+  @ApiPropertyOptional({ description: '排序方向 asc/desc' }) @IsOptional() @IsString() sortOrder?: string
 }
 
 export class CreateIterationDto {
@@ -66,6 +99,12 @@ export class QueryMilestoneDto extends BugPageDto {
   @ApiPropertyOptional({ description: '关键词' }) @IsOptional() @IsString() keyword?: string
   @ApiPropertyOptional({ description: '项目ID' }) @IsOptional() @IsString() projectId?: string
   @ApiPropertyOptional({ description: '状态' }) @IsOptional() @IsString() status?: string
+  @ApiPropertyOptional({ description: '项目阶段' }) @IsOptional() @IsString() stage?: string
+  @ApiPropertyOptional({ description: '负责人ID' }) @IsOptional() @IsString() ownerId?: string
+  @ApiPropertyOptional({ description: '目标日期起' }) @IsOptional() @IsString() targetDateStart?: string
+  @ApiPropertyOptional({ description: '目标日期止' }) @IsOptional() @IsString() targetDateEnd?: string
+  @ApiPropertyOptional({ description: '排序字段' }) @IsOptional() @IsString() sortBy?: string
+  @ApiPropertyOptional({ description: '排序方向 asc/desc' }) @IsOptional() @IsString() sortOrder?: string
 }
 
 export class CreateMilestoneDto {

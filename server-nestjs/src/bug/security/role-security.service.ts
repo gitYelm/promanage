@@ -113,18 +113,21 @@ export class RoleSecurityService {
   }) {
     const { operatorId, projectId, targetUserId, allowedMemberRoles, label } = options
     if (!targetUserId) return
+    const operatorIsAdmin = await this.isAdmin(operatorId)
     await this.assertActiveUser(targetUserId)
-    await this.assertNotHigher(operatorId, targetUserId, `不能选择权限高于自己的${label}`)
-    const member = await this.prisma.bugProjectMember.findFirst({
-      where: {
-        projectId: BigInt(projectId),
-        userId: BigInt(targetUserId),
-        memberRole: { in: allowedMemberRoles },
-        status: '0',
-      },
-      select: { memberRole: true },
-    })
-    if (!member) throw BusinessException.invalidParams(`${label}必须是当前项目的有效成员`)
+    if (!operatorIsAdmin) {
+      await this.assertNotHigher(operatorId, targetUserId, `不能选择权限高于自己的${label}`)
+      const member = await this.prisma.bugProjectMember.findFirst({
+        where: {
+          projectId: BigInt(projectId),
+          userId: BigInt(targetUserId),
+          memberRole: { in: allowedMemberRoles },
+          status: '0',
+        },
+        select: { memberRole: true },
+      })
+      if (!member) throw BusinessException.invalidParams(`${label}必须是当前项目的有效成员`)
+    }
     await this.assertUserMatchesAnyMemberRole(targetUserId, allowedMemberRoles, `${label}必须具备对应系统角色`)
   }
 
@@ -144,7 +147,12 @@ export class RoleSecurityService {
 
   private userOptionWhere(query: AssignableUserOptionsQuery): Prisma.SysUserWhereInput {
     const memberRoles = this.resolveProjectMemberRoles(query)
-    const shouldFilterProjectMember = Boolean(query.projectId && memberRoles.length && this.shouldFilterByProjectMembership(query))
+    const shouldFilterProjectMember = Boolean(
+      query.projectId &&
+      memberRoles.length &&
+      this.shouldFilterByProjectMembership(query) &&
+      !this.shouldBypassProjectMembershipFilter(query),
+    )
     return {
       delFlag: '0',
       status: '0',
@@ -196,6 +204,10 @@ export class RoleSecurityService {
   private shouldFilterByProjectMembership(query: AssignableUserOptionsQuery) {
     if (!query.assignContext) return true
     return PROJECT_MEMBERSHIP_CONTEXTS.has(query.assignContext)
+  }
+
+  private shouldBypassProjectMembershipFilter(query: AssignableUserOptionsQuery) {
+    return query.assignableOnly === 'true' && Boolean(query.assignContext)
   }
 
   private resolveProjectMemberRoles(query: AssignableUserOptionsQuery): BugMemberRole[] {

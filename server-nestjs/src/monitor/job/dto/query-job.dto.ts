@@ -1,7 +1,8 @@
 import { IsOptional, IsString } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
+import { SortableQueryDto } from '../../../common/dto/sortable-query.dto'
 
-export class QueryJobDto {
+export class QueryJobDto extends SortableQueryDto {
   @ApiPropertyOptional({ description: '任务名称', example: '系统默认' })
   @IsOptional()
   @IsString()
@@ -16,6 +17,16 @@ export class QueryJobDto {
   @IsOptional()
   @IsString()
   status?: string
+
+  @ApiPropertyOptional({ description: '调用目标字符串', example: 'task.clean' })
+  @IsOptional()
+  @IsString()
+  invokeTarget?: string
+
+  @ApiPropertyOptional({ description: 'Cron 执行表达式', example: '0 0 * * * ?' })
+  @IsOptional()
+  @IsString()
+  cronExpression?: string
 
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()

@@ -8,6 +8,7 @@ import { LoggerService } from '../../common/logger/logger.service'
 import { BusinessException } from '../../common/exceptions'
 import { ErrorCode } from '../../common/enums'
 import { defaultRoleSecurityLevel } from '../../common/security/role-level.config'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
 export class RoleService {
@@ -20,7 +21,7 @@ export class RoleService {
    * 查询角色列表
    */
   async findAll(query: QueryRoleDto, maxSecurityLevel?: number) {
-    const { roleName, roleKey, status, pageNum = 1, pageSize = 20 } = query
+    const { roleName, roleKey, status, securityLevelMin, securityLevelMax, pageNum = 1, pageSize = 20 } = query
     const skip = (pageNum - 1) * pageSize
     const andWhere: Prisma.SysRoleWhereInput[] = []
 
@@ -37,6 +38,12 @@ export class RoleService {
     if (status) {
       where.status = status
     }
+    if (securityLevelMin || securityLevelMax) {
+      where.securityLevel = {
+        ...(securityLevelMin ? { gte: Number(securityLevelMin) } : {}),
+        ...(securityLevelMax ? { lte: Number(securityLevelMax) } : {}),
+      }
+    }
     if (maxSecurityLevel !== undefined) {
       andWhere.push({ securityLevel: { lte: maxSecurityLevel } })
     }
@@ -48,7 +55,7 @@ export class RoleService {
         where,
         skip: Number(skip),
         take: Number(pageSize),
-        orderBy: [{ roleSort: 'asc' }, { roleId: 'asc' }],
+        orderBy: this.buildOrderBy(query),
       }),
     ])
 
@@ -66,6 +73,21 @@ export class RoleService {
     )
 
     return { total, rows: rowsWithUserCount }
+  }
+
+  private buildOrderBy(query: QueryRoleDto): Prisma.SysRoleOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysRoleOrderByWithRelationInput> = {
+      roleId: { roleId: direction },
+      roleName: { roleName: direction },
+      roleKey: { roleKey: direction },
+      securityLevel: { securityLevel: direction },
+      roleSort: { roleSort: direction },
+      status: { status: direction },
+      createTime: { createTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { roleId: 'asc' }]
+    return [{ roleSort: 'asc' }, { roleId: 'asc' }]
   }
 
   private withSecurityLevel<T extends { roleKey: string; securityLevel?: number | null }>(role: T) {

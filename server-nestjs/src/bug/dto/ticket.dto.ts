@@ -1,13 +1,25 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger'
 import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator'
-import { BugPageDto } from './common.dto'
+import { BugSortDto } from './common.dto'
 
-export class QueryBugTicketDto extends BugPageDto {
+export class QueryBugTicketDto extends BugSortDto {
   /** 关键词 */
   @ApiPropertyOptional({ description: '关键词' })
   @IsOptional()
   @IsString()
   keyword?: string
+
+  /** Bug 编号 */
+  @ApiPropertyOptional({ description: 'Bug 编号' })
+  @IsOptional()
+  @IsString()
+  ticketNo?: string
+
+  /** Bug 标题 */
+  @ApiPropertyOptional({ description: 'Bug 标题' })
+  @IsOptional()
+  @IsString()
+  title?: string
 
   /** 所属项目ID */
   @ApiPropertyOptional({ description: '所属项目ID' })
@@ -20,6 +32,12 @@ export class QueryBugTicketDto extends BugPageDto {
   @IsOptional()
   @IsString()
   moduleId?: string
+
+  /** 问题类型 */
+  @ApiPropertyOptional({ description: '问题类型' })
+  @IsOptional()
+  @IsString()
+  type?: string
 
   /** 当前状态 */
   @ApiPropertyOptional({ description: '当前状态' })
@@ -39,6 +57,18 @@ export class QueryBugTicketDto extends BugPageDto {
   @IsString()
   priority?: string
 
+  /** 运行环境 */
+  @ApiPropertyOptional({ description: '运行环境' })
+  @IsOptional()
+  @IsString()
+  environment?: string
+
+  /** 设备信息 */
+  @ApiPropertyOptional({ description: '设备信息' })
+  @IsOptional()
+  @IsString()
+  deviceInfo?: string
+
   /** 负责人ID */
   @ApiPropertyOptional({ description: '负责人ID' })
   @IsOptional()
@@ -50,6 +80,12 @@ export class QueryBugTicketDto extends BugPageDto {
   @IsOptional()
   @IsString()
   submitterId?: string
+
+  /** 验证人ID */
+  @ApiPropertyOptional({ description: '验证人ID' })
+  @IsOptional()
+  @IsString()
+  verifierId?: string
 
   /** 关联需求ID */
   @ApiPropertyOptional({ description: '关联需求ID' })
@@ -80,6 +116,30 @@ export class QueryBugTicketDto extends BugPageDto {
   @IsOptional()
   @IsString()
   endTime?: string
+
+  /** 预计完成开始时间 */
+  @ApiPropertyOptional({ description: '预计完成开始时间，ISO 8601' })
+  @IsOptional()
+  @IsString()
+  dueTimeStart?: string
+
+  /** 预计完成结束时间 */
+  @ApiPropertyOptional({ description: '预计完成结束时间，ISO 8601' })
+  @IsOptional()
+  @IsString()
+  dueTimeEnd?: string
+
+  /** 更新开始时间 */
+  @ApiPropertyOptional({ description: '更新开始时间，ISO 8601' })
+  @IsOptional()
+  @IsString()
+  updateTimeStart?: string
+
+  /** 更新结束时间 */
+  @ApiPropertyOptional({ description: '更新结束时间，ISO 8601' })
+  @IsOptional()
+  @IsString()
+  updateTimeEnd?: string
 
   /** 仅查看我的相关 Bug */
   @ApiPropertyOptional({ description: '仅查看我的相关 Bug' })

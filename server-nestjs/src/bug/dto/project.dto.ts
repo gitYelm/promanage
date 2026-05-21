@@ -1,9 +1,14 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger'
 import { IsBoolean, IsIn, IsOptional, IsString, IsInt, Max, Min } from 'class-validator'
 import { Type } from 'class-transformer'
-import { BugKeywordDto } from './common.dto'
+import { BugSortDto } from './common.dto'
 
-export class QueryBugProjectDto extends BugKeywordDto {
+export class QueryBugProjectDto extends BugSortDto {
+  /** 关键词 */
+  @ApiPropertyOptional({ description: '关键词' })
+  @IsOptional()
+  @IsString()
+  keyword?: string
   /** 项目状态 */
   @ApiPropertyOptional({ description: '状态（0正常 1停用）' })
   @IsOptional()
@@ -94,12 +99,23 @@ export class CreateBugProjectDto {
 
 export class UpdateBugProjectDto extends PartialType(CreateBugProjectDto) {}
 
-export class QueryBugModuleDto extends BugKeywordDto {
+export class QueryBugModuleDto extends BugSortDto {
+  /** 关键词 */
+  @ApiPropertyOptional({ description: '关键词' })
+  @IsOptional()
+  @IsString()
+  keyword?: string
   /** 所属项目ID */
   @ApiPropertyOptional({ description: '所属项目ID' })
   @IsOptional()
   @IsString()
   projectId?: string
+
+  /** 模块状态 */
+  @ApiPropertyOptional({ description: '状态（0正常 1停用）' })
+  @IsOptional()
+  @IsString()
+  status?: string
 }
 
 export class CreateBugModuleDto {
@@ -135,12 +151,23 @@ export class CreateBugModuleDto {
 
 export class UpdateBugModuleDto extends PartialType(CreateBugModuleDto) {}
 
-export class QueryBugVersionDto extends BugKeywordDto {
+export class QueryBugVersionDto extends BugSortDto {
+  /** 关键词 */
+  @ApiPropertyOptional({ description: '关键词' })
+  @IsOptional()
+  @IsString()
+  keyword?: string
   /** 所属项目ID */
   @ApiPropertyOptional({ description: '所属项目ID' })
   @IsOptional()
   @IsString()
   projectId?: string
+
+  /** 版本状态 */
+  @ApiPropertyOptional({ description: '版本状态' })
+  @IsOptional()
+  @IsString()
+  status?: string
 }
 
 export class CreateBugVersionDto {

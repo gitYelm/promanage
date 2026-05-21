@@ -1,7 +1,8 @@
 import { IsOptional, IsString } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
+import { SortableQueryDto } from '../../../common/dto/sortable-query.dto'
 
-export class QueryOnlineDto {
+export class QueryOnlineDto extends SortableQueryDto {
   @ApiPropertyOptional({ description: '用户名', example: 'admin' })
   @IsOptional()
   @IsString()

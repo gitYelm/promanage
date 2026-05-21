@@ -5,6 +5,7 @@ import { CreateDictTypeDto } from './dto/create-dict-type.dto'
 import { UpdateDictTypeDto } from './dto/update-dict-type.dto'
 import { Prisma } from '@prisma/client'
 import { LoggerService } from '../../common/logger/logger.service'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
 export class DictService {
@@ -28,11 +29,24 @@ export class DictService {
         where,
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
-        orderBy: { dictId: 'asc' },
+        orderBy: this.buildOrderBy(query),
       }),
     ])
 
     return { total, rows }
+  }
+
+  private buildOrderBy(query: QueryDictTypeDto): Prisma.SysDictTypeOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysDictTypeOrderByWithRelationInput> = {
+      dictId: { dictId: direction },
+      dictName: { dictName: direction },
+      dictType: { dictType: direction },
+      status: { status: direction },
+      createTime: { createTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { dictId: 'asc' }]
+    return [{ dictId: 'asc' }]
   }
 
   async getType(dictId: string) {

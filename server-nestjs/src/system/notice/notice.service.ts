@@ -6,6 +6,7 @@ import { CreateNoticeDto } from './dto/create-notice.dto'
 import { UpdateNoticeDto } from './dto/update-notice.dto'
 import { LoggerService } from '../../common/logger/logger.service'
 import { sanitizeHtmlContent } from '../../common/utils/sanitize-html.util'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
 export class NoticeService {
@@ -18,6 +19,7 @@ export class NoticeService {
     const where: Prisma.SysNoticeWhereInput = {}
     if (query.noticeTitle) where.noticeTitle = { contains: query.noticeTitle }
     if (query.noticeType) where.noticeType = query.noticeType
+    if (query.createBy) where.createBy = { contains: query.createBy }
     const pageNum = Number(query.pageNum ?? 1)
     const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
@@ -26,10 +28,24 @@ export class NoticeService {
         where,
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
-        orderBy: { noticeId: 'asc' },
+        orderBy: this.buildOrderBy(query),
       }),
     ])
     return { total, rows }
+  }
+
+  private buildOrderBy(query: QueryNoticeDto): Prisma.SysNoticeOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysNoticeOrderByWithRelationInput> = {
+      noticeId: { noticeId: direction },
+      noticeTitle: { noticeTitle: direction },
+      noticeType: { noticeType: direction },
+      status: { status: direction },
+      createBy: { createBy: direction },
+      createTime: { createTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { noticeId: 'asc' }]
+    return [{ noticeId: 'asc' }]
   }
 
   async findOne(noticeId: string) {

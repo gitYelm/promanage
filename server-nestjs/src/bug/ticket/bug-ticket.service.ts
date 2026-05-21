@@ -40,7 +40,7 @@ export class BugTicketService {
         skip: (pageNum - 1) * pageSize,
         take: pageSize,
         include: this.ticketInclude(),
-        orderBy: { ticketId: 'desc' },
+        orderBy: this.buildOrderBy(query),
       }),
     ])
     const rowsWithActions = await Promise.all(
@@ -212,24 +212,70 @@ export class BugTicketService {
     if (query.keyword) {
       where.OR = [{ title: { contains: query.keyword } }, { ticketNo: { contains: query.keyword } }]
     }
+    if (query.ticketNo) where.ticketNo = { contains: query.ticketNo }
+    if (query.title) where.title = { contains: query.title }
     if (query.projectId) where.projectId = { equals: this.parseBigInt(query.projectId, '项目ID格式不正确') }
     if (query.moduleId) where.moduleId = this.parseBigInt(query.moduleId, '模块ID格式不正确')
+    if (query.type) where.type = query.type
     if (query.status) where.status = query.status
     if (query.pending === 'true') where.status = { in: [...BUG_PENDING_STATUSES] }
     if (query.priority) where.priority = query.priority
     if (query.severity) where.severity = query.severity
+    if (query.environment) where.environment = query.environment
+    if (query.deviceInfo) where.deviceInfo = { contains: query.deviceInfo }
     if (query.assigneeId) where.assigneeId = this.parseBigInt(query.assigneeId, '负责人ID格式不正确')
     if (query.submitterId) where.submitterId = this.parseBigInt(query.submitterId, '提交人ID格式不正确')
+    if (query.verifierId) where.verifierId = this.parseBigInt(query.verifierId, '验证人ID格式不正确')
     if (query.requirementId) where.requirementId = this.parseBigInt(query.requirementId, '需求ID格式不正确')
     if (query.iterationId) where.iterationId = this.parseBigInt(query.iterationId, '迭代ID格式不正确')
     if (query.milestoneId) where.milestoneId = this.parseBigInt(query.milestoneId, '里程碑ID格式不正确')
-    if (query.beginTime || query.endTime) {
-      where.createTime = {
-        ...(query.beginTime ? { gte: new Date(query.beginTime) } : {}),
-        ...(query.endTime ? { lte: new Date(query.endTime) } : {}),
-      }
-    }
+    this.applyDateRange(where, 'createTime', query.beginTime, query.endTime, '创建时间')
+    this.applyDateRange(where, 'dueTime', query.dueTimeStart, query.dueTimeEnd, '预计完成时间')
+    this.applyDateRange(where, 'updateTime', query.updateTimeStart, query.updateTimeEnd, '更新时间')
     return where
+  }
+
+  private applyDateRange(
+    where: Prisma.BugTicketWhereInput,
+    field: 'createTime' | 'dueTime' | 'updateTime',
+    start: string | undefined,
+    end: string | undefined,
+    label: string,
+  ) {
+    if (!start && !end) return
+    const startDate = start ? this.parseQueryDate(start, `${label}开始值`) : undefined
+    const endDate = end ? this.parseQueryDate(end, `${label}结束值`) : undefined
+    if (startDate && endDate && startDate > endDate) {
+      throw BusinessException.invalidParams(`${label}开始值不能晚于结束值`)
+    }
+    const range = { ...(startDate ? { gte: startDate } : {}), ...(endDate ? { lte: endDate } : {}) }
+    if (field === 'createTime') where.createTime = range
+    else if (field === 'dueTime') where.dueTime = range
+    else where.updateTime = range
+  }
+
+  private parseQueryDate(value: string, label: string) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) throw BusinessException.invalidParams(`${label}格式不正确`)
+    return date
+  }
+
+  private buildOrderBy(query: QueryBugTicketDto): Prisma.BugTicketOrderByWithRelationInput[] {
+    const direction = query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
+    const sortMap: Record<string, Prisma.BugTicketOrderByWithRelationInput> = {
+      ticketNo: { ticketNo: direction },
+      projectId: { projectId: direction },
+      moduleId: { moduleId: direction },
+      status: { status: direction },
+      severity: { severity: direction },
+      priority: { priority: direction },
+      assigneeId: { assigneeId: direction },
+      createTime: { createTime: direction },
+      dueTime: { dueTime: direction },
+      updateTime: { updateTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { ticketId: 'desc' }]
+    return [{ ticketId: 'desc' }]
   }
 
   private createTicketData(

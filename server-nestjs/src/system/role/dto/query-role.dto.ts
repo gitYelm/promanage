@@ -1,7 +1,8 @@
-import { IsOptional, IsString } from 'class-validator'
+import { IsNumberString, IsOptional, IsString } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
+import { SortableQueryDto } from '../../../common/dto/sortable-query.dto'
 
-export class QueryRoleDto {
+export class QueryRoleDto extends SortableQueryDto {
   @ApiPropertyOptional({ description: '角色名称', example: '管理员' })
   @IsOptional()
   @IsString()
@@ -16,6 +17,16 @@ export class QueryRoleDto {
   @IsOptional()
   @IsString()
   status?: string
+
+  @ApiPropertyOptional({ description: '安全等级最小值', example: 1 })
+  @IsOptional()
+  @IsNumberString()
+  securityLevelMin?: string
+
+  @ApiPropertyOptional({ description: '安全等级最大值', example: 100 })
+  @IsOptional()
+  @IsNumberString()
+  securityLevelMax?: string
 
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()

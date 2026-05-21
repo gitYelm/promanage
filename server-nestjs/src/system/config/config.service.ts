@@ -4,6 +4,7 @@ import { QueryConfigDto } from './dto/query-config.dto'
 import { CreateConfigDto } from './dto/create-config.dto'
 import { UpdateConfigDto } from './dto/update-config.dto'
 import { Prisma } from '@prisma/client'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 import { LoggerService } from '../../common/logger/logger.service'
 
 @Injectable()
@@ -26,10 +27,23 @@ export class ConfigService {
         where,
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
-        orderBy: { configId: 'asc' },
+        orderBy: this.buildOrderBy(query),
       }),
     ])
     return { total, rows }
+  }
+
+  private buildOrderBy(query: QueryConfigDto): Prisma.SysConfigOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysConfigOrderByWithRelationInput> = {
+      configId: { configId: direction },
+      configName: { configName: direction },
+      configKey: { configKey: direction },
+      configType: { configType: direction },
+      createTime: { createTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { configId: 'asc' }]
+    return [{ configId: 'asc' }]
   }
 
   async findOne(configId: string) {

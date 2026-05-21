@@ -34,7 +34,16 @@ export class ExecutiveDashboardService {
         this.prisma.bugTicket.count({ where: { AND: [baseBugWhere, { severity: { in: ['blocker', 'critical'] }, status: { not: 'closed' } }] } }),
         this.query.milestoneRisk(project.projectId),
       ])
-      return { project, progress: this.query.progress(totalReq, doneReq), bugCloseRate: this.query.progress(totalBug, closedBug), blockerBugs, delayedMilestones, health: this.health(project.riskLevel, blockerBugs, delayedMilestones) }
+      return {
+        project,
+        // 与项目概览一致：这里展示项目表维护的综合进度；需求完成率仍由其他指标单独体现。
+        progress: project.progress ?? 0,
+        requirementDoneRate: this.query.progress(totalReq, doneReq),
+        bugCloseRate: this.query.progress(totalBug, closedBug),
+        blockerBugs,
+        delayedMilestones,
+        health: this.health(project.riskLevel, blockerBugs, delayedMilestones),
+      }
     }))
   }
 

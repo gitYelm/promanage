@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { QueryLogininforDto } from './dto/query-logininfor.dto'
 import { Prisma } from '@prisma/client'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
 export class LogininforService {
@@ -36,7 +37,7 @@ export class LogininforService {
         where,
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
-        orderBy: { loginTime: 'desc' },
+        orderBy: this.buildOrderBy(query),
       }),
     ])
 
@@ -47,6 +48,23 @@ export class LogininforService {
     }))
 
     return { total, rows: safeRows }
+  }
+
+  private buildOrderBy(query: QueryLogininforDto): Prisma.SysLoginLogOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysLoginLogOrderByWithRelationInput> = {
+      infoId: { infoId: direction },
+      userName: { userName: direction },
+      ipaddr: { ipaddr: direction },
+      loginLocation: { loginLocation: direction },
+      browser: { browser: direction },
+      os: { os: direction },
+      status: { status: direction },
+      msg: { msg: direction },
+      loginTime: { loginTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { loginTime: 'desc' }]
+    return [{ loginTime: 'desc' }]
   }
 
   async create(data: {

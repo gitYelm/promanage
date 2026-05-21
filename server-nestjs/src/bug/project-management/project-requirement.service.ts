@@ -9,7 +9,7 @@ import { BugAccessService, type RequestUserLike } from '../bug-access.service'
 import { BUG_MEMBER_ROLE } from '../constants/bug.constants'
 import { RoleSecurityService } from '../security/role-security.service'
 import { ProjectActivityService } from './project-activity.service'
-import { CreateRequirementDto, QueryRequirementDto, RequirementActionDto, UpdateRequirementDto } from '../dto/project-management.dto'
+import { BatchAssignRequirementsDto, CreateRequirementDto, QueryRequirementDto, RequirementActionDto, UpdateRequirementDto } from '../dto/project-management.dto'
 
 @Injectable()
 export class ProjectRequirementService {
@@ -32,7 +32,7 @@ export class ProjectRequirementService {
         skip: (pageNum - 1) * pageSize,
         take: pageSize,
         include: this.include(),
-        orderBy: { requirementId: 'desc' },
+        orderBy: this.buildOrderBy(query),
       }),
     ])
     return { total, rows }
@@ -44,7 +44,7 @@ export class ProjectRequirementService {
       include: { ...this.include(), tickets: { where: { delFlag: '0' } } },
     })
     if (!requirement) throw BusinessException.notFound('需求不存在')
-    await this.assertProjectVisible(user.userId, requirement.projectId)
+    await this.access.assertRequirementVisible(user.userId, requirementId)
     return requirement
   }
 
@@ -86,6 +86,58 @@ export class ProjectRequirementService {
     return this.detail(requirementId, user)
   }
 
+  async batchAssign(dto: BatchAssignRequirementsDto, user: RequestUserLike) {
+    const idList = dto.ids.map((id) => BigInt(id))
+    const rows = await this.prisma.projectRequirement.findMany({
+      where: { requirementId: { in: idList }, delFlag: '0' },
+      select: { requirementId: true, projectId: true },
+    })
+    if (!rows.length) throw BusinessException.notFound('未找到可更新的需求')
+    if (rows.length !== idList.length) throw BusinessException.invalidParams('部分需求不存在或已删除')
+
+    const projectIds = [...new Set(rows.map((row) => String(row.projectId)))]
+    if (projectIds.length !== 1) throw BusinessException.invalidParams('批量修改负责人仅支持同一项目的需求')
+
+    const projectId = BigInt(projectIds[0])
+    await this.assertProjectVisible(user.userId, projectId)
+    await this.assertBatchAssigneesAllowed(user, projectId, dto)
+
+    const data: Prisma.ProjectRequirementUncheckedUpdateInput = { updateBy: user.username }
+    let hasAssignableFieldChange = false
+    if (dto.ownerId !== undefined) {
+      data.ownerId = this.bigIntOrNull(dto.ownerId || undefined)
+      hasAssignableFieldChange = true
+    }
+    if (dto.developerId !== undefined) {
+      data.developerId = this.bigIntOrNull(dto.developerId || undefined)
+      hasAssignableFieldChange = true
+    }
+    if (dto.testerId !== undefined) {
+      data.testerId = this.bigIntOrNull(dto.testerId || undefined)
+      hasAssignableFieldChange = true
+    }
+    if (!hasAssignableFieldChange) throw BusinessException.invalidParams('请至少选择一个要批量修改的人员字段')
+
+    await this.prisma.projectRequirement.updateMany({
+      where: { requirementId: { in: idList }, delFlag: '0' },
+      data,
+    })
+
+    await Promise.all(
+      rows.map((row) =>
+        this.activity.record({
+          projectId: row.projectId,
+          targetType: PM_ACTIVITY_TARGET.REQUIREMENT,
+          targetId: row.requirementId,
+          action: PM_ACTIVITY_ACTION.UPDATE,
+          operatorId: BigInt(user.userId),
+          remark: '批量修改人员分工',
+        }),
+      ),
+    )
+    return { updatedCount: rows.length }
+  }
+
   async action(requirementId: string, action: string, dto: RequirementActionDto, user: RequestUserLike) {
     const existing = await this.ensure(requirementId, user)
     const transition = findTransition(REQUIREMENT_TRANSITIONS, action, existing.status)
@@ -113,19 +165,95 @@ export class ProjectRequirementService {
 
   private async buildWhere(query: QueryRequirementDto, user: RequestUserLike): Promise<Prisma.ProjectRequirementWhereInput> {
     const projectIds = await this.access.getVisibleProjectIds(user.userId)
-    const where: Prisma.ProjectRequirementWhereInput = { delFlag: '0', projectId: { in: projectIds } }
-    if (query.keyword) where.OR = [{ title: { contains: query.keyword } }, { requirementNo: { contains: query.keyword } }]
+    const where = await this.access.buildRequirementWhere(user.userId)
+    const appendAnd = (condition: Prisma.ProjectRequirementWhereInput) => {
+      const currentAnd = !where.AND ? [] : Array.isArray(where.AND) ? where.AND : [where.AND]
+      where.AND = [...currentAnd, condition]
+    }
+    if (query.keyword) {
+      appendAnd({
+        OR: [{ title: { contains: query.keyword } }, { requirementNo: { contains: query.keyword } }],
+      })
+    }
+    if (query.requirementNo) appendAnd({ requirementNo: { contains: query.requirementNo } })
+    if (query.title) appendAnd({ title: { contains: query.title } })
     if (query.projectId) {
       const id = BigInt(query.projectId)
-      where.projectId = projectIds.some((item) => item === id) ? id : { in: [] }
+      appendAnd({ projectId: projectIds.some((item) => item === id) ? id : { in: [] } })
     }
-    if (query.moduleId) where.moduleId = BigInt(query.moduleId)
-    if (query.status) where.status = query.status
-    if (query.priority) where.priority = query.priority
-    if (query.ownerId) where.ownerId = BigInt(query.ownerId)
-    if (query.developerId) where.developerId = BigInt(query.developerId)
-    if (query.iterationId) where.iterationId = BigInt(query.iterationId)
+    if (query.moduleId) appendAnd({ moduleId: BigInt(query.moduleId) })
+    if (query.type) appendAnd({ type: query.type })
+    if (query.source) appendAnd({ source: { contains: query.source } })
+    if (query.status) appendAnd({ status: query.status })
+    if (query.priority) appendAnd({ priority: query.priority })
+    if (query.ownerId) appendAnd({ ownerId: BigInt(query.ownerId) })
+    if (query.developerId) appendAnd({ developerId: BigInt(query.developerId) })
+    if (query.testerId) appendAnd({ testerId: BigInt(query.testerId) })
+    if (query.iterationId) appendAnd({ iterationId: BigInt(query.iterationId) })
+    if (query.milestoneId) appendAnd({ milestoneId: BigInt(query.milestoneId) })
+    if (query.versionId) appendAnd({ versionId: BigInt(query.versionId) })
+    this.appendIntRange(appendAnd, 'valueScore', query.valueScoreMin, query.valueScoreMax, '业务价值分')
+    this.appendIntRange(appendAnd, 'difficultyScore', query.difficultyScoreMin, query.difficultyScoreMax, '实现难度分')
+    this.appendDateRange(appendAnd, 'plannedStartTime', query.plannedStartTimeStart, query.plannedStartTimeEnd, '计划开始时间')
+    this.appendDateRange(appendAnd, 'plannedEndTime', query.plannedEndTimeStart, query.plannedEndTimeEnd, '计划完成时间')
+    this.appendDateRange(appendAnd, 'createTime', query.createTimeStart, query.createTimeEnd, '创建时间')
     return where
+  }
+
+  private appendIntRange(
+    appendAnd: (condition: Prisma.ProjectRequirementWhereInput) => void,
+    field: 'valueScore' | 'difficultyScore',
+    min: number | undefined,
+    max: number | undefined,
+    label: string,
+  ) {
+    if (min === undefined && max === undefined) return
+    if (min !== undefined && max !== undefined && min > max) {
+      throw BusinessException.invalidParams(`${label}最小值不能大于最大值`)
+    }
+    const range = { ...(min !== undefined ? { gte: min } : {}), ...(max !== undefined ? { lte: max } : {}) }
+    appendAnd(field === 'valueScore' ? { valueScore: range } : { difficultyScore: range })
+  }
+
+  private appendDateRange(
+    appendAnd: (condition: Prisma.ProjectRequirementWhereInput) => void,
+    field: 'plannedStartTime' | 'plannedEndTime' | 'createTime',
+    start: string | undefined,
+    end: string | undefined,
+    label: string,
+  ) {
+    if (!start && !end) return
+    const startDate = start ? this.parseQueryDate(start, `${label}开始值`) : undefined
+    const endDate = end ? this.parseQueryDate(end, `${label}结束值`) : undefined
+    if (startDate && endDate && startDate > endDate) {
+      throw BusinessException.invalidParams(`${label}开始值不能晚于结束值`)
+    }
+    const range = { ...(startDate ? { gte: startDate } : {}), ...(endDate ? { lte: endDate } : {}) }
+    if (field === 'plannedStartTime') appendAnd({ plannedStartTime: range })
+    else if (field === 'plannedEndTime') appendAnd({ plannedEndTime: range })
+    else appendAnd({ createTime: range })
+  }
+
+  private parseQueryDate(value: string, label: string) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) throw BusinessException.invalidParams(`${label}格式不正确`)
+    return date
+  }
+
+  private buildOrderBy(query: QueryRequirementDto): Prisma.ProjectRequirementOrderByWithRelationInput[] {
+    const direction = query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
+    const sortMap: Record<string, Prisma.ProjectRequirementOrderByWithRelationInput> = {
+      requirementNo: { requirementNo: direction },
+      projectId: { projectId: direction },
+      ownerId: { ownerId: direction },
+      status: { status: direction },
+      priority: { priority: direction },
+      plannedEndTime: { plannedEndTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) {
+      return [sortMap[query.sortBy], { requirementId: 'desc' }]
+    }
+    return [{ requirementId: 'desc' }]
   }
 
   private createData(dto: CreateRequirementDto, requirementNo: string, user: RequestUserLike): Prisma.ProjectRequirementUncheckedCreateInput {
@@ -186,6 +314,14 @@ export class ProjectRequirementService {
         label: '测试负责人',
       }),
     ])
+  }
+
+  private async assertBatchAssigneesAllowed(user: RequestUserLike, projectId: bigint, dto: BatchAssignRequirementsDto) {
+    await this.assertAssigneesAllowed(user, projectId, {
+      ownerId: dto.ownerId ?? undefined,
+      developerId: dto.developerId ?? undefined,
+      testerId: dto.testerId ?? undefined,
+    })
   }
 
   private async assertRelations(projectId: bigint, dto: Pick<CreateRequirementDto, 'moduleId' | 'iterationId' | 'milestoneId' | 'versionId'>) {

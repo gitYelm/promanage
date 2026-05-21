@@ -1,7 +1,8 @@
 import { IsOptional, IsString } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
+import { SortableQueryDto } from '../../../common/dto/sortable-query.dto'
 
-export class QueryOperLogDto {
+export class QueryOperLogDto extends SortableQueryDto {
   @ApiPropertyOptional({ description: '系统模块', example: '用户管理' })
   @IsOptional()
   @IsString()
@@ -21,6 +22,16 @@ export class QueryOperLogDto {
   @IsOptional()
   @IsString()
   businessType?: string
+
+  @ApiPropertyOptional({ description: '开始时间', example: '2024-01-01' })
+  @IsOptional()
+  @IsString()
+  beginTime?: string
+
+  @ApiPropertyOptional({ description: '结束时间', example: '2024-12-31' })
+  @IsOptional()
+  @IsString()
+  endTime?: string
 
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()

@@ -20,7 +20,7 @@ export class ProjectIterationService {
     const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
       this.prisma.projectIteration.count({ where }),
-      this.prisma.projectIteration.findMany({ where, skip: (pageNum - 1) * pageSize, take: pageSize, include: { project: true, owner: true }, orderBy: { iterationId: 'desc' } }),
+      this.prisma.projectIteration.findMany({ where, skip: (pageNum - 1) * pageSize, take: pageSize, include: { project: true, owner: true }, orderBy: this.buildOrderBy(query) }),
     ])
     return { total, rows }
   }
@@ -70,7 +70,46 @@ export class ProjectIterationService {
       where.projectId = projectIds.some((item) => item === id) ? id : { in: [] }
     }
     if (query.status) where.status = query.status
+    if (query.ownerId) where.ownerId = BigInt(query.ownerId)
+    this.applyDateRange(where, 'startDate', query.startDateStart, query.startDateEnd, '开始日期')
+    this.applyDateRange(where, 'endDate', query.endDateStart, query.endDateEnd, '结束日期')
     return where
+  }
+
+  private applyDateRange(
+    where: Prisma.ProjectIterationWhereInput,
+    field: 'startDate' | 'endDate',
+    start?: string,
+    end?: string,
+    label?: string,
+  ) {
+    if (!start && !end) return
+    const startDate = start ? this.parseDate(start, `${label}起`) : undefined
+    const endDate = end ? this.parseDate(end, `${label}止`) : undefined
+    if (startDate && endDate && startDate > endDate) throw BusinessException.invalidParams(`${label}起不能晚于${label}止`)
+    const range = { ...(startDate ? { gte: startDate } : {}), ...(endDate ? { lte: endDate } : {}) }
+    if (field === 'startDate') where.startDate = range
+    else where.endDate = range
+  }
+
+  private parseDate(value: string, label: string) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) throw BusinessException.invalidParams(`${label}格式不正确`)
+    return date
+  }
+
+  private buildOrderBy(query: QueryIterationDto): Prisma.ProjectIterationOrderByWithRelationInput[] {
+    const direction = query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
+    const sortMap: Record<string, Prisma.ProjectIterationOrderByWithRelationInput> = {
+      iterationName: { iterationName: direction },
+      projectId: { projectId: direction },
+      ownerId: { ownerId: direction },
+      status: { status: direction },
+      startDate: { startDate: direction },
+      endDate: { endDate: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { iterationId: 'desc' }]
+    return [{ iterationId: 'desc' }]
   }
 
   private createData(dto: CreateIterationDto): Prisma.ProjectIterationUncheckedCreateInput {

@@ -46,3 +46,18 @@ export class BugUserOptionQueryDto extends BugKeywordDto {
   @IsString()
   assignableOnly?: string
 }
+
+
+export class BugSortDto extends BugPageDto {
+  /** 排序字段 */
+  @ApiPropertyOptional({ description: '排序字段' })
+  @IsOptional()
+  @IsString()
+  sortBy?: string
+
+  /** 排序方向 */
+  @ApiPropertyOptional({ description: '排序方向 asc/desc' })
+  @IsOptional()
+  @IsString()
+  sortOrder?: string
+}

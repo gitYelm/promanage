@@ -20,6 +20,7 @@ import {
   UpdateBugVersionDto,
   UpsertBugMemberDto,
 } from '../dto/project.dto'
+import { buildModuleOrderBy, buildProjectOrderBy, buildVersionOrderBy } from './bug-project-order.util'
 
 type RequestUserLike = { userId: string; username: string }
 
@@ -42,7 +43,7 @@ export class BugProjectService {
       ]
     }
     if (query.status) where.status = query.status
-    return this.paginateProjects(where, query.pageNum, query.pageSize)
+    return this.paginateProjects(where, query)
   }
 
   async userOptions(query: BugUserOptionQueryDto = {}, operatorId?: string) {
@@ -127,6 +128,7 @@ export class BugProjectService {
     const scopedProjectId = await this.scopedProjectIdFilter(query.projectId, userId)
     if (scopedProjectId) where.projectId = scopedProjectId
     if (query.keyword) where.moduleName = { contains: query.keyword }
+    if (query.status) where.status = query.status
     const pageNum = Number(query.pageNum ?? 1)
     const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
@@ -136,7 +138,7 @@ export class BugProjectService {
         skip: (pageNum - 1) * pageSize,
         take: pageSize,
         include: { project: true, defaultAssignee: true },
-        orderBy: [{ projectId: 'asc' }, { orderNum: 'asc' }],
+        orderBy: buildModuleOrderBy(query),
       }),
     ])
     return { total, rows }
@@ -202,6 +204,7 @@ export class BugProjectService {
         { versionName: { contains: query.keyword } },
       ]
     }
+    if (query.status) where.status = query.status
     const pageNum = Number(query.pageNum ?? 1)
     const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
@@ -211,7 +214,7 @@ export class BugProjectService {
         skip: (pageNum - 1) * pageSize,
         take: pageSize,
         include: { project: true },
-        orderBy: [{ projectId: 'asc' }, { versionId: 'desc' }],
+        orderBy: buildVersionOrderBy(query),
       }),
     ])
     return { total, rows }
@@ -415,15 +418,17 @@ export class BugProjectService {
     return data
   }
 
-  private async paginateProjects(where: Prisma.BugProjectWhereInput, pageNum = 1, pageSize = 20) {
+  private async paginateProjects(where: Prisma.BugProjectWhereInput, query: QueryBugProjectDto) {
+    const pageNum = Number(query.pageNum ?? 1)
+    const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
       this.prisma.bugProject.count({ where }),
       this.prisma.bugProject.findMany({
         where,
-        skip: (Number(pageNum) - 1) * Number(pageSize),
-        take: Number(pageSize),
+        skip: (pageNum - 1) * pageSize,
+        take: pageSize,
         include: { owner: true },
-        orderBy: { projectId: 'desc' },
+        orderBy: buildProjectOrderBy(query),
       }),
     ])
     return { total, rows }

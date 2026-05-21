@@ -44,7 +44,7 @@ export class UserService {
    * 查询用户列表
    */
   async findAll(query: QueryUserDto) {
-    const { userName, phonenumber, status, deptId, pageNum = 1, pageSize = 20 } = query
+    const { userName, phonenumber, status, deptId, roleId, beginTime, endTime, pageNum = 1, pageSize = 20 } = query
     const skip = (pageNum - 1) * pageSize
 
     const where: Prisma.SysUserWhereInput = {
@@ -80,6 +80,15 @@ export class UserService {
       // 暂时只精确匹配
       where.deptId = BigInt(deptId)
     }
+    if (roleId) {
+      where.roles = { some: { roleId: BigInt(roleId) } }
+    }
+    if (beginTime || endTime) {
+      where.createTime = {
+        ...(beginTime ? { gte: this.parseQueryDate(beginTime, '创建开始时间') } : {}),
+        ...(endTime ? { lte: this.parseQueryDate(endTime, '创建结束时间') } : {}),
+      }
+    }
 
     const [total, rows] = await Promise.all([
       this.prisma.sysUser.count({ where }),
@@ -102,6 +111,12 @@ export class UserService {
     })
 
     return { total, rows: safeRows }
+  }
+
+  private parseQueryDate(value: string, label: string) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) throw BusinessException.invalidParams(`${label}格式不正确`)
+    return date
   }
 
   /**

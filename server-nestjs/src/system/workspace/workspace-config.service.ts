@@ -6,6 +6,7 @@ import { QueryWorkspaceConfigDto } from './dto/query-workspace-config.dto'
 import { CreateWorkspaceConfigDto } from './dto/create-workspace-config.dto'
 import { UpdateWorkspaceConfigDto } from './dto/update-workspace-config.dto'
 import { expandEquivalentRoleKeys, isLegacyBusinessRole } from '../../common/security/role-level.config'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 export interface WorkspaceConfigRow {
   configId: bigint
@@ -36,7 +37,7 @@ export class WorkspaceConfigService {
     const offset = (pageNum - 1) * pageSize
     const where = this.buildWhere(query, maxSecurityLevel)
     const rows = await this.prisma.$queryRawUnsafe<WorkspaceConfigRow[]>(
-      `${this.selectSql()} ${where.sql} order by c.config_id asc limit $${where.params.length + 1} offset $${where.params.length + 2}`,
+      `${this.selectSql()} ${where.sql} ${this.buildOrderBy(query)} limit $${where.params.length + 1} offset $${where.params.length + 2}`,
       ...where.params,
       pageSize,
       offset,
@@ -202,6 +203,24 @@ export class WorkspaceConfigService {
 
   private securitySql(maxSecurityLevel: number | undefined, paramIndex: number) {
     return maxSecurityLevel === undefined ? '' : `and coalesce(r.security_level, 0) <= $${paramIndex}`
+  }
+
+  private buildOrderBy(query: QueryWorkspaceConfigDto) {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, string> = {
+      roleKey: 'c.role_key',
+      roleName: 'r.role_name',
+      defaultPath: 'c.default_path',
+      dashboardPath: 'c.dashboard_path',
+      defaultOpenMenu: 'c.default_open_menu',
+      menuScope: 'c.menu_scope',
+      status: 'c.status',
+      createTime: 'c.create_time',
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) {
+      return `order by ${sortMap[query.sortBy]} ${direction}, c.config_id asc`
+    }
+    return 'order by c.config_id asc'
   }
 
   private async assertRoleExists(roleKey: string) {

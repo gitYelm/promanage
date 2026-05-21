@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { PrismaService } from '../../prisma/prisma.service'
 import { defaultRoleSecurityLevel, isLegacyBusinessRole } from '../../common/security/role-level.config'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
 export class SystemRoleSecurityService {
@@ -96,6 +97,8 @@ export class SystemRoleSecurityService {
     status?: string
     deptId?: string
     roleId?: string
+    sortBy?: string
+    sortOrder?: string
     pageNum?: number
     pageSize?: number
   }) {
@@ -108,10 +111,25 @@ export class SystemRoleSecurityService {
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
         include: { dept: true },
-        orderBy: { userId: 'asc' },
+        orderBy: this.buildUserOrderBy(query),
       }),
     ])
     return { total, rows: rows.map(({ password: _password, twoFactorSecret: _secret, ...rest }) => rest) }
+  }
+
+  private buildUserOrderBy(query: { sortBy?: string; sortOrder?: string }): Prisma.SysUserOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysUserOrderByWithRelationInput> = {
+      userId: { userId: direction },
+      userName: { userName: direction },
+      nickName: { nickName: direction },
+      phonenumber: { phonenumber: direction },
+      email: { email: direction },
+      status: { status: direction },
+      createTime: { createTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { userId: 'asc' }]
+    return [{ userId: 'asc' }]
   }
 
   async listAccessibleUsersForExport(operatorId: string, query: {

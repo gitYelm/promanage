@@ -3,6 +3,7 @@ import { QueryOnlineDto } from './dto/query-online.dto'
 import { LoggerService } from '../../common/logger/logger.service'
 import { IpUtil } from '../../common/utils/ip.util'
 import { RedisService } from '../../redis/redis.service'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 export interface OnlineUser {
   token: string
@@ -131,6 +132,24 @@ export class OnlineService {
     return matchedTokens
   }
 
+  private sortRows(rows: OnlineUserRow[], query?: QueryOnlineDto) {
+    const direction = resolveSortDirection(query?.sortOrder)
+    const factor = direction === 'asc' ? 1 : -1
+    const sortBy = direction ? query?.sortBy : 'loginTime'
+    return [...rows].sort((a, b) => this.compareOnlineValue(a, b, sortBy) * factor)
+  }
+
+  private compareOnlineValue(a: OnlineUserRow, b: OnlineUserRow, sortBy?: string) {
+    if (sortBy === 'tokenId') return a.tokenId.localeCompare(b.tokenId)
+    if (sortBy === 'userName') return a.userName.localeCompare(b.userName)
+    if (sortBy === 'ipaddr') return a.ipaddr.localeCompare(b.ipaddr)
+    if (sortBy === 'loginLocation') return a.loginLocation.localeCompare(b.loginLocation)
+    if (sortBy === 'browser') return a.browser.localeCompare(b.browser)
+    if (sortBy === 'os') return a.os.localeCompare(b.os)
+    if (sortBy === 'onlineDuration') return a.onlineDuration - b.onlineDuration
+    return +new Date(a.loginTime) - +new Date(b.loginTime)
+  }
+
   async list(query?: QueryOnlineDto): Promise<{ total: number; rows: OnlineUserRow[] }> {
     const client = this.redis.getClient()
     const setKey = this.redis.toStorageKey(ONLINE_SET_KEY)
@@ -189,24 +208,22 @@ export class OnlineService {
     const end = start + pageSize
 
     const now = Date.now()
-    const pageRows = rows
-      .sort((a, b) => +new Date(b.loginTime) - +new Date(a.loginTime))
-      .slice(start, end)
-      .map((r) => {
-        const loginTimeMs = new Date(r.loginTime).getTime()
-        const durationMs = now - loginTimeMs
-        return {
-          tokenId: r.token,
-          userName: r.userName,
-          ipaddr: r.ipaddr,
-          loginLocation: IpUtil.getLocation(r.ipaddr),
-          browser: r.browser ?? '',
-          os: r.os ?? '',
-          loginTime: r.loginTime instanceof Date ? r.loginTime.toISOString() : String(r.loginTime),
-          /** 在线时长（毫秒） */
-          onlineDuration: durationMs > 0 ? durationMs : 0,
-        }
-      })
+    const normalizedRows = rows.map((r) => {
+      const loginTimeMs = new Date(r.loginTime).getTime()
+      const durationMs = now - loginTimeMs
+      return {
+        tokenId: r.token,
+        userName: r.userName,
+        ipaddr: r.ipaddr,
+        loginLocation: IpUtil.getLocation(r.ipaddr),
+        browser: r.browser ?? '',
+        os: r.os ?? '',
+        loginTime: r.loginTime instanceof Date ? r.loginTime.toISOString() : String(r.loginTime),
+        /** 在线时长（毫秒） */
+        onlineDuration: durationMs > 0 ? durationMs : 0,
+      }
+    })
+    const pageRows = this.sortRows(normalizedRows, query).slice(start, end)
 
     return { total, rows: pageRows }
   }

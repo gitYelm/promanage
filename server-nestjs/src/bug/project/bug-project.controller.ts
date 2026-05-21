@@ -35,6 +35,7 @@ export class BugProjectController {
     'bug:ticket:assign',
     'bug:project:add',
     'bug:project:edit',
+    'pm:requirement:view',
     'pm:requirement:create',
     'pm:requirement:update',
     'pm:iteration:manage',
@@ -49,7 +50,7 @@ export class BugProjectController {
   }
 
   @Get('projects/options')
-  @RequirePermission('bug:ticket:list', 'bug:ticket:add', 'bug:project:list')
+  @RequirePermission('bug:ticket:list', 'bug:ticket:add', 'bug:project:list', 'pm:requirement:view')
   @ApiOperation({ summary: '获取项目选项' })
   options(@Req() req: RequestWithUser) {
     return this.service.optionsForUser(req.user.userId)

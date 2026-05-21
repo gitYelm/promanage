@@ -116,6 +116,32 @@ export class BugAccessService {
     }
   }
 
+  async buildRequirementWhere(userId: string): Promise<Prisma.ProjectRequirementWhereInput> {
+    if (await this.isAdmin(userId)) return { delFlag: '0' }
+
+    const projectWideProjectIds = await this.getProjectWideProjectIds(userId)
+    const userIdBigInt = BigInt(userId)
+
+    return {
+      delFlag: '0',
+      OR: [
+        { projectId: { in: projectWideProjectIds } },
+        { ownerId: userIdBigInt },
+        { developerId: userIdBigInt },
+        { testerId: userIdBigInt },
+      ],
+    }
+  }
+
+  async assertRequirementVisible(userId: string, requirementId: string): Promise<void> {
+    const where = await this.buildRequirementWhere(userId)
+    const requirement = await this.prisma.projectRequirement.findFirst({
+      where: { AND: [where, { requirementId: BigInt(requirementId) }] },
+      select: { requirementId: true },
+    })
+    if (!requirement) throw BusinessException.forbidden('无权访问该需求')
+  }
+
   private async getProjectWideProjectIds(userId: string): Promise<bigint[]> {
     const [memberProjects, ownedProjects] = await Promise.all([
       this.prisma.bugProjectMember.findMany({

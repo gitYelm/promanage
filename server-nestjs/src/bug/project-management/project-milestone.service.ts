@@ -20,7 +20,7 @@ export class ProjectMilestoneService {
     const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
       this.prisma.projectMilestone.count({ where }),
-      this.prisma.projectMilestone.findMany({ where, skip: (pageNum - 1) * pageSize, take: pageSize, include: { project: true, owner: true }, orderBy: { milestoneId: 'desc' } }),
+      this.prisma.projectMilestone.findMany({ where, skip: (pageNum - 1) * pageSize, take: pageSize, include: { project: true, owner: true }, orderBy: this.buildOrderBy(query) }),
     ])
     return { total, rows }
   }
@@ -71,7 +71,38 @@ export class ProjectMilestoneService {
       where.projectId = projectIds.some((item) => item === id) ? id : { in: [] }
     }
     if (query.status) where.status = query.status
+    if (query.stage) where.stage = query.stage
+    if (query.ownerId) where.ownerId = BigInt(query.ownerId)
+    this.applyDateRange(where, query.targetDateStart, query.targetDateEnd)
     return where
+  }
+
+  private applyDateRange(where: Prisma.ProjectMilestoneWhereInput, start?: string, end?: string) {
+    if (!start && !end) return
+    const startDate = start ? this.parseDate(start, '目标日期起') : undefined
+    const endDate = end ? this.parseDate(end, '目标日期止') : undefined
+    if (startDate && endDate && startDate > endDate) throw BusinessException.invalidParams('目标日期起不能晚于目标日期止')
+    where.targetDate = { ...(startDate ? { gte: startDate } : {}), ...(endDate ? { lte: endDate } : {}) }
+  }
+
+  private parseDate(value: string, label: string) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) throw BusinessException.invalidParams(`${label}格式不正确`)
+    return date
+  }
+
+  private buildOrderBy(query: QueryMilestoneDto): Prisma.ProjectMilestoneOrderByWithRelationInput[] {
+    const direction = query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
+    const sortMap: Record<string, Prisma.ProjectMilestoneOrderByWithRelationInput> = {
+      milestoneName: { milestoneName: direction },
+      projectId: { projectId: direction },
+      stage: { stage: direction },
+      ownerId: { ownerId: direction },
+      targetDate: { targetDate: direction },
+      status: { status: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { milestoneId: 'desc' }]
+    return [{ milestoneId: 'desc' }]
   }
 
   private createData(dto: CreateMilestoneDto): Prisma.ProjectMilestoneUncheckedCreateInput {

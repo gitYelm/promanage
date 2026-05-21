@@ -5,7 +5,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
 import { RequirePermission } from '../../common/decorators/permission.decorator'
 import { BusinessType, Log } from '../../common/decorators/log.decorator'
-import { CreateIterationDto, CreateMilestoneDto, CreateRequirementDto, PmStatusActionDto, QueryIterationDto, QueryMilestoneDto, QueryRequirementDto, RequirementActionDto, UpdateIterationDto, UpdateMilestoneDto, UpdateProjectProgressDto, UpdateRequirementDto } from '../dto/project-management.dto'
+import { BatchAssignRequirementsDto, CreateIterationDto, CreateMilestoneDto, CreateRequirementDto, PmStatusActionDto, QueryIterationDto, QueryMilestoneDto, QueryRequirementDto, RequirementActionDto, UpdateIterationDto, UpdateMilestoneDto, UpdateProjectProgressDto, UpdateRequirementDto } from '../dto/project-management.dto'
 import { ProjectDashboardQueryDto } from '../dto/project-dashboard.dto'
 import { ProjectRequirementService } from './project-requirement.service'
 import { ProjectIterationService } from './project-iteration.service'
@@ -26,6 +26,7 @@ export class ProjectManagementController {
   @Get('requirements/:id') @RequirePermission('pm:requirement:view') @ApiOperation({ summary: '需求详情' }) requirementDetail(@Param('id') id: string, @Req() req: RequestWithUser) { return this.requirements.detail(id, req.user) }
   @Post('requirements') @RequirePermission('pm:requirement:create') @Log('项目需求', BusinessType.INSERT) @ApiOperation({ summary: '创建需求' }) createRequirement(@Body() dto: CreateRequirementDto, @Req() req: RequestWithUser) { return this.requirements.create(dto, req.user) }
   @Put('requirements/:id') @RequirePermission('pm:requirement:update') @Log('项目需求', BusinessType.UPDATE) @ApiOperation({ summary: '编辑需求' }) updateRequirement(@Param('id') id: string, @Body() dto: UpdateRequirementDto, @Req() req: RequestWithUser) { return this.requirements.update(id, dto, req.user) }
+  @Post('requirements/batch-assign') @RequirePermission('pm:requirement:update') @Log('项目需求', BusinessType.UPDATE) @ApiOperation({ summary: '批量修改需求负责人/开发/测试人员' }) batchAssignRequirements(@Body() dto: BatchAssignRequirementsDto, @Req() req: RequestWithUser) { return this.requirements.batchAssign(dto, req.user) }
   @Post('requirements/:id/status/:action') @RequirePermission('pm:requirement:status', 'pm:requirement:review') @Log('需求状态', BusinessType.UPDATE) @ApiOperation({ summary: '需求状态流转' }) requirementAction(@Param('id') id: string, @Param('action') action: string, @Body() dto: RequirementActionDto, @Req() req: RequestWithUser) { return this.requirements.action(id, action, dto, req.user) }
   @Delete('requirements') @RequirePermission('pm:requirement:update') @Log('项目需求', BusinessType.DELETE) @ApiOperation({ summary: '删除需求' }) removeRequirements(@Query('ids') ids: string, @Req() req: RequestWithUser) { return this.requirements.remove(ids ? ids.split(',') : [], req.user) }
 

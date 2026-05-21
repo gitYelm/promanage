@@ -1,7 +1,8 @@
 import { IsOptional, IsString } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
+import { SortableQueryDto } from '../../../common/dto/sortable-query.dto'
 
-export class QueryUserDto {
+export class QueryUserDto extends SortableQueryDto {
   @ApiPropertyOptional({ description: '用户名', example: 'admin' })
   @IsOptional()
   @IsString()
@@ -26,6 +27,16 @@ export class QueryUserDto {
   @IsOptional()
   @IsString()
   roleId?: string
+
+  @ApiPropertyOptional({ description: '创建开始时间', example: '2024-01-01' })
+  @IsOptional()
+  @IsString()
+  beginTime?: string
+
+  @ApiPropertyOptional({ description: '创建结束时间', example: '2024-12-31' })
+  @IsOptional()
+  @IsString()
+  endTime?: string
 
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()

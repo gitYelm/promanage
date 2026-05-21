@@ -5,6 +5,7 @@ import { CreatePostDto } from './dto/create-post.dto'
 import { UpdatePostDto } from './dto/update-post.dto'
 import { Prisma } from '@prisma/client'
 import { LoggerService } from '../../common/logger/logger.service'
+import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
 export class PostService {
@@ -27,10 +28,24 @@ export class PostService {
         where,
         skip: Number((pageNum - 1) * pageSize),
         take: Number(pageSize),
-        orderBy: [{ postSort: 'asc' }, { postId: 'asc' }],
+        orderBy: this.buildOrderBy(query),
       }),
     ])
     return { total, rows }
+  }
+
+  private buildOrderBy(query: QueryPostDto): Prisma.SysPostOrderByWithRelationInput[] {
+    const direction = resolveSortDirection(query.sortOrder)
+    const sortMap: Record<string, Prisma.SysPostOrderByWithRelationInput> = {
+      postId: { postId: direction },
+      postCode: { postCode: direction },
+      postName: { postName: direction },
+      postSort: { postSort: direction },
+      status: { status: direction },
+      createTime: { createTime: direction },
+    }
+    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { postId: 'asc' }]
+    return [{ postSort: 'asc' }, { postId: 'asc' }]
   }
 
   async findOne(postId: string) {

@@ -1,6 +1,7 @@
 import { IsOptional, IsString } from 'class-validator'
+import { SortableQueryDto } from '../../../common/dto/sortable-query.dto'
 
-export class QueryDictDataDto {
+export class QueryDictDataDto extends SortableQueryDto {
   @IsOptional()
   @IsString()
   dictType?: string
