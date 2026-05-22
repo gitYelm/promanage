@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards, Request } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -36,8 +47,8 @@ export class RoleController {
   @ApiBody({ type: CreateRoleDto })
   @ApiResponse({ status: 201, description: '创建成功' })
   async create(@Request() req: RequestWithUser, @Body() createRoleDto: CreateRoleDto) {
-    await this.roleSecurity.assertCanSetRoleLevel(req.user.userId as string, createRoleDto.securityLevel)
-    await this.roleSecurity.assertCanGrantMenus(req.user.userId as string, createRoleDto.menuIds)
+    await this.roleSecurity.assertCanSetRoleLevel(req.user.userId, createRoleDto.securityLevel)
+    await this.roleSecurity.assertCanGrantMenus(req.user.userId, createRoleDto.menuIds)
     return this.roleService.create(createRoleDto)
   }
 
@@ -46,7 +57,7 @@ export class RoleController {
   @ApiOperation({ summary: '查询角色列表' })
   @ApiResponse({ status: 200, description: '查询成功' })
   async findAll(@Request() req: RequestWithUser, @Query() query: QueryRoleDto) {
-    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId as string)
+    const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
     return this.roleService.findAll(query, maxSecurityLevel)
   }
 
@@ -55,8 +66,11 @@ export class RoleController {
   @Log('角色管理', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改角色状态' })
   @ApiResponse({ status: 200, description: '修改成功' })
-  async changeStatus(@Request() req: RequestWithUser, @Body() body: { roleId: string; status: string }) {
-    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, body.roleId)
+  async changeStatus(
+    @Request() req: RequestWithUser,
+    @Body() body: { roleId: string; status: string },
+  ) {
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId, body.roleId)
     return this.roleService.changeStatus(body.roleId, body.status)
   }
 
@@ -66,7 +80,7 @@ export class RoleController {
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiResponse({ status: 200, description: '查询成功' })
   async findOne(@Request() req: RequestWithUser, @Param('roleId') roleId: string) {
-    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, roleId)
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId, roleId)
     return this.roleService.findOne(roleId)
   }
 
@@ -77,12 +91,16 @@ export class RoleController {
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiBody({ type: UpdateRoleDto })
   @ApiResponse({ status: 200, description: '修改成功' })
-  async update(@Request() req: RequestWithUser, @Param('roleId') roleId: string, @Body() updateRoleDto: UpdateRoleDto) {
-    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, roleId)
+  async update(
+    @Request() req: RequestWithUser,
+    @Param('roleId') roleId: string,
+    @Body() updateRoleDto: UpdateRoleDto,
+  ) {
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId, roleId)
     if (updateRoleDto.securityLevel !== undefined) {
-      await this.roleSecurity.assertCanSetRoleLevel(req.user.userId as string, updateRoleDto.securityLevel)
+      await this.roleSecurity.assertCanSetRoleLevel(req.user.userId, updateRoleDto.securityLevel)
     }
-    await this.roleSecurity.assertCanGrantMenus(req.user.userId as string, updateRoleDto.menuIds)
+    await this.roleSecurity.assertCanGrantMenus(req.user.userId, updateRoleDto.menuIds)
     return this.roleService.update(roleId, updateRoleDto)
   }
 
@@ -93,7 +111,7 @@ export class RoleController {
   @ApiParam({ name: 'roleId', description: '角色ID' })
   @ApiResponse({ status: 200, description: '删除成功' })
   async remove(@Request() req: RequestWithUser, @Param('roleId') roleId: string) {
-    await this.roleSecurity.assertCanMaintainRole(req.user.userId as string, roleId)
+    await this.roleSecurity.assertCanMaintainRole(req.user.userId, roleId)
     return this.roleService.remove(roleId)
   }
 }

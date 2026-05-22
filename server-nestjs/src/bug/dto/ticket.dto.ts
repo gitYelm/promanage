@@ -230,7 +230,6 @@ export class CreateBugTicketDto {
   @IsString()
   deviceInfo?: string
 
-
   /** 关联需求ID */
   @ApiPropertyOptional({ description: '关联需求ID' })
   @IsOptional()
@@ -289,7 +288,6 @@ export class CreateBugCommentDto {
   @ApiProperty({ description: '评论内容' })
   @IsString()
   content!: string
-
 
   /** 附件ID列表 */
   @ApiPropertyOptional({ description: '附件ID列表', type: [String] })

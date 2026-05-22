@@ -20,6 +20,6 @@ import { NotificationStreamService } from './notification-stream.service'
   ],
   controllers: [NotificationController],
   providers: [NotificationService, NotificationStreamService],
-  exports: [NotificationService],
+  exports: [NotificationService, NotificationStreamService],
 })
 export class NotificationModule {}

@@ -42,7 +42,9 @@ export function expandEquivalentRoleKeys(roleKeys: string[]) {
     result.add(roleKey)
     const standardRoleKey = LEGACY_BUSINESS_ROLE_KEY_MAP[roleKey]
     if (standardRoleKey) result.add(standardRoleKey)
-    for (const [legacyRoleKey, mappedStandardRoleKey] of Object.entries(LEGACY_BUSINESS_ROLE_KEY_MAP)) {
+    for (const [legacyRoleKey, mappedStandardRoleKey] of Object.entries(
+      LEGACY_BUSINESS_ROLE_KEY_MAP,
+    )) {
       if (mappedStandardRoleKey === roleKey) result.add(legacyRoleKey)
     }
   }

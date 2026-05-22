@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { BugAccessService, type RequestUserLike } from '../bug-access.service'
-import { PM_ACTIVITY_ACTION, PM_ACTIVITY_TARGET, PM_DASHBOARD_GROUPS } from '../constants/project-management.constants'
+import {
+  PM_ACTIVITY_ACTION,
+  PM_ACTIVITY_TARGET,
+  PM_DASHBOARD_GROUPS,
+} from '../constants/project-management.constants'
 import { UpdateProjectProgressDto } from '../dto/project-management.dto'
 import { ProjectActivityService } from './project-activity.service'
 import { ProjectDashboardQueryService } from './project-dashboard-query.service'
@@ -19,11 +23,34 @@ export class ProjectOverviewService {
   async overview(projectId: string, user: RequestUserLike) {
     await this.assertVisible(projectId, user)
     const id = BigInt(projectId)
-    const project = await this.prisma.bugProject.findUnique({ where: { projectId: id }, include: { owner: true } })
+    const project = await this.prisma.bugProject.findUnique({
+      where: { projectId: id },
+      include: { owner: true },
+    })
     if (!project) throw BusinessException.notFound('项目不存在')
-    const [requirementTotal, requirementDone, bugTotal, bugClosed, counts, currentRequirements, currentBugs, pendingRequirements, pendingBugs, completedRequirements, completedBugs, activities, nextMilestone] = await Promise.all([
+    const [
+      requirementTotal,
+      requirementDone,
+      bugTotal,
+      bugClosed,
+      counts,
+      currentRequirements,
+      currentBugs,
+      pendingRequirements,
+      pendingBugs,
+      completedRequirements,
+      completedBugs,
+      activities,
+      nextMilestone,
+    ] = await Promise.all([
       this.prisma.projectRequirement.count({ where: { projectId: id, delFlag: '0' } }),
-      this.prisma.projectRequirement.count({ where: { projectId: id, delFlag: '0', status: { in: this.query.requirementDoneStatuses() } } }),
+      this.prisma.projectRequirement.count({
+        where: {
+          projectId: id,
+          delFlag: '0',
+          status: { in: this.query.requirementDoneStatuses() },
+        },
+      }),
       this.prisma.bugTicket.count({ where: { projectId: id, delFlag: '0' } }),
       this.prisma.bugTicket.count({ where: { projectId: id, delFlag: '0', status: 'closed' } }),
       this.query.workCounts(user, [id]),
@@ -34,7 +61,10 @@ export class ProjectOverviewService {
       this.query.requirementRows([id], PM_DASHBOARD_GROUPS.requirementCompleted),
       this.query.bugRows(user, [id], PM_DASHBOARD_GROUPS.bugCompleted),
       this.activity.list(projectId, 20),
-      this.prisma.projectMilestone.findFirst({ where: { projectId: id, delFlag: '0', status: { notIn: ['achieved', 'cancelled'] } }, orderBy: { targetDate: 'asc' } }),
+      this.prisma.projectMilestone.findFirst({
+        where: { projectId: id, delFlag: '0', status: { notIn: ['achieved', 'cancelled'] } },
+        orderBy: { targetDate: 'asc' },
+      }),
     ])
     return {
       project,
@@ -60,7 +90,9 @@ export class ProjectOverviewService {
   async updateProgress(projectId: string, dto: UpdateProjectProgressDto, user: RequestUserLike) {
     await this.assertVisible(projectId, user)
     await this.access.assertAnyPermission(user.userId, ['pm:project:update'])
-    const existing = await this.prisma.bugProject.findFirst({ where: { projectId: BigInt(projectId), delFlag: '0' } })
+    const existing = await this.prisma.bugProject.findFirst({
+      where: { projectId: BigInt(projectId), delFlag: '0' },
+    })
     if (!existing) throw BusinessException.notFound('项目不存在')
     const updated = await this.prisma.bugProject.update({
       where: { projectId: BigInt(projectId) },
@@ -83,10 +115,18 @@ export class ProjectOverviewService {
     return {
       updateBy: username,
       ...(dto.projectStage !== undefined ? { projectStage: dto.projectStage } : {}),
-      ...(dto.plannedStartTime !== undefined ? { plannedStartTime: dto.plannedStartTime ? new Date(dto.plannedStartTime) : null } : {}),
-      ...(dto.plannedEndTime !== undefined ? { plannedEndTime: dto.plannedEndTime ? new Date(dto.plannedEndTime) : null } : {}),
-      ...(dto.actualStartTime !== undefined ? { actualStartTime: dto.actualStartTime ? new Date(dto.actualStartTime) : null } : {}),
-      ...(dto.actualEndTime !== undefined ? { actualEndTime: dto.actualEndTime ? new Date(dto.actualEndTime) : null } : {}),
+      ...(dto.plannedStartTime !== undefined
+        ? { plannedStartTime: dto.plannedStartTime ? new Date(dto.plannedStartTime) : null }
+        : {}),
+      ...(dto.plannedEndTime !== undefined
+        ? { plannedEndTime: dto.plannedEndTime ? new Date(dto.plannedEndTime) : null }
+        : {}),
+      ...(dto.actualStartTime !== undefined
+        ? { actualStartTime: dto.actualStartTime ? new Date(dto.actualStartTime) : null }
+        : {}),
+      ...(dto.actualEndTime !== undefined
+        ? { actualEndTime: dto.actualEndTime ? new Date(dto.actualEndTime) : null }
+        : {}),
       ...(dto.progress !== undefined ? { progress: Number(dto.progress) } : {}),
       ...(dto.riskLevel !== undefined ? { riskLevel: dto.riskLevel } : {}),
       ...(dto.riskNote !== undefined ? { riskNote: dto.riskNote } : {}),
@@ -95,6 +135,7 @@ export class ProjectOverviewService {
 
   private async assertVisible(projectId: string, user: RequestUserLike) {
     const ids = await this.access.getVisibleProjectIds(user.userId)
-    if (!ids.some((id) => id === BigInt(projectId))) throw BusinessException.forbidden('无权访问该项目')
+    if (!ids.some((id) => id === BigInt(projectId)))
+      throw BusinessException.forbidden('无权访问该项目')
   }
 }

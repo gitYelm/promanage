@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { Request } from 'express'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
@@ -75,7 +86,11 @@ export class BugProjectController {
   @RequirePermission('bug:project:edit')
   @Log('Bug 项目', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改 Bug 项目' })
-  updateProject(@Param('projectId') projectId: string, @Body() dto: UpdateBugProjectDto, @Req() req: RequestWithUser) {
+  updateProject(
+    @Param('projectId') projectId: string,
+    @Body() dto: UpdateBugProjectDto,
+    @Req() req: RequestWithUser,
+  ) {
     return this.service.updateProject(projectId, dto, req.user.userId)
   }
 
@@ -106,7 +121,11 @@ export class BugProjectController {
   @RequirePermission('bug:module:edit')
   @Log('Bug 模块', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改项目模块' })
-  updateModule(@Param('moduleId') moduleId: string, @Body() dto: UpdateBugModuleDto, @Req() req: RequestWithUser) {
+  updateModule(
+    @Param('moduleId') moduleId: string,
+    @Body() dto: UpdateBugModuleDto,
+    @Req() req: RequestWithUser,
+  ) {
     return this.service.updateModule(moduleId, dto, req.user.userId)
   }
 
@@ -137,7 +156,11 @@ export class BugProjectController {
   @RequirePermission('bug:version:edit')
   @Log('Bug 版本', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改项目版本' })
-  updateVersion(@Param('versionId') versionId: string, @Body() dto: UpdateBugVersionDto, @Req() req: RequestWithUser) {
+  updateVersion(
+    @Param('versionId') versionId: string,
+    @Body() dto: UpdateBugVersionDto,
+    @Req() req: RequestWithUser,
+  ) {
     return this.service.updateVersion(versionId, dto, req.user.userId)
   }
 
@@ -160,7 +183,11 @@ export class BugProjectController {
   @RequirePermission('bug:project:member')
   @Log('Bug 项目成员', BusinessType.UPDATE)
   @ApiOperation({ summary: '新增或更新项目成员' })
-  upsertMember(@Param('projectId') projectId: string, @Body() dto: UpsertBugMemberDto, @Req() req: RequestWithUser) {
+  upsertMember(
+    @Param('projectId') projectId: string,
+    @Body() dto: UpsertBugMemberDto,
+    @Req() req: RequestWithUser,
+  ) {
     return this.service.upsertMember(projectId, dto, req.user.userId)
   }
 

@@ -72,8 +72,9 @@ export class PermissionGuard implements CanActivate {
 
     if (!user) return []
 
-    const activeRoles = user.roles.filter((ur) =>
-      ur.role.delFlag === '0' && ur.role.status === '0' && !isLegacyBusinessRole(ur.role.roleKey),
+    const activeRoles = user.roles.filter(
+      (ur) =>
+        ur.role.delFlag === '0' && ur.role.status === '0' && !isLegacyBusinessRole(ur.role.roleKey),
     )
     const roleKeys = activeRoles.map((ur) => ur.role.roleKey)
 

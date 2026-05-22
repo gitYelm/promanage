@@ -1,5 +1,6 @@
-import { Controller, Get, Delete, Param, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Delete, Param, Query, Req, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
+import type { Request } from 'express'
 import { OnlineService } from './online.service'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
@@ -7,6 +8,8 @@ import { RequirePermission } from '../../common/decorators/permission.decorator'
 import { Log, BusinessType } from '../../common/decorators/log.decorator'
 import { QueryOnlineDto } from './dto/query-online.dto'
 import { TokenBlacklistService } from '../../auth/token-blacklist.service'
+
+type RequestWithUser = Request & { user: { userId: string; username: string } }
 
 @ApiTags('在线用户')
 @ApiBearerAuth('JWT-auth')
@@ -23,6 +26,13 @@ export class OnlineController {
   @ApiOperation({ summary: '查询在线用户列表' })
   list(@Query() query: QueryOnlineDto) {
     return this.onlineService.list(query)
+  }
+
+  @Get('stream-token')
+  @RequirePermission('monitor:online:list')
+  @ApiOperation({ summary: '生成在线用户实时推送连接令牌' })
+  streamToken(@Req() req: RequestWithUser) {
+    return this.onlineService.createStreamToken(req.user)
   }
 
   @Delete(':token')

@@ -54,7 +54,8 @@ export class JobService {
       status: { status: direction },
       createTime: { createTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { jobId: 'asc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { jobId: 'asc' }]
     return [{ jobId: 'asc' }]
   }
 

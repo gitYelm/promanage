@@ -20,7 +20,11 @@ import {
   UpdateBugVersionDto,
   UpsertBugMemberDto,
 } from '../dto/project.dto'
-import { buildModuleOrderBy, buildProjectOrderBy, buildVersionOrderBy } from './bug-project-order.util'
+import {
+  buildModuleOrderBy,
+  buildProjectOrderBy,
+  buildVersionOrderBy,
+} from './bug-project-order.util'
 
 type RequestUserLike = { userId: string; username: string }
 
@@ -65,13 +69,23 @@ export class BugProjectService {
       where: { projectKey: dto.projectKey, delFlag: '0' },
     })
     if (existed) throw new BusinessException(ErrorCode.BUG_PROJECT_EXISTS, '项目标识已存在')
-    if (!(await this.roleSecurity.isAdmin(user.userId)) && dto.ownerId && dto.ownerId !== user.userId) {
+    if (
+      !(await this.roleSecurity.isAdmin(user.userId)) &&
+      dto.ownerId &&
+      dto.ownerId !== user.userId
+    ) {
       throw BusinessException.forbidden('项目负责人只能创建自己负责的项目')
     }
     const ownerId = dto.ownerId ? BigInt(dto.ownerId) : BigInt(user.userId)
-    await this.roleSecurity.assertTargetHasRole(user.userId, ownerId, ['bug_project_owner', 'project_owner'], '项目负责人', {
-      allowAdminBypassRole: true,
-    })
+    await this.roleSecurity.assertTargetHasRole(
+      user.userId,
+      ownerId,
+      ['bug_project_owner', 'project_owner'],
+      '项目负责人',
+      {
+        allowAdminBypassRole: true,
+      },
+    )
     this.logger.log(`创建 Bug 项目: ${dto.projectName}`, 'BugProjectService')
     return this.prisma.$transaction(async (tx) => {
       const project = await tx.bugProject.create({
@@ -92,7 +106,13 @@ export class BugProjectService {
         },
       })
       await tx.bugProjectMember.create({
-        data: { projectId: project.projectId, userId: ownerId, memberRole: BUG_MEMBER_ROLE.OWNER, isDefault: true, status: '0' },
+        data: {
+          projectId: project.projectId,
+          userId: ownerId,
+          memberRole: BUG_MEMBER_ROLE.OWNER,
+          isDefault: true,
+          status: '0',
+        },
       })
       return project
     })
@@ -102,11 +122,20 @@ export class BugProjectService {
     const project = await this.helper.ensureProject(projectId)
     if (operatorId) await this.assertProjectManageAllowed(operatorId, project.projectId)
     if (operatorId && dto.ownerId !== undefined && dto.ownerId !== String(project.ownerId ?? '')) {
-      if (!(await this.roleSecurity.isAdmin(operatorId))) throw BusinessException.forbidden('项目负责人不允许直接变更项目负责人，请联系管理员执行负责人交接')
+      if (!(await this.roleSecurity.isAdmin(operatorId)))
+        throw BusinessException.forbidden(
+          '项目负责人不允许直接变更项目负责人，请联系管理员执行负责人交接',
+        )
       if (dto.ownerId) {
-        await this.roleSecurity.assertTargetHasRole(operatorId, dto.ownerId, ['bug_project_owner', 'project_owner'], '项目负责人', {
-          allowAdminBypassRole: true,
-        })
+        await this.roleSecurity.assertTargetHasRole(
+          operatorId,
+          dto.ownerId,
+          ['bug_project_owner', 'project_owner'],
+          '项目负责人',
+          {
+            allowAdminBypassRole: true,
+          },
+        )
       }
     }
     return this.prisma.bugProject.update({
@@ -170,8 +199,10 @@ export class BugProjectService {
     if (dto.projectId) await this.helper.ensureProject(dto.projectId)
     if (operatorId) {
       await this.assertProjectManageAllowed(operatorId, module.projectId)
-      if (dto.projectId && dto.projectId !== String(module.projectId)) await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
-      if (dto.defaultAssigneeId !== undefined) await this.assertModuleAssigneeAllowed(operatorId, projectId, dto.defaultAssigneeId)
+      if (dto.projectId && dto.projectId !== String(module.projectId))
+        await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
+      if (dto.defaultAssigneeId !== undefined)
+        await this.assertModuleAssigneeAllowed(operatorId, projectId, dto.defaultAssigneeId)
     }
     if (dto.moduleName) {
       await this.helper.assertUniqueModule(
@@ -232,7 +263,8 @@ export class BugProjectService {
     if (dto.projectId) await this.helper.ensureProject(dto.projectId)
     if (operatorId) {
       await this.assertProjectManageAllowed(operatorId, version.projectId)
-      if (dto.projectId && dto.projectId !== String(version.projectId)) await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
+      if (dto.projectId && dto.projectId !== String(version.projectId))
+        await this.assertProjectManageAllowed(operatorId, BigInt(dto.projectId))
     }
     if (dto.versionNo) {
       await this.helper.assertUniqueVersion(
@@ -311,11 +343,17 @@ export class BugProjectService {
         select: { projectId: true },
       }),
       this.prisma.bugProjectMember.findFirst({
-        where: { projectId, userId: BigInt(userId), memberRole: BUG_MEMBER_ROLE.OWNER, status: '0' },
+        where: {
+          projectId,
+          userId: BigInt(userId),
+          memberRole: BUG_MEMBER_ROLE.OWNER,
+          status: '0',
+        },
         select: { memberId: true },
       }),
     ])
-    if (!ownedProject && !ownerMember) throw BusinessException.forbidden('只有超级管理员或该项目负责人可以维护项目配置')
+    if (!ownedProject && !ownerMember)
+      throw BusinessException.forbidden('只有超级管理员或该项目负责人可以维护项目配置')
   }
 
   private async assertMemberChangeAllowed(
@@ -325,11 +363,20 @@ export class BugProjectService {
     targetStatus?: string,
   ) {
     if (await this.roleSecurity.isAdmin(operatorId)) return
-    await this.roleSecurity.assertNotHigher(operatorId, targetUserId, '项目负责人不能维护权限高于自己的项目成员关系')
-    if (targetStatus === '1' && project.ownerId === targetUserId) throw BusinessException.forbidden('不能移除或停用项目负责人字段对应的用户')
+    await this.roleSecurity.assertNotHigher(
+      operatorId,
+      targetUserId,
+      '项目负责人不能维护权限高于自己的项目成员关系',
+    )
+    if (targetStatus === '1' && project.ownerId === targetUserId)
+      throw BusinessException.forbidden('不能移除或停用项目负责人字段对应的用户')
   }
 
-  private async assertModuleAssigneeAllowed(operatorId: string, projectId: string, assigneeId?: string | null) {
+  private async assertModuleAssigneeAllowed(
+    operatorId: string,
+    projectId: string,
+    assigneeId?: string | null,
+  ) {
     await this.roleSecurity.assertAssignableProjectFieldUser({
       operatorId,
       projectId,
@@ -343,7 +390,9 @@ export class BugProjectService {
     const reviewers = await this.prisma.bugProjectMember.count({
       where: {
         projectId: BigInt(projectId),
-        memberRole: { in: [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER] },
+        memberRole: {
+          in: [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER],
+        },
         status: '0',
       },
     })
@@ -351,7 +400,10 @@ export class BugProjectService {
       where: { projectId: BigInt(projectId), ownerId: { not: null }, delFlag: '0', status: '0' },
       select: { projectId: true },
     })
-    if (reviewers === 0 && !projectOwner) throw BusinessException.invalidParams('添加开发人员前，请先配置项目负责人、产品负责人或审核人员')
+    if (reviewers === 0 && !projectOwner)
+      throw BusinessException.invalidParams(
+        '添加开发人员前，请先配置项目负责人、产品负责人或审核人员',
+      )
   }
 
   private projectUpdateData(dto: UpdateBugProjectDto): Prisma.BugProjectUncheckedUpdateInput {
@@ -361,10 +413,14 @@ export class BugProjectService {
     if (dto.ownerId !== undefined) data.ownerId = dto.ownerId ? BigInt(dto.ownerId) : null
     if (dto.description !== undefined) data.description = dto.description
     if (dto.projectStage !== undefined) data.projectStage = dto.projectStage
-    if (dto.plannedStartTime !== undefined) data.plannedStartTime = dto.plannedStartTime ? new Date(dto.plannedStartTime) : null
-    if (dto.plannedEndTime !== undefined) data.plannedEndTime = dto.plannedEndTime ? new Date(dto.plannedEndTime) : null
-    if (dto.actualStartTime !== undefined) data.actualStartTime = dto.actualStartTime ? new Date(dto.actualStartTime) : null
-    if (dto.actualEndTime !== undefined) data.actualEndTime = dto.actualEndTime ? new Date(dto.actualEndTime) : null
+    if (dto.plannedStartTime !== undefined)
+      data.plannedStartTime = dto.plannedStartTime ? new Date(dto.plannedStartTime) : null
+    if (dto.plannedEndTime !== undefined)
+      data.plannedEndTime = dto.plannedEndTime ? new Date(dto.plannedEndTime) : null
+    if (dto.actualStartTime !== undefined)
+      data.actualStartTime = dto.actualStartTime ? new Date(dto.actualStartTime) : null
+    if (dto.actualEndTime !== undefined)
+      data.actualEndTime = dto.actualEndTime ? new Date(dto.actualEndTime) : null
     if (dto.progress !== undefined) data.progress = Number(dto.progress)
     if (dto.riskLevel !== undefined) data.riskLevel = dto.riskLevel
     if (dto.riskNote !== undefined) data.riskNote = dto.riskNote
@@ -394,7 +450,9 @@ export class BugProjectService {
     return data
   }
 
-  private versionCreateData(dto: CreateBugVersionDto): Prisma.BugProjectVersionUncheckedCreateInput {
+  private versionCreateData(
+    dto: CreateBugVersionDto,
+  ): Prisma.BugProjectVersionUncheckedCreateInput {
     return {
       projectId: BigInt(dto.projectId),
       versionNo: dto.versionNo,
@@ -406,13 +464,17 @@ export class BugProjectService {
     }
   }
 
-  private versionUpdateData(dto: UpdateBugVersionDto): Prisma.BugProjectVersionUncheckedUpdateInput {
+  private versionUpdateData(
+    dto: UpdateBugVersionDto,
+  ): Prisma.BugProjectVersionUncheckedUpdateInput {
     const data: Prisma.BugProjectVersionUncheckedUpdateInput = {}
     if (dto.projectId !== undefined) data.projectId = BigInt(dto.projectId)
     if (dto.versionNo !== undefined) data.versionNo = dto.versionNo
     if (dto.versionName !== undefined) data.versionName = dto.versionName
-    if (dto.iterationId !== undefined) data.iterationId = dto.iterationId ? BigInt(dto.iterationId) : null
-    if (dto.milestoneId !== undefined) data.milestoneId = dto.milestoneId ? BigInt(dto.milestoneId) : null
+    if (dto.iterationId !== undefined)
+      data.iterationId = dto.iterationId ? BigInt(dto.iterationId) : null
+    if (dto.milestoneId !== undefined)
+      data.milestoneId = dto.milestoneId ? BigInt(dto.milestoneId) : null
     if (dto.releaseNote !== undefined) data.releaseNote = dto.releaseNote
     if (dto.status !== undefined) data.status = dto.status
     return data

@@ -4,7 +4,13 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { LoggerService } from '../../common/logger/logger.service'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { ErrorCode } from '../../common/enums/error-code.enum'
-import { BUG_ACTION, BUG_MEMBER_ROLE, BUG_PENDING_STATUSES, BUG_STATUS, type BugAction } from '../constants/bug.constants'
+import {
+  BUG_ACTION,
+  BUG_MEMBER_ROLE,
+  BUG_PENDING_STATUSES,
+  BUG_STATUS,
+  type BugAction,
+} from '../constants/bug.constants'
 import { getBugTransition, getBugTransitions } from '../constants/bug-workflow.config'
 import { buildBugNo } from '../utils/bug-number.util'
 import { BugAccessService, type RequestUserLike } from '../bug-access.service'
@@ -44,7 +50,10 @@ export class BugTicketService {
       }),
     ])
     const rowsWithActions = await Promise.all(
-      rows.map(async (row) => ({ ...row, availableActions: await this.availableActions(row, user) })),
+      rows.map(async (row) => ({
+        ...row,
+        availableActions: await this.availableActions(row, user),
+      })),
     )
     return {
       total,
@@ -61,9 +70,18 @@ export class BugTicketService {
     }
     const tickets = await this.prisma.bugTicket.findMany({
       where,
-      select: { ticketId: true, projectId: true, submitterId: true, assigneeId: true, verifierId: true, status: true },
+      select: {
+        ticketId: true,
+        projectId: true,
+        submitterId: true,
+        assigneeId: true,
+        verifierId: true,
+        status: true,
+      },
     })
-    const actionable = await Promise.all(tickets.map(async (ticket) => (await this.availableActions(ticket, user)).length > 0))
+    const actionable = await Promise.all(
+      tickets.map(async (ticket) => (await this.availableActions(ticket, user)).length > 0),
+    )
     return { count: actionable.filter(Boolean).length }
   }
 
@@ -73,8 +91,16 @@ export class BugTicketService {
       where: { ticketId: BigInt(ticketId) },
       include: {
         ...this.ticketInclude(),
-        comments: { where: { delFlag: '0' }, include: { user: true }, orderBy: { commentId: 'asc' } },
-        attachments: { where: { delFlag: '0' }, include: { uploader: true }, orderBy: { attachmentId: 'asc' } },
+        comments: {
+          where: { delFlag: '0' },
+          include: { user: true },
+          orderBy: { commentId: 'asc' },
+        },
+        attachments: {
+          where: { delFlag: '0' },
+          include: { uploader: true },
+          orderBy: { attachmentId: 'asc' },
+        },
         histories: { include: { operator: true }, orderBy: { historyId: 'asc' } },
       },
     })
@@ -104,7 +130,13 @@ export class BugTicketService {
       data: this.createTicketData(dto, project, buildBugNo(project.projectKey, sequence + 1), user),
     })
     await this.bindAttachments(ticket.ticketId, dto.attachmentIds, BigInt(user.userId))
-    await this.addHistory(ticket.ticketId, BigInt(user.userId), BUG_ACTION.CREATE, '', ticket.status)
+    await this.addHistory(
+      ticket.ticketId,
+      BigInt(user.userId),
+      BUG_ACTION.CREATE,
+      '',
+      ticket.status,
+    )
     this.logger.log(`创建 Bug: ${ticket.ticketNo}`, 'BugTicketService')
     await this.bugNotification.notifyCreated(ticket, user)
     return this.detail(String(ticket.ticketId), user)
@@ -116,7 +148,8 @@ export class BugTicketService {
     if (!(await this.canEditTicket(ticket, user))) {
       throw BusinessException.denied('当前状态不允许修改 Bug 核心信息')
     }
-    if (dto.projectId && dto.projectId !== String(ticket.projectId)) await this.assertProjectVisible(dto.projectId, user)
+    if (dto.projectId && dto.projectId !== String(ticket.projectId))
+      await this.assertProjectVisible(dto.projectId, user)
     await this.assertRelations(
       dto.projectId ?? String(ticket.projectId),
       this.resolveNextRelationId(dto.moduleId, ticket.moduleId),
@@ -130,7 +163,14 @@ export class BugTicketService {
       data: this.updateTicketData(dto, user),
     })
     await this.bindAttachments(result.ticketId, dto.attachmentIds, BigInt(user.userId))
-    await this.addHistory(result.ticketId, BigInt(user.userId), BUG_ACTION.UPDATE, '', '', '更新 Bug 信息')
+    await this.addHistory(
+      result.ticketId,
+      BigInt(user.userId),
+      BUG_ACTION.UPDATE,
+      '',
+      '',
+      '更新 Bug 信息',
+    )
     return this.detail(ticketId, user)
   }
 
@@ -138,11 +178,16 @@ export class BugTicketService {
     const ticket = await this.ensureTicket(ticketId)
     await this.access.assertTicketVisible(user.userId, ticketId)
     const transition = getBugTransition(action, ticket.status)
-    if (!transition) throw new BusinessException(ErrorCode.BUG_STATUS_DENIED, '当前状态不允许执行该操作')
+    if (!transition)
+      throw new BusinessException(ErrorCode.BUG_STATUS_DENIED, '当前状态不允许执行该操作')
     await this.access.assertTicketActionAllowed(user.userId, transition.permissions, ticket, action)
-    if (action === BUG_ACTION.DUPLICATE && !dto.duplicateOfId) throw BusinessException.invalidParams('重复问题必须关联原 Bug')
+    if (action === BUG_ACTION.DUPLICATE && !dto.duplicateOfId)
+      throw BusinessException.invalidParams('重复问题必须关联原 Bug')
 
-    const data: Prisma.BugTicketUncheckedUpdateInput = { status: transition.to, updateBy: user.username }
+    const data: Prisma.BugTicketUncheckedUpdateInput = {
+      status: transition.to,
+      updateBy: user.username,
+    }
     if (action === BUG_ACTION.ASSIGN) {
       const assigneeId = this.requiredBigInt(dto.assigneeId, '负责人必填')
       await this.roleSecurity.assertAssignableProjectFieldUser({
@@ -166,8 +211,18 @@ export class BugTicketService {
     }
     if (action === BUG_ACTION.DUPLICATE) data.duplicateOfId = BigInt(dto.duplicateOfId as string)
 
-    const updated = await this.prisma.bugTicket.update({ where: { ticketId: ticket.ticketId }, data })
-    await this.addHistory(ticket.ticketId, BigInt(user.userId), action, ticket.status, updated.status, dto.remark)
+    const updated = await this.prisma.bugTicket.update({
+      where: { ticketId: ticket.ticketId },
+      data,
+    })
+    await this.addHistory(
+      ticket.ticketId,
+      BigInt(user.userId),
+      action,
+      ticket.status,
+      updated.status,
+      dto.remark,
+    )
     await this.bugNotification.notifyAction(ticket, updated, action, user, dto.remark)
     return this.detail(ticketId, user)
   }
@@ -177,14 +232,27 @@ export class BugTicketService {
     const comment = await this.prisma.bugComment.create({
       data: { ticketId: BigInt(ticketId), userId: BigInt(user.userId), content: dto.content },
     })
-    await this.bindAttachments(BigInt(ticketId), dto.attachmentIds, BigInt(user.userId), comment.commentId)
-    await this.addHistory(BigInt(ticketId), BigInt(user.userId), BUG_ACTION.COMMENT, '', '', dto.content)
+    await this.bindAttachments(
+      BigInt(ticketId),
+      dto.attachmentIds,
+      BigInt(user.userId),
+      comment.commentId,
+    )
+    await this.addHistory(
+      BigInt(ticketId),
+      BigInt(user.userId),
+      BUG_ACTION.COMMENT,
+      '',
+      '',
+      dto.content,
+    )
     await this.bugNotification.notifyComment(BigInt(ticketId), user, dto.content)
     return comment
   }
 
   async remove(ticketIds: string[], user: RequestUserLike) {
-    if (!(await this.access.isAdmin(user.userId))) throw BusinessException.forbidden('只有超级管理员可以删除 Bug')
+    if (!(await this.access.isAdmin(user.userId)))
+      throw BusinessException.forbidden('只有超级管理员可以删除 Bug')
     const where = await this.access.buildTicketWhere(user.userId)
     const ids = ticketIds.map((id) => BigInt(id))
     const tickets = await this.prisma.bugTicket.findMany({
@@ -197,14 +265,31 @@ export class BugTicketService {
     })
     await Promise.all(
       tickets.map((item) =>
-        this.addHistory(item.ticketId, BigInt(user.userId), BUG_ACTION.DELETE, item.status, 'deleted', '逻辑删除 Bug'),
+        this.addHistory(
+          item.ticketId,
+          BigInt(user.userId),
+          BUG_ACTION.DELETE,
+          item.status,
+          'deleted',
+          '逻辑删除 Bug',
+        ),
       ),
     )
     return {}
   }
 
   private ticketInclude() {
-    return { project: true, module: true, version: true, requirement: true, iteration: true, milestone: true, submitter: true, assignee: true, verifier: true }
+    return {
+      project: true,
+      module: true,
+      version: true,
+      requirement: true,
+      iteration: true,
+      milestone: true,
+      submitter: true,
+      assignee: true,
+      verifier: true,
+    }
   }
 
   private buildTicketFilters(query: QueryBugTicketDto): Prisma.BugTicketWhereInput {
@@ -214,7 +299,8 @@ export class BugTicketService {
     }
     if (query.ticketNo) where.ticketNo = { contains: query.ticketNo }
     if (query.title) where.title = { contains: query.title }
-    if (query.projectId) where.projectId = { equals: this.parseBigInt(query.projectId, '项目ID格式不正确') }
+    if (query.projectId)
+      where.projectId = { equals: this.parseBigInt(query.projectId, '项目ID格式不正确') }
     if (query.moduleId) where.moduleId = this.parseBigInt(query.moduleId, '模块ID格式不正确')
     if (query.type) where.type = query.type
     if (query.status) where.status = query.status
@@ -223,12 +309,18 @@ export class BugTicketService {
     if (query.severity) where.severity = query.severity
     if (query.environment) where.environment = query.environment
     if (query.deviceInfo) where.deviceInfo = { contains: query.deviceInfo }
-    if (query.assigneeId) where.assigneeId = this.parseBigInt(query.assigneeId, '负责人ID格式不正确')
-    if (query.submitterId) where.submitterId = this.parseBigInt(query.submitterId, '提交人ID格式不正确')
-    if (query.verifierId) where.verifierId = this.parseBigInt(query.verifierId, '验证人ID格式不正确')
-    if (query.requirementId) where.requirementId = this.parseBigInt(query.requirementId, '需求ID格式不正确')
-    if (query.iterationId) where.iterationId = this.parseBigInt(query.iterationId, '迭代ID格式不正确')
-    if (query.milestoneId) where.milestoneId = this.parseBigInt(query.milestoneId, '里程碑ID格式不正确')
+    if (query.assigneeId)
+      where.assigneeId = this.parseBigInt(query.assigneeId, '负责人ID格式不正确')
+    if (query.submitterId)
+      where.submitterId = this.parseBigInt(query.submitterId, '提交人ID格式不正确')
+    if (query.verifierId)
+      where.verifierId = this.parseBigInt(query.verifierId, '验证人ID格式不正确')
+    if (query.requirementId)
+      where.requirementId = this.parseBigInt(query.requirementId, '需求ID格式不正确')
+    if (query.iterationId)
+      where.iterationId = this.parseBigInt(query.iterationId, '迭代ID格式不正确')
+    if (query.milestoneId)
+      where.milestoneId = this.parseBigInt(query.milestoneId, '里程碑ID格式不正确')
     this.applyDateRange(where, 'createTime', query.beginTime, query.endTime, '创建时间')
     this.applyDateRange(where, 'dueTime', query.dueTimeStart, query.dueTimeEnd, '预计完成时间')
     this.applyDateRange(where, 'updateTime', query.updateTimeStart, query.updateTimeEnd, '更新时间')
@@ -261,7 +353,8 @@ export class BugTicketService {
   }
 
   private buildOrderBy(query: QueryBugTicketDto): Prisma.BugTicketOrderByWithRelationInput[] {
-    const direction = query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
+    const direction =
+      query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
     const sortMap: Record<string, Prisma.BugTicketOrderByWithRelationInput> = {
       ticketNo: { ticketNo: direction },
       projectId: { projectId: direction },
@@ -274,7 +367,8 @@ export class BugTicketService {
       dueTime: { dueTime: direction },
       updateTime: { updateTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { ticketId: 'desc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { ticketId: 'desc' }]
     return [{ ticketId: 'desc' }]
   }
 
@@ -308,7 +402,10 @@ export class BugTicketService {
     }
   }
 
-  private updateTicketData(dto: UpdateBugTicketDto, user: RequestUserLike): Prisma.BugTicketUncheckedUpdateInput {
+  private updateTicketData(
+    dto: UpdateBugTicketDto,
+    user: RequestUserLike,
+  ): Prisma.BugTicketUncheckedUpdateInput {
     const data: Prisma.BugTicketUncheckedUpdateInput = { updateBy: user.username }
     if (dto.title !== undefined) data.title = dto.title
     if (dto.projectId !== undefined) data.projectId = BigInt(dto.projectId)
@@ -323,9 +420,12 @@ export class BugTicketService {
     if (dto.actualResult !== undefined) data.actualResult = dto.actualResult
     if (dto.environment !== undefined) data.environment = dto.environment
     if (dto.deviceInfo !== undefined) data.deviceInfo = dto.deviceInfo
-    if (dto.requirementId !== undefined) data.requirementId = dto.requirementId ? BigInt(dto.requirementId) : null
-    if (dto.iterationId !== undefined) data.iterationId = dto.iterationId ? BigInt(dto.iterationId) : null
-    if (dto.milestoneId !== undefined) data.milestoneId = dto.milestoneId ? BigInt(dto.milestoneId) : null
+    if (dto.requirementId !== undefined)
+      data.requirementId = dto.requirementId ? BigInt(dto.requirementId) : null
+    if (dto.iterationId !== undefined)
+      data.iterationId = dto.iterationId ? BigInt(dto.iterationId) : null
+    if (dto.milestoneId !== undefined)
+      data.milestoneId = dto.milestoneId ? BigInt(dto.milestoneId) : null
     return data
   }
 
@@ -334,10 +434,15 @@ export class BugTicketService {
     return current ? String(current) : undefined
   }
 
-  private async canEditTicket(ticket: { status: string; projectId: bigint; submitterId: bigint }, user: RequestUserLike) {
+  private async canEditTicket(
+    ticket: { status: string; projectId: bigint; submitterId: bigint },
+    user: RequestUserLike,
+  ) {
     if (await this.access.isAdmin(user.userId)) return true
     if (await this.access.isProjectReviewer(user.userId, ticket.projectId)) return true
-    return ticket.status === BUG_STATUS.PENDING_CONFIRM && ticket.submitterId === BigInt(user.userId)
+    return (
+      ticket.status === BUG_STATUS.PENDING_CONFIRM && ticket.submitterId === BigInt(user.userId)
+    )
   }
 
   private async availableActions(
@@ -347,7 +452,12 @@ export class BugTicketService {
     const checks = await Promise.all(
       getBugTransitions(ticket.status).map(async (item) => ({
         item,
-        allowed: await this.access.canTicketAction(user.userId, item.permissions, ticket, item.action),
+        allowed: await this.access.canTicketAction(
+          user.userId,
+          item.permissions,
+          ticket,
+          item.action,
+        ),
       })),
     )
     return checks.filter((check) => check.allowed).map((check) => check.item)
@@ -374,7 +484,8 @@ export class BugTicketService {
     const where: Prisma.BugProjectWhereInput = { delFlag: '0', status: '0' }
     if (normalizedProjectId) {
       const parsedProjectId = this.parseBigInt(normalizedProjectId, '项目ID格式不正确')
-      if (!visibleProjectIds.some((id) => id === parsedProjectId)) throw BusinessException.forbidden('无权访问该项目')
+      if (!visibleProjectIds.some((id) => id === parsedProjectId))
+        throw BusinessException.forbidden('无权访问该项目')
       where.projectId = parsedProjectId
     } else {
       where.projectId = { in: visibleProjectIds }
@@ -425,7 +536,8 @@ export class BugTicketService {
   private async assertProjectVisible(projectId: string, user: RequestUserLike) {
     const projectIds = await this.access.getVisibleProjectIds(user.userId)
     const parsedProjectId = this.parseBigInt(projectId, '项目ID格式不正确')
-    if (!projectIds.some((id) => id === parsedProjectId)) throw BusinessException.forbidden('无权访问该项目')
+    if (!projectIds.some((id) => id === parsedProjectId))
+      throw BusinessException.forbidden('无权访问该项目')
   }
 
   private async ensureTicket(ticketId: string) {
@@ -444,7 +556,11 @@ export class BugTicketService {
   ) {
     if (!attachmentIds?.length) return
     await this.prisma.bugAttachment.updateMany({
-      where: { attachmentId: { in: attachmentIds.map((id) => BigInt(id)) }, uploaderId, delFlag: '0' },
+      where: {
+        attachmentId: { in: attachmentIds.map((id) => BigInt(id)) },
+        uploaderId,
+        delFlag: '0',
+      },
       data: { ticketId, commentId },
     })
   }

@@ -118,7 +118,13 @@ async function bootstrap() {
     origin: isProduction ? corsOrigins || false : true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Cache-Control',
+      'Pragma',
+    ],
     exposedHeaders: ['X-New-Token'], // 暴露滑动过期的新 Token 头
   })
 

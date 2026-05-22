@@ -29,7 +29,9 @@ export class UserInfoService {
     // 为什么只取启用角色：后端守卫已经只认启用角色，前端权限态也必须一致，
     // 避免停用/删除角色继续让页面按钮误显示。
     const activeRoles = user.roles.filter((ur) => {
-      return ur.role.delFlag === '0' && ur.role.status === '0' && !isLegacyBusinessRole(ur.role.roleKey)
+      return (
+        ur.role.delFlag === '0' && ur.role.status === '0' && !isLegacyBusinessRole(ur.role.roleKey)
+      )
     })
     const roleKeys = activeRoles.map((ur) => ur.role.roleKey)
     const roleList = activeRoles.map((ur) => ({
@@ -39,7 +41,9 @@ export class UserInfoService {
       securityLevel: ur.role.securityLevel,
     }))
     const isAdmin = roleKeys.includes('admin')
-    const permissions = isAdmin ? ['*:*:*'] : await this.getPermissions(activeRoles.map((ur) => ur.roleId))
+    const permissions = isAdmin
+      ? ['*:*:*']
+      : await this.getPermissions(activeRoles.map((ur) => ur.roleId))
 
     const { password: _password, twoFactorSecret: _secret, roles: _roles, ...userInfo } = user
     return {
@@ -65,8 +69,6 @@ export class UserInfoService {
       },
       select: { perms: true },
     })
-    return menus
-      .map((menu) => menu.perms)
-      .filter((perms): perms is string => Boolean(perms))
+    return menus.map((menu) => menu.perms).filter((perms): perms is string => Boolean(perms))
   }
 }

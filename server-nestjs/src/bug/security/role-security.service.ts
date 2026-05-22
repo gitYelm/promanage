@@ -73,7 +73,11 @@ export class RoleSecurityService {
     if (!user) throw BusinessException.notFound('用户不存在或已停用')
   }
 
-  async assertNotHigher(operatorId: string | bigint, targetUserId: string | bigint, message = '不能选择权限高于自己的用户') {
+  async assertNotHigher(
+    operatorId: string | bigint,
+    targetUserId: string | bigint,
+    message = '不能选择权限高于自己的用户',
+  ) {
     if (await this.isAdmin(operatorId)) return
     const [operatorLevel, targetLevel] = await Promise.all([
       this.getUserSecurityLevel(operatorId),
@@ -90,7 +94,7 @@ export class RoleSecurityService {
     options: TargetRoleOptions = {},
   ) {
     await this.assertActiveUser(targetUserId)
-    if (options.allowAdminBypassRole && await this.isAdmin(operatorId)) return
+    if (options.allowAdminBypassRole && (await this.isAdmin(operatorId))) return
     await this.assertNotHigher(operatorId, targetUserId, `不能选择权限高于自己的${label}`)
     if (await this.isAdmin(targetUserId)) return
     if (!(await this.hasAnyRole(targetUserId, roleKeys))) {
@@ -98,7 +102,11 @@ export class RoleSecurityService {
     }
   }
 
-  async assertAssignableProjectMember(operatorId: string | bigint, targetUserId: string | bigint, memberRole: string) {
+  async assertAssignableProjectMember(
+    operatorId: string | bigint,
+    targetUserId: string | bigint,
+    memberRole: string,
+  ) {
     await this.assertActiveUser(targetUserId)
     await this.assertNotHigher(operatorId, targetUserId, '不能维护权限高于自己的项目成员')
     await this.assertUserMatchesMemberRole(targetUserId, memberRole)
@@ -128,10 +136,17 @@ export class RoleSecurityService {
       })
       if (!member) throw BusinessException.invalidParams(`${label}必须是当前项目的有效成员`)
     }
-    await this.assertUserMatchesAnyMemberRole(targetUserId, allowedMemberRoles, `${label}必须具备对应系统角色`)
+    await this.assertUserMatchesAnyMemberRole(
+      targetUserId,
+      allowedMemberRoles,
+      `${label}必须具备对应系统角色`,
+    )
   }
 
-  async assignableUserOptions(operatorId: string | bigint | undefined, query: AssignableUserOptionsQuery = {}) {
+  async assignableUserOptions(
+    operatorId: string | bigint | undefined,
+    query: AssignableUserOptionsQuery = {},
+  ) {
     const users = await this.prisma.sysUser.findMany({
       where: this.userOptionWhere(query),
       include: { roles: { include: { role: true } } },
@@ -139,10 +154,13 @@ export class RoleSecurityService {
       take: 200,
     })
     const filtered = await this.filterUsersByContext(operatorId, users, query)
-    const securityFiltered = operatorId && this.shouldApplySecurity(query)
-      ? await this.filterUsersBySecurity(operatorId, filtered)
-      : filtered
-    return securityFiltered.slice(0, 100).map((user) => ({ userId: user.userId, userName: user.userName, nickName: user.nickName }))
+    const securityFiltered =
+      operatorId && this.shouldApplySecurity(query)
+        ? await this.filterUsersBySecurity(operatorId, filtered)
+        : filtered
+    return securityFiltered
+      .slice(0, 100)
+      .map((user) => ({ userId: user.userId, userName: user.userName, nickName: user.nickName }))
   }
 
   private userOptionWhere(query: AssignableUserOptionsQuery): Prisma.SysUserWhereInput {
@@ -156,7 +174,14 @@ export class RoleSecurityService {
     return {
       delFlag: '0',
       status: '0',
-      ...(query.keyword ? { OR: [{ userName: { contains: query.keyword } }, { nickName: { contains: query.keyword } }] } : {}),
+      ...(query.keyword
+        ? {
+            OR: [
+              { userName: { contains: query.keyword } },
+              { nickName: { contains: query.keyword } },
+            ],
+          }
+        : {}),
       ...(shouldFilterProjectMember
         ? {
             bugProjectMembers: {
@@ -180,7 +205,9 @@ export class RoleSecurityService {
     if (await this.canAdminBypassProjectOwnerRoleFilter(operatorId, query)) return users
     const roleKeys = this.requiredSystemRoleKeys(query)
     if (!roleKeys.length) return users
-    return users.filter((user) => this.userHasAnyRole(user, roleKeys) || this.userHasAnyRole(user, ['admin']))
+    return users.filter(
+      (user) => this.userHasAnyRole(user, roleKeys) || this.userHasAnyRole(user, ['admin']),
+    )
   }
 
   private async canAdminBypassProjectOwnerRoleFilter(
@@ -198,7 +225,9 @@ export class RoleSecurityService {
   }
 
   private shouldApplySecurity(query: AssignableUserOptionsQuery) {
-    return query.assignableOnly === 'true' || Boolean(query.assignContext) || Boolean(query.memberRole)
+    return (
+      query.assignableOnly === 'true' || Boolean(query.assignContext) || Boolean(query.memberRole)
+    )
   }
 
   private shouldFilterByProjectMembership(query: AssignableUserOptionsQuery) {
@@ -211,39 +240,60 @@ export class RoleSecurityService {
   }
 
   private resolveProjectMemberRoles(query: AssignableUserOptionsQuery): BugMemberRole[] {
-    if (query.assignContext && ASSIGN_CONTEXT_MEMBER_ROLES[query.assignContext]) return ASSIGN_CONTEXT_MEMBER_ROLES[query.assignContext]
+    if (query.assignContext && ASSIGN_CONTEXT_MEMBER_ROLES[query.assignContext])
+      return ASSIGN_CONTEXT_MEMBER_ROLES[query.assignContext]
     return query.memberRole ? [query.memberRole as BugMemberRole] : []
   }
 
   private requiredSystemRoleKeys(query: AssignableUserOptionsQuery) {
-    if (query.assignContext === 'projectOwner') return expandEquivalentRoleKeys(['bug_project_owner'])
+    if (query.assignContext === 'projectOwner')
+      return expandEquivalentRoleKeys(['bug_project_owner'])
     const memberRoles = this.resolveProjectMemberRoles(query)
-    return expandEquivalentRoleKeys(memberRoles.flatMap((role) => PROJECT_MEMBER_ROLE_KEYS[role] ?? []))
+    return expandEquivalentRoleKeys(
+      memberRoles.flatMap((role) => PROJECT_MEMBER_ROLE_KEYS[role] ?? []),
+    )
   }
 
   private async assertUserMatchesMemberRole(userId: string | bigint, memberRole: string) {
-    await this.assertUserMatchesAnyMemberRole(userId, [memberRole as BugMemberRole], '项目成员必须具备对应系统角色')
+    await this.assertUserMatchesAnyMemberRole(
+      userId,
+      [memberRole as BugMemberRole],
+      '项目成员必须具备对应系统角色',
+    )
   }
 
-  private async assertUserMatchesAnyMemberRole(userId: string | bigint, memberRoles: BugMemberRole[], message: string) {
+  private async assertUserMatchesAnyMemberRole(
+    userId: string | bigint,
+    memberRoles: BugMemberRole[],
+    message: string,
+  ) {
     if (await this.isAdmin(userId)) return
-    const requiredRoleKeys = [...new Set(memberRoles.flatMap((role) => PROJECT_MEMBER_ROLE_KEYS[role] ?? []))]
+    const requiredRoleKeys = [
+      ...new Set(memberRoles.flatMap((role) => PROJECT_MEMBER_ROLE_KEYS[role] ?? [])),
+    ]
     if (!requiredRoleKeys.length) return
-    if (!(await this.hasAnyRole(userId, requiredRoleKeys))) throw BusinessException.invalidParams(message)
+    if (!(await this.hasAnyRole(userId, requiredRoleKeys)))
+      throw BusinessException.invalidParams(message)
   }
 
   private userHasAnyRole(user: UserWithRoles, roleKeys: string[]) {
-    return user.roles.some((item) =>
-      roleKeys.includes(item.role.roleKey) &&
-      item.role.delFlag === '0' &&
-      item.role.status === '0' &&
-      !isLegacyBusinessRole(item.role.roleKey),
+    return user.roles.some(
+      (item) =>
+        roleKeys.includes(item.role.roleKey) &&
+        item.role.delFlag === '0' &&
+        item.role.status === '0' &&
+        !isLegacyBusinessRole(item.role.roleKey),
     )
   }
 
   private activeRoleKeys(user: UserWithRoles) {
     return user.roles
-      .filter((item) => item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey))
+      .filter(
+        (item) =>
+          item.role.delFlag === '0' &&
+          item.role.status === '0' &&
+          !isLegacyBusinessRole(item.role.roleKey),
+      )
       .map((item) => ({
         roleKey: item.role.roleKey,
         securityLevel: item.role.securityLevel ?? defaultRoleSecurityLevel(item.role.roleKey),

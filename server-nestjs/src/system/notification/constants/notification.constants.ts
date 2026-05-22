@@ -12,4 +12,5 @@ export const NOTIFICATION_TYPE = {
 } as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPE)[keyof typeof NOTIFICATION_TYPE]
-export type NotificationBusinessType = (typeof NOTIFICATION_BUSINESS_TYPE)[keyof typeof NOTIFICATION_BUSINESS_TYPE]
+export type NotificationBusinessType =
+  (typeof NOTIFICATION_BUSINESS_TYPE)[keyof typeof NOTIFICATION_BUSINESS_TYPE]

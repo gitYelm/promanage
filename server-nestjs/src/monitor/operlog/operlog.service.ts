@@ -16,9 +16,14 @@ export class OperlogService {
     if (query.status) where.status = Number(query.status)
     if (query.businessType) where.businessType = Number(query.businessType)
     if (query.beginTime || query.endTime) {
-      const beginTime = query.beginTime ? this.parseDate(query.beginTime, '操作开始时间') : undefined
+      const beginTime = query.beginTime
+        ? this.parseDate(query.beginTime, '操作开始时间')
+        : undefined
       const endTime = query.endTime ? this.parseDate(query.endTime, '操作结束时间') : undefined
-      where.operTime = { ...(beginTime ? { gte: beginTime } : {}), ...(endTime ? { lte: endTime } : {}) }
+      where.operTime = {
+        ...(beginTime ? { gte: beginTime } : {}),
+        ...(endTime ? { lte: endTime } : {}),
+      }
     }
 
     const pageNum = Number(query.pageNum ?? 1)
@@ -48,7 +53,8 @@ export class OperlogService {
       status: { status: direction },
       operTime: { operTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { operTime: 'desc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { operTime: 'desc' }]
     return [{ operTime: 'desc' }]
   }
 

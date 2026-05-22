@@ -25,16 +25,32 @@ async function ensureNotificationMenu() {
   const systemDir = await prisma.sysMenu.findFirst({ where: { path: 'system', parentId: null } })
   if (!systemDir) return
 
-  const existingMenu = await prisma.sysMenu.findFirst({ where: { parentId: systemDir.menuId, path: 'notification' } })
+  const existingMenu = await prisma.sysMenu.findFirst({
+    where: { parentId: systemDir.menuId, path: 'notification' },
+  })
   const notificationMenu = existingMenu
-    ? await prisma.sysMenu.update({ where: { menuId: existingMenu.menuId }, data: notificationMenuData(systemDir.menuId) })
+    ? await prisma.sysMenu.update({
+        where: { menuId: existingMenu.menuId },
+        data: notificationMenuData(systemDir.menuId),
+      })
     : await prisma.sysMenu.create({ data: notificationMenuData(systemDir.menuId) })
 
   for (const [menuName, perms, orderNum] of notificationPerms) {
     const existed = await prisma.sysMenu.findFirst({ where: { perms } })
     if (!existed) {
       await prisma.sysMenu.create({
-        data: { menuName, parentId: notificationMenu.menuId, orderNum, menuType: 'F', visible: '1', status: '0', perms, isFrame: 1, path: '', icon: '#' },
+        data: {
+          menuName,
+          parentId: notificationMenu.menuId,
+          orderNum,
+          menuType: 'F',
+          visible: '1',
+          status: '0',
+          perms,
+          isFrame: 1,
+          path: '',
+          icon: '#',
+        },
       })
     }
   }
@@ -44,7 +60,19 @@ async function ensureNotificationMenu() {
 }
 
 function notificationMenuData(parentId: bigint) {
-  return { menuName: '站内通知', parentId, path: 'notification', component: 'system/notification/index', orderNum: 10, menuType: 'C', visible: '1', status: '0', perms: 'system:notification:list', icon: 'bell-ring', isFrame: 1 }
+  return {
+    menuName: '站内通知',
+    parentId,
+    path: 'notification',
+    component: 'system/notification/index',
+    orderNum: 10,
+    menuType: 'C',
+    visible: '1',
+    status: '0',
+    perms: 'system:notification:list',
+    icon: 'bell-ring',
+    isFrame: 1,
+  }
 }
 
 async function bindNotificationMenusToRoles(notificationMenuId: bigint) {
@@ -59,7 +87,9 @@ async function bindNotificationMenusToRoles(notificationMenuId: bigint) {
     select: { menuId: true },
   })
   await prisma.sysRoleMenu.createMany({
-    data: roles.flatMap((role) => menus.map((menu) => ({ roleId: role.roleId, menuId: menu.menuId }))),
+    data: roles.flatMap((role) =>
+      menus.map((menu) => ({ roleId: role.roleId, menuId: menu.menuId })),
+    ),
     skipDuplicates: true,
   })
 }

@@ -44,7 +44,8 @@ export class NoticeService {
       createBy: { createBy: direction },
       createTime: { createTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { noticeId: 'asc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { noticeId: 'asc' }]
     return [{ noticeId: 'asc' }]
   }
 

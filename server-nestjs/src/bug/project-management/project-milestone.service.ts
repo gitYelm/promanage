@@ -4,15 +4,32 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { BugAccessService, type RequestUserLike } from '../bug-access.service'
 import { BUG_MEMBER_ROLE } from '../constants/bug.constants'
-import { MILESTONE_STATUS, PM_ACTIVITY_ACTION, PM_ACTIVITY_TARGET } from '../constants/project-management.constants'
-import { MILESTONE_TRANSITIONS, findTransition } from '../constants/project-management-workflow.config'
-import { CreateMilestoneDto, PmStatusActionDto, QueryMilestoneDto, UpdateMilestoneDto } from '../dto/project-management.dto'
+import {
+  MILESTONE_STATUS,
+  PM_ACTIVITY_ACTION,
+  PM_ACTIVITY_TARGET,
+} from '../constants/project-management.constants'
+import {
+  MILESTONE_TRANSITIONS,
+  findTransition,
+} from '../constants/project-management-workflow.config'
+import {
+  CreateMilestoneDto,
+  PmStatusActionDto,
+  QueryMilestoneDto,
+  UpdateMilestoneDto,
+} from '../dto/project-management.dto'
 import { RoleSecurityService } from '../security/role-security.service'
 import { ProjectActivityService } from './project-activity.service'
 
 @Injectable()
 export class ProjectMilestoneService {
-  constructor(private readonly prisma: PrismaService, private readonly access: BugAccessService, private readonly roleSecurity: RoleSecurityService, private readonly activity: ProjectActivityService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: BugAccessService,
+    private readonly roleSecurity: RoleSecurityService,
+    private readonly activity: ProjectActivityService,
+  ) {}
 
   async list(query: QueryMilestoneDto, user: RequestUserLike) {
     const where = await this.where(query, user)
@@ -20,7 +37,13 @@ export class ProjectMilestoneService {
     const pageSize = Number(query.pageSize ?? 20)
     const [total, rows] = await Promise.all([
       this.prisma.projectMilestone.count({ where }),
-      this.prisma.projectMilestone.findMany({ where, skip: (pageNum - 1) * pageSize, take: pageSize, include: { project: true, owner: true }, orderBy: this.buildOrderBy(query) }),
+      this.prisma.projectMilestone.findMany({
+        where,
+        skip: (pageNum - 1) * pageSize,
+        take: pageSize,
+        include: { project: true, owner: true },
+        orderBy: this.buildOrderBy(query),
+      }),
     ])
     return { total, rows }
   }
@@ -29,7 +52,14 @@ export class ProjectMilestoneService {
     await this.assertProjectVisible(user.userId, BigInt(dto.projectId))
     await this.assertOwnerAllowed(user, BigInt(dto.projectId), dto.ownerId)
     const row = await this.prisma.projectMilestone.create({ data: this.createData(dto) })
-    await this.activity.record({ projectId: row.projectId, targetType: PM_ACTIVITY_TARGET.MILESTONE, targetId: row.milestoneId, action: PM_ACTIVITY_ACTION.CREATE, operatorId: BigInt(user.userId), toValue: row.status })
+    await this.activity.record({
+      projectId: row.projectId,
+      targetType: PM_ACTIVITY_TARGET.MILESTONE,
+      targetId: row.milestoneId,
+      action: PM_ACTIVITY_ACTION.CREATE,
+      operatorId: BigInt(user.userId),
+      toValue: row.status,
+    })
     return row
   }
 
@@ -38,8 +68,17 @@ export class ProjectMilestoneService {
     const projectId = dto.projectId ? BigInt(dto.projectId) : row.projectId
     await this.assertProjectVisible(user.userId, projectId)
     await this.assertOwnerAllowed(user, projectId, this.nextUserId(dto.ownerId, row.ownerId))
-    const updated = await this.prisma.projectMilestone.update({ where: { milestoneId: row.milestoneId }, data: this.updateData(dto) })
-    await this.activity.record({ projectId: updated.projectId, targetType: PM_ACTIVITY_TARGET.MILESTONE, targetId: updated.milestoneId, action: PM_ACTIVITY_ACTION.UPDATE, operatorId: BigInt(user.userId) })
+    const updated = await this.prisma.projectMilestone.update({
+      where: { milestoneId: row.milestoneId },
+      data: this.updateData(dto),
+    })
+    await this.activity.record({
+      projectId: updated.projectId,
+      targetType: PM_ACTIVITY_TARGET.MILESTONE,
+      targetId: updated.milestoneId,
+      action: PM_ACTIVITY_ACTION.UPDATE,
+      operatorId: BigInt(user.userId),
+    })
     return updated
   }
 
@@ -49,20 +88,40 @@ export class ProjectMilestoneService {
     if (!transition) throw BusinessException.denied('当前里程碑状态不允许执行该操作')
     await this.access.assertAnyPermission(user.userId, transition.permissions)
     const completedTime = transition.to === MILESTONE_STATUS.ACHIEVED ? new Date() : undefined
-    const updated = await this.prisma.projectMilestone.update({ where: { milestoneId: row.milestoneId }, data: { status: transition.to, completedTime } })
-    await this.activity.record({ projectId: updated.projectId, targetType: PM_ACTIVITY_TARGET.MILESTONE, targetId: updated.milestoneId, action: PM_ACTIVITY_ACTION.STATUS, operatorId: BigInt(user.userId), fromValue: row.status, toValue: updated.status, remark: dto.remark })
+    const updated = await this.prisma.projectMilestone.update({
+      where: { milestoneId: row.milestoneId },
+      data: { status: transition.to, completedTime },
+    })
+    await this.activity.record({
+      projectId: updated.projectId,
+      targetType: PM_ACTIVITY_TARGET.MILESTONE,
+      targetId: updated.milestoneId,
+      action: PM_ACTIVITY_ACTION.STATUS,
+      operatorId: BigInt(user.userId),
+      fromValue: row.status,
+      toValue: updated.status,
+      remark: dto.remark,
+    })
     return updated
   }
 
   async remove(ids: string[], user: RequestUserLike) {
     const idList = ids.map((id) => BigInt(id))
-    const rows = await this.prisma.projectMilestone.findMany({ where: { milestoneId: { in: idList }, delFlag: '0' } })
+    const rows = await this.prisma.projectMilestone.findMany({
+      where: { milestoneId: { in: idList }, delFlag: '0' },
+    })
     await Promise.all(rows.map((row) => this.assertProjectVisible(user.userId, row.projectId)))
-    await this.prisma.projectMilestone.updateMany({ where: { milestoneId: { in: idList } }, data: { delFlag: '2' } })
+    await this.prisma.projectMilestone.updateMany({
+      where: { milestoneId: { in: idList } },
+      data: { delFlag: '2' },
+    })
     return {}
   }
 
-  private async where(query: QueryMilestoneDto, user: RequestUserLike): Promise<Prisma.ProjectMilestoneWhereInput> {
+  private async where(
+    query: QueryMilestoneDto,
+    user: RequestUserLike,
+  ): Promise<Prisma.ProjectMilestoneWhereInput> {
     const projectIds = await this.access.getVisibleProjectIds(user.userId)
     const where: Prisma.ProjectMilestoneWhereInput = { delFlag: '0', projectId: { in: projectIds } }
     if (query.keyword) where.milestoneName = { contains: query.keyword }
@@ -81,8 +140,12 @@ export class ProjectMilestoneService {
     if (!start && !end) return
     const startDate = start ? this.parseDate(start, '目标日期起') : undefined
     const endDate = end ? this.parseDate(end, '目标日期止') : undefined
-    if (startDate && endDate && startDate > endDate) throw BusinessException.invalidParams('目标日期起不能晚于目标日期止')
-    where.targetDate = { ...(startDate ? { gte: startDate } : {}), ...(endDate ? { lte: endDate } : {}) }
+    if (startDate && endDate && startDate > endDate)
+      throw BusinessException.invalidParams('目标日期起不能晚于目标日期止')
+    where.targetDate = {
+      ...(startDate ? { gte: startDate } : {}),
+      ...(endDate ? { lte: endDate } : {}),
+    }
   }
 
   private parseDate(value: string, label: string) {
@@ -91,8 +154,11 @@ export class ProjectMilestoneService {
     return date
   }
 
-  private buildOrderBy(query: QueryMilestoneDto): Prisma.ProjectMilestoneOrderByWithRelationInput[] {
-    const direction = query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
+  private buildOrderBy(
+    query: QueryMilestoneDto,
+  ): Prisma.ProjectMilestoneOrderByWithRelationInput[] {
+    const direction =
+      query.sortOrder === 'asc' ? 'asc' : query.sortOrder === 'desc' ? 'desc' : undefined
     const sortMap: Record<string, Prisma.ProjectMilestoneOrderByWithRelationInput> = {
       milestoneName: { milestoneName: direction },
       projectId: { projectId: direction },
@@ -101,12 +167,22 @@ export class ProjectMilestoneService {
       targetDate: { targetDate: direction },
       status: { status: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { milestoneId: 'desc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { milestoneId: 'desc' }]
     return [{ milestoneId: 'desc' }]
   }
 
   private createData(dto: CreateMilestoneDto): Prisma.ProjectMilestoneUncheckedCreateInput {
-    return { projectId: BigInt(dto.projectId), milestoneName: dto.milestoneName, stage: dto.stage, status: dto.status ?? 'pending', ownerId: this.bigIntOrUndefined(dto.ownerId), targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined, completionCriteria: dto.completionCriteria ?? '', remark: dto.remark ?? '' }
+    return {
+      projectId: BigInt(dto.projectId),
+      milestoneName: dto.milestoneName,
+      stage: dto.stage,
+      status: dto.status ?? 'pending',
+      ownerId: this.bigIntOrUndefined(dto.ownerId),
+      targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
+      completionCriteria: dto.completionCriteria ?? '',
+      remark: dto.remark ?? '',
+    }
   }
 
   private updateData(dto: UpdateMilestoneDto): Prisma.ProjectMilestoneUncheckedUpdateInput {
@@ -116,14 +192,17 @@ export class ProjectMilestoneService {
     if (dto.stage !== undefined) data.stage = dto.stage
     if (dto.status !== undefined) data.status = dto.status
     if (dto.ownerId !== undefined) data.ownerId = dto.ownerId ? BigInt(dto.ownerId) : null
-    if (dto.targetDate !== undefined) data.targetDate = dto.targetDate ? new Date(dto.targetDate) : null
+    if (dto.targetDate !== undefined)
+      data.targetDate = dto.targetDate ? new Date(dto.targetDate) : null
     if (dto.completionCriteria !== undefined) data.completionCriteria = dto.completionCriteria
     if (dto.remark !== undefined) data.remark = dto.remark
     return data
   }
 
   private async ensure(milestoneId: string, user: RequestUserLike) {
-    const row = await this.prisma.projectMilestone.findFirst({ where: { milestoneId: BigInt(milestoneId), delFlag: '0' } })
+    const row = await this.prisma.projectMilestone.findFirst({
+      where: { milestoneId: BigInt(milestoneId), delFlag: '0' },
+    })
     if (!row) throw BusinessException.notFound('里程碑不存在')
     await this.assertProjectVisible(user.userId, row.projectId)
     return row
@@ -144,7 +223,9 @@ export class ProjectMilestoneService {
     })
   }
 
-  private bigIntOrUndefined(value?: string) { return value ? BigInt(value) : undefined }
+  private bigIntOrUndefined(value?: string) {
+    return value ? BigInt(value) : undefined
+  }
   private nextUserId(value: string | undefined, current: bigint | null) {
     if (value !== undefined) return value || undefined
     return current ? String(current) : undefined

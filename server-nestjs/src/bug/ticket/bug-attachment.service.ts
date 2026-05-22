@@ -64,12 +64,19 @@ export class BugAttachmentService {
         fileType: file.mimetype,
         fileSize: BigInt(file.size),
         attachmentType,
-        originalAttachmentId: dto.originalAttachmentId ? BigInt(dto.originalAttachmentId) : undefined,
+        originalAttachmentId: dto.originalAttachmentId
+          ? BigInt(dto.originalAttachmentId)
+          : undefined,
         annotationData: dto.annotationData,
       },
     })
     if (attachment.ticketId) {
-      await this.addHistory(attachment.ticketId, BigInt(user.userId), '上传附件', attachment.originalName)
+      await this.addHistory(
+        attachment.ticketId,
+        BigInt(user.userId),
+        '上传附件',
+        attachment.originalName,
+      )
     }
     this.logger.log(`上传 Bug 附件: ${result.filename}`, 'BugAttachmentService')
     return attachment
@@ -86,14 +93,29 @@ export class BugAttachmentService {
       data: { delFlag: '2' },
     })
     if (attachment.ticketId) {
-      await this.addHistory(attachment.ticketId, BigInt(user.userId), '删除附件', attachment.originalName)
+      await this.addHistory(
+        attachment.ticketId,
+        BigInt(user.userId),
+        '删除附件',
+        attachment.originalName,
+      )
     }
     return {}
   }
 
-  private async addHistory(ticketId: bigint, operatorId: bigint, actionName: string, fileName: string) {
+  private async addHistory(
+    ticketId: bigint,
+    operatorId: bigint,
+    actionName: string,
+    fileName: string,
+  ) {
     await this.prisma.bugHistory.create({
-      data: { ticketId, operatorId, action: BUG_ACTION.ATTACHMENT, remark: `${actionName}: ${fileName}` },
+      data: {
+        ticketId,
+        operatorId,
+        action: BUG_ACTION.ATTACHMENT,
+        remark: `${actionName}: ${fileName}`,
+      },
     })
   }
 
@@ -142,7 +164,9 @@ export class BugAttachmentService {
 
   private generateFilename(type: string, original: string): string {
     const safeOriginal = original.replace(/[\\/\0]/g, '')
-    const rawExt = safeOriginal.includes('.') ? safeOriginal.slice(safeOriginal.lastIndexOf('.')).toLowerCase() : ''
+    const rawExt = safeOriginal.includes('.')
+      ? safeOriginal.slice(safeOriginal.lastIndexOf('.')).toLowerCase()
+      : ''
     const ext = SAFE_EXTS.has(rawExt) ? rawExt : '.dat'
     return `${type}-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`
   }

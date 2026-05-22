@@ -21,10 +21,7 @@ const readPermissions = [
   'bug:attachment:preview',
 ]
 
-const writeCollaborationPermissions = [
-  'bug:comment:add',
-  'bug:attachment:upload',
-]
+const writeCollaborationPermissions = ['bug:comment:add', 'bug:attachment:upload']
 
 const projectReadPermissions = [
   'bug:project:list',
@@ -62,11 +59,7 @@ const pmProductOwnerPermissions = [
   'pm:dashboard:view',
 ]
 
-const pmReviewerPermissions = [
-  'pm:project:view',
-  'pm:requirement:view',
-  'pm:dashboard:view',
-]
+const pmReviewerPermissions = ['pm:project:view', 'pm:requirement:view', 'pm:dashboard:view']
 
 const pmExecutivePermissions = [
   'pm:executive-dashboard:view',
@@ -172,7 +165,13 @@ async function ensureBugWorkflowPermissions() {
 
 async function ensureSupplementRoles() {
   const roles = [
-    ['bug_project_owner', '项目负责人', 20, 600, '负责项目配置、成员维护、缺陷分派、项目进度和统计'],
+    [
+      'bug_project_owner',
+      '项目负责人',
+      20,
+      600,
+      '负责项目配置、成员维护、缺陷分派、项目进度和统计',
+    ],
     ['bug_product_owner', '产品负责人', 21, 550, '负责需求确认、缺陷有效性判断、优先级和业务验收'],
     ['bug_reviewer', '审核人员', 22, 520, '审核缺陷、驳回或分派给开发'],
     ['bug_developer', '开发人员', 23, 400, '处理分派给自己的缺陷并提交验证'],
@@ -211,7 +210,14 @@ async function ensureMemberRoleDict() {
       })
     } else {
       await prisma.sysDictData.create({
-        data: { dictType: 'bug_member_role', dictLabel, dictValue, dictSort, status: '0', isDefault: 'N' },
+        data: {
+          dictType: 'bug_member_role',
+          dictLabel,
+          dictValue,
+          dictSort,
+          status: '0',
+          isDefault: 'N',
+        },
       })
     }
   }
@@ -220,7 +226,10 @@ async function ensureMemberRoleDict() {
 async function bindRolePermissions() {
   const removableMenuIds = await collectDescendantMenuIds(['/bug', '/project-management'])
   for (const [roleKey, perms] of Object.entries(rolePermissions)) {
-    const role = await prisma.sysRole.findFirst({ where: { roleKey, delFlag: '0' }, select: { roleId: true } })
+    const role = await prisma.sysRole.findFirst({
+      where: { roleKey, delFlag: '0' },
+      select: { roleId: true },
+    })
     if (!role) continue
     if (removableMenuIds.length) {
       await prisma.sysRoleMenu.deleteMany({
@@ -267,7 +276,11 @@ async function migrateLegacyRoleBindings() {
 async function deactivateLegacyRoles() {
   await prisma.sysRole.updateMany({
     where: { roleKey: { in: legacyRoleKeyMappings.map(([roleKey]) => roleKey) }, delFlag: '0' },
-    data: { status: '1', delFlag: '2', remark: '已由规范 bug_* 业务角色替代，禁止继续参与权限计算' },
+    data: {
+      status: '1',
+      delFlag: '2',
+      remark: '已由规范 bug_* 业务角色替代，禁止继续参与权限计算',
+    },
   })
 }
 
@@ -294,7 +307,9 @@ async function collectDescendantMenuIds(rootPaths: string[]) {
   return [...result]
 }
 
-async function collectMenuIdsWithParents(menus: Array<{ menuId: bigint; parentId: bigint | null }>) {
+async function collectMenuIdsWithParents(
+  menus: Array<{ menuId: bigint; parentId: bigint | null }>,
+) {
   const menuIds = new Set(menus.map((menu) => menu.menuId))
   let parentIds = menus.map((menu) => menu.parentId).filter((id): id is bigint => Boolean(id))
   while (parentIds.length) {

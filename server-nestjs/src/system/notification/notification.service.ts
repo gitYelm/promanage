@@ -109,7 +109,8 @@ export class NotificationService {
 
   private whereSql(query: QueryNotificationDto, userId: string) {
     const parts = [Prisma.sql`n.recipient_id = ${BigInt(userId)}`, Prisma.sql`n.del_flag = '0'`]
-    if (query.notificationType) parts.push(Prisma.sql`n.notification_type = ${query.notificationType}`)
+    if (query.notificationType)
+      parts.push(Prisma.sql`n.notification_type = ${query.notificationType}`)
     if (query.readStatus === 'unread') parts.push(Prisma.sql`n.read_time IS NULL`)
     if (query.readStatus === 'read') parts.push(Prisma.sql`n.read_time IS NOT NULL`)
     return Prisma.join(parts, ' AND ')
@@ -128,11 +129,19 @@ export class NotificationService {
       payload: row.payload,
       readTime: row.readTime?.toISOString(),
       createTime: row.createTime?.toISOString(),
-      actor: row.actorUserId ? { userId: String(row.actorUserId), userName: row.actorUserName, nickName: row.actorNickName } : null,
+      actor: row.actorUserId
+        ? {
+            userId: String(row.actorUserId),
+            userName: row.actorUserName,
+            nickName: row.actorNickName,
+          }
+        : null,
     }
   }
 
   private uniqueIds(ids: Array<string | bigint>) {
-    return [...new Set(ids.map((id) => String(id)).filter((id) => /^\d+$/.test(id)))].map((id) => BigInt(id))
+    return [...new Set(ids.map((id) => String(id)).filter((id) => /^\d+$/.test(id)))].map((id) =>
+      BigInt(id),
+    )
   }
 }

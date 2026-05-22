@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { BusinessException } from '../../common/exceptions/business.exception'
 import { PrismaService } from '../../prisma/prisma.service'
-import { defaultRoleSecurityLevel, isLegacyBusinessRole } from '../../common/security/role-level.config'
+import {
+  defaultRoleSecurityLevel,
+  isLegacyBusinessRole,
+} from '../../common/security/role-level.config'
 import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 @Injectable()
@@ -40,7 +43,8 @@ export class SystemRoleSecurityService {
   async assertCanSetRoleLevel(operatorId: string, securityLevel: number) {
     if (await this.isAdmin(operatorId)) return
     const operatorLevel = await this.userLevel(operatorId)
-    if (securityLevel > operatorLevel) throw BusinessException.forbidden('不能设置高于自己安全等级的角色')
+    if (securityLevel > operatorLevel)
+      throw BusinessException.forbidden('不能设置高于自己安全等级的角色')
   }
 
   async assertCanMaintainRoleKey(operatorId: string, roleKey: string) {
@@ -53,7 +57,7 @@ export class SystemRoleSecurityService {
   }
 
   async assertCanGrantMenus(operatorId: string, menuIds?: string[]) {
-    if (!menuIds?.length || await this.isAdmin(operatorId)) return
+    if (!menuIds?.length || (await this.isAdmin(operatorId))) return
     const grantMenuIds = [...new Set(menuIds.map((id) => this.parseBigInt(id, '菜单ID格式不正确')))]
     const ownedMenus = await this.prisma.sysMenu.findMany({
       where: {
@@ -76,7 +80,7 @@ export class SystemRoleSecurityService {
   }
 
   async listMaxSecurityLevel(operatorId: string) {
-    return await this.isAdmin(operatorId) ? undefined : this.userLevel(operatorId)
+    return (await this.isAdmin(operatorId)) ? undefined : this.userLevel(operatorId)
   }
 
   async accessibleUserWhere(operatorId: string): Promise<Prisma.SysUserWhereInput | undefined> {
@@ -91,17 +95,20 @@ export class SystemRoleSecurityService {
     }
   }
 
-  async listAccessibleUsers(operatorId: string, query: {
-    userName?: string
-    phonenumber?: string
-    status?: string
-    deptId?: string
-    roleId?: string
-    sortBy?: string
-    sortOrder?: string
-    pageNum?: number
-    pageSize?: number
-  }) {
+  async listAccessibleUsers(
+    operatorId: string,
+    query: {
+      userName?: string
+      phonenumber?: string
+      status?: string
+      deptId?: string
+      roleId?: string
+      sortBy?: string
+      sortOrder?: string
+      pageNum?: number
+      pageSize?: number
+    },
+  ) {
     const { pageNum = 1, pageSize = 20 } = query
     const where = await this.userListWhere(operatorId, query)
     const [total, rows] = await Promise.all([
@@ -114,10 +121,16 @@ export class SystemRoleSecurityService {
         orderBy: this.buildUserOrderBy(query),
       }),
     ])
-    return { total, rows: rows.map(({ password: _password, twoFactorSecret: _secret, ...rest }) => rest) }
+    return {
+      total,
+      rows: rows.map(({ password: _password, twoFactorSecret: _secret, ...rest }) => rest),
+    }
   }
 
-  private buildUserOrderBy(query: { sortBy?: string; sortOrder?: string }): Prisma.SysUserOrderByWithRelationInput[] {
+  private buildUserOrderBy(query: {
+    sortBy?: string
+    sortOrder?: string
+  }): Prisma.SysUserOrderByWithRelationInput[] {
     const direction = resolveSortDirection(query.sortOrder)
     const sortMap: Record<string, Prisma.SysUserOrderByWithRelationInput> = {
       userId: { userId: direction },
@@ -128,17 +141,21 @@ export class SystemRoleSecurityService {
       status: { status: direction },
       createTime: { createTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { userId: 'asc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { userId: 'asc' }]
     return [{ userId: 'asc' }]
   }
 
-  async listAccessibleUsersForExport(operatorId: string, query: {
-    userName?: string
-    phonenumber?: string
-    status?: string
-    deptId?: string
-    roleId?: string
-  }) {
+  async listAccessibleUsersForExport(
+    operatorId: string,
+    query: {
+      userName?: string
+      phonenumber?: string
+      status?: string
+      deptId?: string
+      roleId?: string
+    },
+  ) {
     const where = await this.userListWhere(operatorId, query)
     const users = await this.prisma.sysUser.findMany({
       where,
@@ -158,13 +175,16 @@ export class SystemRoleSecurityService {
     }))
   }
 
-  private async userListWhere(operatorId: string, query: {
-    userName?: string
-    phonenumber?: string
-    status?: string
-    deptId?: string
-    roleId?: string
-  }) {
+  private async userListWhere(
+    operatorId: string,
+    query: {
+      userName?: string
+      phonenumber?: string
+      status?: string
+      deptId?: string
+      roleId?: string
+    },
+  ) {
     const where: Prisma.SysUserWhereInput = { delFlag: '0' }
     if (query.userName) where.userName = { contains: query.userName }
     if (query.phonenumber) where.phonenumber = { contains: query.phonenumber }
@@ -178,7 +198,11 @@ export class SystemRoleSecurityService {
     return accessibleWhere ? { AND: [where, accessibleWhere] } : where
   }
 
-  private async assertTargetUserNotHigher(operatorId: string, targetUserId: string, message: string) {
+  private async assertTargetUserNotHigher(
+    operatorId: string,
+    targetUserId: string,
+    message: string,
+  ) {
     const [operatorLevel, targetLevel] = await Promise.all([
       this.userLevel(operatorId),
       this.userLevel(targetUserId),
@@ -210,11 +234,18 @@ export class SystemRoleSecurityService {
   private async roleIdsLevel(roleIds: string[]) {
     const uniqueRoleIds = [...new Set(roleIds)]
     const rows = await this.prisma.sysRole.findMany({
-      where: { roleId: { in: uniqueRoleIds.map((id) => this.parseBigInt(id, '角色ID格式不正确')) }, delFlag: '0', status: '0' },
+      where: {
+        roleId: { in: uniqueRoleIds.map((id) => this.parseBigInt(id, '角色ID格式不正确')) },
+        delFlag: '0',
+        status: '0',
+      },
       select: { roleKey: true, securityLevel: true },
     })
-    if (rows.length !== uniqueRoleIds.length) throw BusinessException.invalidParams('角色不存在或已停用')
-    return Math.max(...rows.map((row) => row.securityLevel ?? defaultRoleSecurityLevel(row.roleKey)))
+    if (rows.length !== uniqueRoleIds.length)
+      throw BusinessException.invalidParams('角色不存在或已停用')
+    return Math.max(
+      ...rows.map((row) => row.securityLevel ?? defaultRoleSecurityLevel(row.roleKey)),
+    )
   }
 
   private parseBigInt(value: string, message: string) {

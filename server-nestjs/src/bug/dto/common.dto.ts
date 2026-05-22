@@ -35,7 +35,9 @@ export class BugUserOptionQueryDto extends BugKeywordDto {
   memberRole?: string
 
   /** 分配场景 */
-  @ApiPropertyOptional({ description: '分配场景，例如 projectOwner/bugAssignee/requirementDeveloper/moduleAssignee' })
+  @ApiPropertyOptional({
+    description: '分配场景，例如 projectOwner/bugAssignee/requirementDeveloper/moduleAssignee',
+  })
   @IsOptional()
   @IsString()
   assignContext?: string
@@ -46,7 +48,6 @@ export class BugUserOptionQueryDto extends BugKeywordDto {
   @IsString()
   assignableOnly?: string
 }
-
 
 export class BugSortDto extends BugPageDto {
   /** 排序字段 */

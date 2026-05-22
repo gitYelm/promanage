@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { BUG_ACTION, BUG_MEMBER_ROLE } from './constants/bug.constants'
-import { NOTIFICATION_BUSINESS_TYPE, NOTIFICATION_TYPE } from '../system/notification/constants/notification.constants'
+import {
+  NOTIFICATION_BUSINESS_TYPE,
+  NOTIFICATION_TYPE,
+} from '../system/notification/constants/notification.constants'
 import { NotificationService } from '../system/notification/notification.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { LoggerService } from '../common/logger/logger.service'
@@ -30,14 +33,34 @@ export class BugNotificationService {
   ) {}
 
   async notifyCreated(ticket: BugNotificationTicket, actor: RequestUserLike) {
-    const recipientIds = await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER])
-    await this.send(ticket, actor, recipientIds, NOTIFICATION_TYPE.BUG_CREATED, `新 Bug：${ticket.ticketNo}`, ticket.title)
+    const recipientIds = await this.projectRecipients(ticket, [
+      BUG_MEMBER_ROLE.OWNER,
+      BUG_MEMBER_ROLE.PRODUCT,
+      BUG_MEMBER_ROLE.REVIEWER,
+    ])
+    await this.send(
+      ticket,
+      actor,
+      recipientIds,
+      NOTIFICATION_TYPE.BUG_CREATED,
+      `新 Bug：${ticket.ticketNo}`,
+      ticket.title,
+    )
   }
 
-  async notifyAction(before: BugNotificationTicket, after: BugNotificationTicket, action: string, actor: RequestUserLike, remark?: string) {
+  async notifyAction(
+    before: BugNotificationTicket,
+    after: BugNotificationTicket,
+    action: string,
+    actor: RequestUserLike,
+    remark?: string,
+  ) {
     const recipients = await this.actionRecipients(after, action)
     const type = bugStatusNotificationType(action)
-    const title = action === BUG_ACTION.ASSIGN ? `Bug 已指派：${after.ticketNo}` : `Bug 状态更新：${after.ticketNo}`
+    const title =
+      action === BUG_ACTION.ASSIGN
+        ? `Bug 已指派：${after.ticketNo}`
+        : `Bug 状态更新：${after.ticketNo}`
     const content = remark || `${before.status} → ${after.status}：${after.title}`
     await this.send(after, actor, recipients, type, title, content, action)
   }
@@ -49,8 +72,21 @@ export class BugNotificationService {
       where: { ticketId, delFlag: '0', userId: { not: BigInt(actor.userId) } },
       select: { userId: true },
     })
-    const recipients = this.nonEmptyIds([ticket.submitterId, ticket.assigneeId, ticket.verifierId, ...commenters.map((item) => item.userId)])
-    await this.send(ticket, actor, recipients, NOTIFICATION_TYPE.BUG_COMMENTED, `Bug 新评论：${ticket.ticketNo}`, content.slice(0, 200), BUG_ACTION.COMMENT)
+    const recipients = this.nonEmptyIds([
+      ticket.submitterId,
+      ticket.assigneeId,
+      ticket.verifierId,
+      ...commenters.map((item) => item.userId),
+    ])
+    await this.send(
+      ticket,
+      actor,
+      recipients,
+      NOTIFICATION_TYPE.BUG_COMMENTED,
+      `Bug 新评论：${ticket.ticketNo}`,
+      content.slice(0, 200),
+      BUG_ACTION.COMMENT,
+    )
   }
 
   private nonEmptyIds(ids: Array<bigint | null | undefined>) {
@@ -58,12 +94,25 @@ export class BugNotificationService {
   }
 
   private async actionRecipients(ticket: BugNotificationTicket, action: string) {
-    const reviewers = await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER])
-    if (action === BUG_ACTION.ASSIGN) return this.nonEmptyIds([ticket.assigneeId, ticket.submitterId])
+    const reviewers = await this.projectRecipients(ticket, [
+      BUG_MEMBER_ROLE.OWNER,
+      BUG_MEMBER_ROLE.PRODUCT,
+      BUG_MEMBER_ROLE.REVIEWER,
+    ])
+    if (action === BUG_ACTION.ASSIGN)
+      return this.nonEmptyIds([ticket.assigneeId, ticket.submitterId])
     if (action === BUG_ACTION.START_FIX) return this.nonEmptyIds([ticket.submitterId, ...reviewers])
-    if (action === BUG_ACTION.SUBMIT_VERIFY) return this.nonEmptyIds([ticket.submitterId, ticket.verifierId, ...reviewers, ...(await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.TESTER]))])
-    if (action === BUG_ACTION.VERIFY_FAIL || action === BUG_ACTION.REOPEN) return this.nonEmptyIds([ticket.assigneeId, ...reviewers])
-    if (action === BUG_ACTION.VERIFY_PASS || action === BUG_ACTION.CLOSE) return this.nonEmptyIds([ticket.assigneeId, ...reviewers])
+    if (action === BUG_ACTION.SUBMIT_VERIFY)
+      return this.nonEmptyIds([
+        ticket.submitterId,
+        ticket.verifierId,
+        ...reviewers,
+        ...(await this.projectRecipients(ticket, [BUG_MEMBER_ROLE.TESTER])),
+      ])
+    if (action === BUG_ACTION.VERIFY_FAIL || action === BUG_ACTION.REOPEN)
+      return this.nonEmptyIds([ticket.assigneeId, ...reviewers])
+    if (action === BUG_ACTION.VERIFY_PASS || action === BUG_ACTION.CLOSE)
+      return this.nonEmptyIds([ticket.assigneeId, ...reviewers])
     return this.nonEmptyIds([ticket.submitterId, ticket.assigneeId, ticket.verifierId])
   }
 
@@ -82,7 +131,15 @@ export class BugNotificationService {
     return this.nonEmptyIds([ownerId, ...members.map((item) => item.userId)])
   }
 
-  private async send(ticket: BugNotificationTicket, actor: RequestUserLike, recipients: Array<string | bigint>, notificationType: string, title: string, content: string, action?: string) {
+  private async send(
+    ticket: BugNotificationTicket,
+    actor: RequestUserLike,
+    recipients: Array<string | bigint>,
+    notificationType: string,
+    title: string,
+    content: string,
+    action?: string,
+  ) {
     const recipientIds = [...new Set(recipients.map(String).filter((id) => id !== actor.userId))]
     if (!recipientIds.length) return
     const payload = await this.payload(ticket, action)
@@ -96,7 +153,10 @@ export class BugNotificationService {
       content,
       payload,
     })
-    this.logger.debug(`Bug 通知已发送: ${ticket.ticketNo}, ${recipientIds.length} 人`, 'BugNotificationService')
+    this.logger.debug(
+      `Bug 通知已发送: ${ticket.ticketNo}, ${recipientIds.length} 人`,
+      'BugNotificationService',
+    )
   }
 
   private async payload(ticket: BugNotificationTicket, action?: string) {

@@ -1,5 +1,8 @@
 import { Prisma } from '@prisma/client'
-import type { NotificationBusinessType, NotificationType } from '../constants/notification.constants'
+import type {
+  NotificationBusinessType,
+  NotificationType,
+} from '../constants/notification.constants'
 
 export interface NotificationPayload {
   ticketId?: string
@@ -27,6 +30,13 @@ export interface CreateUserNotificationInput {
 }
 
 export interface NotificationStreamEvent {
-  type: 'notification' | 'heartbeat'
+  type: 'notification' | 'heartbeat' | 'online-user-change'
   data: unknown
+}
+
+export type NotificationStreamChannel = 'notification' | 'online'
+
+export interface OnlineUserChangePayload {
+  action: 'login' | 'logout' | 'cleanup'
+  time: string
 }

@@ -124,6 +124,8 @@ const ROUTE_BUTTON_PERMISSION_RULES: RouteActionPermissionRule[] = [
   }),
   routeRule(/^\/project-management\/requirements\/?$/, {
     新增需求: ['pm:requirement:create'], plus: ['pm:requirement:create'],
+    导入需求: ['pm:requirement:create'], 导入: ['pm:requirement:create'], fileup: ['pm:requirement:create'], 下载模板: ['pm:requirement:create'], 开始导入: ['pm:requirement:create'],
+    导出: ['pm:requirement:view'], 导出数据: ['pm:requirement:view'], 导出任务: ['pm:requirement:view'], filedown: ['pm:requirement:view'],
     编辑需求: ['pm:requirement:update'], 编辑: ['pm:requirement:update'], 修改: ['pm:requirement:update'], edit: ['pm:requirement:update'],
     删除: ['pm:requirement:update'], 确认删除: ['pm:requirement:update'], trash2: ['pm:requirement:update'],
     提交评审: ['pm:requirement:status'], 排期: ['pm:requirement:status'], 开始开发: ['pm:requirement:status'], 提交测试: ['pm:requirement:status'], 验收通过: ['pm:requirement:status'], 发布: ['pm:requirement:status'], 关闭: ['pm:requirement:status'],
@@ -182,6 +184,7 @@ const ROUTE_STATUS_SWITCH_PERMISSIONS: Array<{ pattern: RegExp; permissions: str
 
 const ROUTE_EXPORT_PERMISSIONS: Array<{ pattern: RegExp; permission: string }> = [
   { pattern: /^\/system\/user\/?$/, permission: 'system:user:export' },
+  { pattern: /^\/project-management\/requirements\/?$/, permission: 'pm:requirement:view' },
   { pattern: /^\/(?:bug|project-management)\/statistics\/?$/, permission: 'bug:statistics:export' },
 ]
 

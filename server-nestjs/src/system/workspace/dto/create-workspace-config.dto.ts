@@ -22,7 +22,11 @@ export class CreateWorkspaceConfigDto {
   @IsString()
   defaultOpenMenu?: string
 
-  @ApiPropertyOptional({ description: '菜单显示策略', example: 'all', enum: ['all', 'business', 'custom'] })
+  @ApiPropertyOptional({
+    description: '菜单显示策略',
+    example: 'all',
+    enum: ['all', 'business', 'custom'],
+  })
   @IsOptional()
   @IsIn(['all', 'business', 'custom'])
   menuScope?: string

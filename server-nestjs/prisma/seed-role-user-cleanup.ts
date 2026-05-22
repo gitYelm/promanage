@@ -17,23 +17,83 @@ const roleNames = [
 ] as const
 
 const workspaceConfigs = [
-  ['bug_project_owner', '/project-management/overview', '/project-management/executive-dashboard', '/project-management', '项目负责人默认查看项目概览'],
-  ['bug_product_owner', '/project-management/requirements', '/project-management/executive-dashboard', '/project-management', '产品负责人默认查看需求管理'],
+  [
+    'bug_project_owner',
+    '/project-management/overview',
+    '/project-management/executive-dashboard',
+    '/project-management',
+    '项目负责人默认查看项目概览',
+  ],
+  [
+    'bug_product_owner',
+    '/project-management/requirements',
+    '/project-management/executive-dashboard',
+    '/project-management',
+    '产品负责人默认查看需求管理',
+  ],
   ['bug_reviewer', '/bug/tickets', '/bug/statistics', '/bug', '审核人员默认查看缺陷列表'],
   ['bug_developer', '/bug/my', '/bug/statistics', '/bug', '开发人员默认进入我的缺陷'],
   ['bug_tester', '/bug/my', '/bug/statistics', '/bug', '测试人员默认进入我的缺陷'],
   ['bug_submitter', '/bug/create', '/bug/my', '/bug', '提交人默认进入提交缺陷'],
-  ['pm_executive', '/project-management/executive-dashboard', '/project-management/executive-dashboard', '/project-management', '管理层默认查看项目仪表盘'],
+  [
+    'pm_executive',
+    '/project-management/executive-dashboard',
+    '/project-management/executive-dashboard',
+    '/project-management',
+    '管理层默认查看项目仪表盘',
+  ],
 ] as const
 
 const accountNameMappings = [
-  ['bug_owner', 'project_owner', '项目负责人', 'project_owner@example.com', '项目负责人演示账号，初始密码可按需修改'],
-  ['bug_product', 'product_owner', '产品负责人', 'product_owner@example.com', '产品负责人演示账号，初始密码可按需修改'],
-  ['bug_reviewer', 'reviewer01', '审核人员', 'reviewer01@example.com', '审核人员演示账号，初始密码可按需修改'],
-  ['bug_dev01', 'developer01', '开发一号', 'developer01@example.com', '开发一号演示账号，初始密码可按需修改'],
-  ['bug_dev02', 'developer02', '开发二号', 'developer02@example.com', '开发二号演示账号，初始密码可按需修改'],
-  ['bug_tester01', 'tester01', '测试一号', 'tester01@example.com', '测试一号演示账号，初始密码可按需修改'],
-  ['bug_submitter01', 'submitter01', '提交人一号', 'submitter01@example.com', '提交人一号演示账号，初始密码可按需修改'],
+  [
+    'bug_owner',
+    'project_owner',
+    '项目负责人',
+    'project_owner@example.com',
+    '项目负责人演示账号，初始密码可按需修改',
+  ],
+  [
+    'bug_product',
+    'product_owner',
+    '产品负责人',
+    'product_owner@example.com',
+    '产品负责人演示账号，初始密码可按需修改',
+  ],
+  [
+    'bug_reviewer',
+    'reviewer01',
+    '审核人员',
+    'reviewer01@example.com',
+    '审核人员演示账号，初始密码可按需修改',
+  ],
+  [
+    'bug_dev01',
+    'developer01',
+    '开发一号',
+    'developer01@example.com',
+    '开发一号演示账号，初始密码可按需修改',
+  ],
+  [
+    'bug_dev02',
+    'developer02',
+    '开发二号',
+    'developer02@example.com',
+    '开发二号演示账号，初始密码可按需修改',
+  ],
+  [
+    'bug_tester01',
+    'tester01',
+    '测试一号',
+    'tester01@example.com',
+    '测试一号演示账号，初始密码可按需修改',
+  ],
+  [
+    'bug_submitter01',
+    'submitter01',
+    '提交人一号',
+    'submitter01@example.com',
+    '提交人一号演示账号，初始密码可按需修改',
+  ],
 ] as const
 
 const legacyRoleKeyMappings = [
@@ -115,36 +175,87 @@ async function findActiveUser(userName: string) {
 
 async function moveUserReferences(fromUserId: bigint, toUserId: bigint) {
   await mergeProjectMembers(fromUserId, toUserId)
-  const roles = await prisma.sysUserRole.findMany({ where: { userId: fromUserId }, select: { roleId: true } })
+  const roles = await prisma.sysUserRole.findMany({
+    where: { userId: fromUserId },
+    select: { roleId: true },
+  })
   if (roles.length) {
     await prisma.sysUserRole.createMany({
       data: roles.map((role) => ({ userId: toUserId, roleId: role.roleId })),
       skipDuplicates: true,
     })
   }
-  const posts = await prisma.sysUserPost.findMany({ where: { userId: fromUserId }, select: { postId: true } })
+  const posts = await prisma.sysUserPost.findMany({
+    where: { userId: fromUserId },
+    select: { postId: true },
+  })
   if (posts.length) {
     await prisma.sysUserPost.createMany({
       data: posts.map((post) => ({ userId: toUserId, postId: post.postId })),
       skipDuplicates: true,
     })
   }
-  await prisma.bugTicket.updateMany({ where: { assigneeId: fromUserId }, data: { assigneeId: toUserId } })
-  await prisma.bugTicket.updateMany({ where: { verifierId: fromUserId }, data: { verifierId: toUserId } })
-  await prisma.projectRequirement.updateMany({ where: { ownerId: fromUserId }, data: { ownerId: toUserId } })
-  await prisma.projectRequirement.updateMany({ where: { developerId: fromUserId }, data: { developerId: toUserId } })
-  await prisma.projectRequirement.updateMany({ where: { testerId: fromUserId }, data: { testerId: toUserId } })
-  await prisma.projectIteration.updateMany({ where: { ownerId: fromUserId }, data: { ownerId: toUserId } })
-  await prisma.projectMilestone.updateMany({ where: { ownerId: fromUserId }, data: { ownerId: toUserId } })
-  await prisma.bugTicket.updateMany({ where: { submitterId: fromUserId }, data: { submitterId: toUserId } })
+  await prisma.bugTicket.updateMany({
+    where: { assigneeId: fromUserId },
+    data: { assigneeId: toUserId },
+  })
+  await prisma.bugTicket.updateMany({
+    where: { verifierId: fromUserId },
+    data: { verifierId: toUserId },
+  })
+  await prisma.projectRequirement.updateMany({
+    where: { ownerId: fromUserId },
+    data: { ownerId: toUserId },
+  })
+  await prisma.projectRequirement.updateMany({
+    where: { developerId: fromUserId },
+    data: { developerId: toUserId },
+  })
+  await prisma.projectRequirement.updateMany({
+    where: { testerId: fromUserId },
+    data: { testerId: toUserId },
+  })
+  await prisma.projectIteration.updateMany({
+    where: { ownerId: fromUserId },
+    data: { ownerId: toUserId },
+  })
+  await prisma.projectMilestone.updateMany({
+    where: { ownerId: fromUserId },
+    data: { ownerId: toUserId },
+  })
+  await prisma.bugTicket.updateMany({
+    where: { submitterId: fromUserId },
+    data: { submitterId: toUserId },
+  })
   await prisma.bugComment.updateMany({ where: { userId: fromUserId }, data: { userId: toUserId } })
-  await prisma.bugAttachment.updateMany({ where: { uploaderId: fromUserId }, data: { uploaderId: toUserId } })
-  await prisma.bugHistory.updateMany({ where: { operatorId: fromUserId }, data: { operatorId: toUserId } })
-  await prisma.projectActivity.updateMany({ where: { operatorId: fromUserId }, data: { operatorId: toUserId } })
-  await prisma.bugProject.updateMany({ where: { ownerId: fromUserId }, data: { ownerId: toUserId } })
-  await prisma.bugProjectModule.updateMany({ where: { defaultAssigneeId: fromUserId }, data: { defaultAssigneeId: toUserId } })
-  await prisma.sysUserNotification.updateMany({ where: { recipientId: fromUserId }, data: { recipientId: toUserId } })
-  await prisma.sysUserNotification.updateMany({ where: { actorId: fromUserId }, data: { actorId: toUserId } })
+  await prisma.bugAttachment.updateMany({
+    where: { uploaderId: fromUserId },
+    data: { uploaderId: toUserId },
+  })
+  await prisma.bugHistory.updateMany({
+    where: { operatorId: fromUserId },
+    data: { operatorId: toUserId },
+  })
+  await prisma.projectActivity.updateMany({
+    where: { operatorId: fromUserId },
+    data: { operatorId: toUserId },
+  })
+  await prisma.bugProject.updateMany({
+    where: { ownerId: fromUserId },
+    data: { ownerId: toUserId },
+  })
+  await prisma.bugProjectModule.updateMany({
+    where: { defaultAssigneeId: fromUserId },
+    data: { defaultAssigneeId: toUserId },
+  })
+  await prisma.sysUserNotification.updateMany({
+    where: { recipientId: fromUserId },
+    data: { recipientId: toUserId },
+  })
+  await prisma.sysUserNotification.updateMany({
+    where: { actorId: fromUserId },
+    data: { actorId: toUserId },
+  })
 }
 
 async function deactivateUser(userId: bigint, remark: string) {
@@ -167,7 +278,11 @@ async function mergeProjectMembers(fromUserId: bigint, toUserId: bigint) {
       select: { memberId: true },
     })
     if (target) await prisma.bugProjectMember.delete({ where: { memberId: member.memberId } })
-    else await prisma.bugProjectMember.update({ where: { memberId: member.memberId }, data: { userId: toUserId, status: '0' } })
+    else
+      await prisma.bugProjectMember.update({
+        where: { memberId: member.memberId },
+        data: { userId: toUserId, status: '0' },
+      })
   }
 }
 
@@ -248,7 +363,10 @@ async function migrateLegacyRoleBindings() {
 }
 
 async function removeAdminBusinessRoleBindings() {
-  const admin = await prisma.sysUser.findFirst({ where: { userName: 'admin', delFlag: '0' }, select: { userId: true } })
+  const admin = await prisma.sysUser.findFirst({
+    where: { userName: 'admin', delFlag: '0' },
+    select: { userId: true },
+  })
   if (!admin) return
   const roles = await prisma.sysRole.findMany({
     where: { roleKey: { in: roleNames.map(([roleKey]) => roleKey) }, delFlag: '0' },
@@ -274,16 +392,14 @@ async function pruneDemoAccountProjectMemberships() {
   const allowedProjectIds = allowedProjects.map((project) => project.projectId)
   for (const account of accounts) {
     const memberRole = demoMemberRole(account.userName)
-    const where = memberRole && allowedProjectIds.length
-      ? {
-          userId: account.userId,
-          status: '0',
-          OR: [
-            { projectId: { notIn: allowedProjectIds } },
-            { memberRole: { not: memberRole } },
-          ],
-        }
-      : { userId: account.userId, status: '0' }
+    const where =
+      memberRole && allowedProjectIds.length
+        ? {
+            userId: account.userId,
+            status: '0',
+            OR: [{ projectId: { notIn: allowedProjectIds } }, { memberRole: { not: memberRole } }],
+          }
+        : { userId: account.userId, status: '0' }
     await prisma.bugProjectMember.updateMany({ where, data: { status: '1' } })
   }
 }

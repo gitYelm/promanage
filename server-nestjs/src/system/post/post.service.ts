@@ -44,7 +44,8 @@ export class PostService {
       status: { status: direction },
       createTime: { createTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { postId: 'asc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { postId: 'asc' }]
     return [{ postSort: 'asc' }, { postId: 'asc' }]
   }
 

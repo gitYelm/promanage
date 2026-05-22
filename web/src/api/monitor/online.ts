@@ -35,3 +35,10 @@ export function forceLogout(tokenId: string) {
     method: 'delete',
   })
 }
+
+export function createOnlineStreamToken(): Promise<{ token: string; expiresIn: number }> {
+  return request<{ data: { token: string; expiresIn: number } }>({
+    url: '/monitor/online/stream-token',
+    method: 'get',
+  }).then((res: unknown) => (res as { data: { token: string; expiresIn: number } }).data)
+}

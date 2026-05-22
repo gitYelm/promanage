@@ -20,6 +20,7 @@ import { RedisModule } from '../redis/redis.module'
 import { PrismaModule } from '../prisma/prisma.module'
 import { AuthModule } from '../auth/auth.module'
 import { LoggerModule } from '../common/logger/logger.module'
+import { NotificationModule } from '../system/notification/notification.module'
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { LoggerModule } from '../common/logger/logger.module'
     RedisModule,
     PrismaModule,
     LoggerModule,
+    NotificationModule,
     forwardRef(() => AuthModule),
   ],
   providers: [

@@ -5,7 +5,10 @@ import { BusinessException } from '../../common/exceptions'
 import { QueryWorkspaceConfigDto } from './dto/query-workspace-config.dto'
 import { CreateWorkspaceConfigDto } from './dto/create-workspace-config.dto'
 import { UpdateWorkspaceConfigDto } from './dto/update-workspace-config.dto'
-import { expandEquivalentRoleKeys, isLegacyBusinessRole } from '../../common/security/role-level.config'
+import {
+  expandEquivalentRoleKeys,
+  isLegacyBusinessRole,
+} from '../../common/security/role-level.config'
 import { resolveSortDirection } from '../../common/utils/sort-order.util'
 
 export interface WorkspaceConfigRow {
@@ -94,7 +97,12 @@ export class WorkspaceConfigService {
       orderBy: { role: { roleSort: 'asc' } },
     })
     const roleKeys = roles
-      .filter((item) => item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey))
+      .filter(
+        (item) =>
+          item.role.delFlag === '0' &&
+          item.role.status === '0' &&
+          !isLegacyBusinessRole(item.role.roleKey),
+      )
       .map((item) => item.role.roleKey)
     if (roleKeys.length === 0) return this.defaultConfig()
     const effectiveRoleKeys = expandEquivalentRoleKeys(roleKeys)
@@ -127,7 +135,7 @@ export class WorkspaceConfigService {
   }
 
   async update(configId: string, dto: UpdateWorkspaceConfigDto, current?: WorkspaceConfigVo) {
-    current = current ?? await this.findOne(configId)
+    current = current ?? (await this.findOne(configId))
     const nextRoleKey = dto.roleKey ?? current.roleKey
     await this.assertRoleExists(nextRoleKey)
     const existed = await this.findByRoleKey(nextRoleKey)
@@ -202,7 +210,9 @@ export class WorkspaceConfigService {
   }
 
   private securitySql(maxSecurityLevel: number | undefined, paramIndex: number) {
-    return maxSecurityLevel === undefined ? '' : `and coalesce(r.security_level, 0) <= $${paramIndex}`
+    return maxSecurityLevel === undefined
+      ? ''
+      : `and coalesce(r.security_level, 0) <= $${paramIndex}`
   }
 
   private buildOrderBy(query: QueryWorkspaceConfigDto) {
@@ -277,7 +287,6 @@ export class WorkspaceConfigService {
   private normalizeMenuPath(path: string) {
     return path.startsWith('/') ? path : `/${path}`
   }
-
 
   private toVo(row: WorkspaceConfigRow) {
     return { ...row, configId: row.configId.toString() }

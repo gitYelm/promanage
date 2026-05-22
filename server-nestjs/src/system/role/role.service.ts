@@ -21,7 +21,15 @@ export class RoleService {
    * 查询角色列表
    */
   async findAll(query: QueryRoleDto, maxSecurityLevel?: number) {
-    const { roleName, roleKey, status, securityLevelMin, securityLevelMax, pageNum = 1, pageSize = 20 } = query
+    const {
+      roleName,
+      roleKey,
+      status,
+      securityLevelMin,
+      securityLevelMax,
+      pageNum = 1,
+      pageSize = 20,
+    } = query
     const skip = (pageNum - 1) * pageSize
     const andWhere: Prisma.SysRoleWhereInput[] = []
 
@@ -86,7 +94,8 @@ export class RoleService {
       status: { status: direction },
       createTime: { createTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { roleId: 'asc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { roleId: 'asc' }]
     return [{ roleSort: 'asc' }, { roleId: 'asc' }]
   }
 

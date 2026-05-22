@@ -63,7 +63,8 @@ export class LogininforService {
       msg: { msg: direction },
       loginTime: { loginTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { loginTime: 'desc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { loginTime: 'desc' }]
     return [{ loginTime: 'desc' }]
   }
 

@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
 import { PermissionGuard } from '../../common/guards/permission.guard'
@@ -44,7 +55,10 @@ export class WorkspaceConfigController {
   @Get()
   @RequirePermission('system:workspace:list')
   @ApiOperation({ summary: '查询角色工作台配置列表' })
-  async list(@Request() req: { user: { userId: string } }, @Query() query: QueryWorkspaceConfigDto) {
+  async list(
+    @Request() req: { user: { userId: string } },
+    @Query() query: QueryWorkspaceConfigDto,
+  ) {
     const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
     return this.service.findAll(query, maxSecurityLevel)
   }
@@ -61,7 +75,10 @@ export class WorkspaceConfigController {
   @RequirePermission('system:workspace:add')
   @Log('工作台配置', BusinessType.INSERT)
   @ApiOperation({ summary: '新增角色工作台配置' })
-  async create(@Request() req: { user: { userId: string } }, @Body() dto: CreateWorkspaceConfigDto) {
+  async create(
+    @Request() req: { user: { userId: string } },
+    @Body() dto: CreateWorkspaceConfigDto,
+  ) {
     await this.roleSecurity.assertCanMaintainRoleKey(req.user.userId, dto.roleKey)
     return this.service.create(dto)
   }
@@ -70,7 +87,11 @@ export class WorkspaceConfigController {
   @RequirePermission('system:workspace:edit')
   @Log('工作台配置', BusinessType.UPDATE)
   @ApiOperation({ summary: '修改角色工作台配置' })
-  async update(@Request() req: { user: { userId: string } }, @Param('configId') configId: string, @Body() dto: UpdateWorkspaceConfigDto) {
+  async update(
+    @Request() req: { user: { userId: string } },
+    @Param('configId') configId: string,
+    @Body() dto: UpdateWorkspaceConfigDto,
+  ) {
     const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
     const current = await this.service.findOne(configId, maxSecurityLevel)
     await this.roleSecurity.assertCanMaintainRoleKey(req.user.userId, current.roleKey)
@@ -84,7 +105,9 @@ export class WorkspaceConfigController {
   @ApiOperation({ summary: '删除角色工作台配置' })
   async remove(@Request() req: { user: { userId: string } }, @Query('ids') ids: string) {
     const maxSecurityLevel = await this.roleSecurity.listMaxSecurityLevel(req.user.userId)
-    await Promise.all((ids ? ids.split(',') : []).map((id) => this.service.findOne(id, maxSecurityLevel)))
+    await Promise.all(
+      (ids ? ids.split(',') : []).map((id) => this.service.findOne(id, maxSecurityLevel)),
+    )
     return this.service.remove(ids ? ids.split(',') : [])
   }
 }

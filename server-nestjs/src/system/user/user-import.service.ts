@@ -69,7 +69,8 @@ export class UserImportService {
     hashedPassword: string,
   ) {
     try {
-      if (!row.userName || !row.nickName) return { ok: false, error: `第${rowNum}行: 用户名和昵称不能为空` }
+      if (!row.userName || !row.nickName)
+        return { ok: false, error: `第${rowNum}行: 用户名和昵称不能为空` }
       const deptId = this.resolveDeptId(row, rowNum, deptMap)
       if (deptId instanceof Error) return { ok: false, error: deptId.message }
       const existUser = await this.prisma.sysUser.findFirst({
@@ -87,7 +88,12 @@ export class UserImportService {
         })
       } else {
         await this.prisma.sysUser.create({
-          data: { userName: row.userName, ...userData, password: hashedPassword, createTime: new Date() },
+          data: {
+            userName: row.userName,
+            ...userData,
+            password: hashedPassword,
+            createTime: new Date(),
+          },
         })
       }
       return { ok: true, error: '' }

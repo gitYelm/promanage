@@ -4,6 +4,8 @@ import { LoggerService } from '../../common/logger/logger.service'
 import { IpUtil } from '../../common/utils/ip.util'
 import { RedisService } from '../../redis/redis.service'
 import { resolveSortDirection } from '../../common/utils/sort-order.util'
+import { NotificationStreamService } from '../../system/notification/notification-stream.service'
+import type { OnlineUserChangePayload } from '../../system/notification/types/notification.types'
 
 export interface OnlineUser {
   token: string
@@ -46,7 +48,12 @@ export class OnlineService {
   constructor(
     private logger: LoggerService,
     private redis: RedisService,
+    private readonly stream: NotificationStreamService,
   ) {}
+
+  createStreamToken(user: { userId: string; username: string }) {
+    return this.stream.createStreamToken(user, ['online'])
+  }
 
   async add(user: OnlineUser) {
     const client = this.redis.getClient()
@@ -69,6 +76,7 @@ export class OnlineService {
       `用户上线: ${user.userName} (IP: ${user.ipaddr}, TTL: ${expireSeconds}s)`,
       'OnlineService',
     )
+    this.emitOnlineChange('login')
   }
 
   async remove(token: string) {
@@ -88,6 +96,7 @@ export class OnlineService {
     multi.del(key)
     multi.srem(setKey, token)
     await multi.exec()
+    this.emitOnlineChange('logout')
   }
 
   /**
@@ -127,6 +136,7 @@ export class OnlineService {
         multi.srem(setKey, token)
       }
       await multi.exec()
+      this.emitOnlineChange('cleanup')
     }
 
     return matchedTokens
@@ -190,6 +200,7 @@ export class OnlineService {
         multi.srem(setKey, token)
       }
       await multi.exec()
+      this.emitOnlineChange('cleanup')
     }
 
     // 过滤
@@ -226,5 +237,9 @@ export class OnlineService {
     const pageRows = this.sortRows(normalizedRows, query).slice(start, end)
 
     return { total, rows: pageRows }
+  }
+
+  private emitOnlineChange(action: OnlineUserChangePayload['action']) {
+    this.stream.pushOnlineChange({ action, time: new Date().toISOString() })
   }
 }

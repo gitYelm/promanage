@@ -221,7 +221,10 @@ export class UpsertBugMemberDto {
   userId!: string
 
   /** 项目内角色 */
-  @ApiProperty({ description: '项目内角色', enum: ['owner', 'product', 'reviewer', 'developer', 'tester', 'viewer'] })
+  @ApiProperty({
+    description: '项目内角色',
+    enum: ['owner', 'product', 'reviewer', 'developer', 'tester', 'viewer'],
+  })
   @IsString()
   @IsIn(['owner', 'product', 'reviewer', 'developer', 'tester', 'viewer'])
   memberRole!: string

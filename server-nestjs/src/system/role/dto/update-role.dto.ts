@@ -1,4 +1,13 @@
-import { IsOptional, IsString, IsNumber, IsArray, IsBoolean, Min, Max, IsInt } from 'class-validator'
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsBoolean,
+  Min,
+  Max,
+  IsInt,
+} from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 
 export class UpdateRoleDto {

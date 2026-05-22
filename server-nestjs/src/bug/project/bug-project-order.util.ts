@@ -5,7 +5,9 @@ function sortDirection(sortOrder?: string) {
   return sortOrder === 'asc' ? 'asc' : sortOrder === 'desc' ? 'desc' : undefined
 }
 
-export function buildProjectOrderBy(query: QueryBugProjectDto): Prisma.BugProjectOrderByWithRelationInput[] {
+export function buildProjectOrderBy(
+  query: QueryBugProjectDto,
+): Prisma.BugProjectOrderByWithRelationInput[] {
   const direction = sortDirection(query.sortOrder)
   const sortMap: Record<string, Prisma.BugProjectOrderByWithRelationInput> = {
     projectName: { projectName: direction },
@@ -15,11 +17,14 @@ export function buildProjectOrderBy(query: QueryBugProjectDto): Prisma.BugProjec
     progress: { progress: direction },
     plannedEndTime: { plannedEndTime: direction },
   }
-  if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { projectId: 'desc' }]
+  if (direction && query.sortBy && sortMap[query.sortBy])
+    return [sortMap[query.sortBy], { projectId: 'desc' }]
   return [{ projectId: 'desc' }]
 }
 
-export function buildModuleOrderBy(query: QueryBugModuleDto): Prisma.BugProjectModuleOrderByWithRelationInput[] {
+export function buildModuleOrderBy(
+  query: QueryBugModuleDto,
+): Prisma.BugProjectModuleOrderByWithRelationInput[] {
   const direction = sortDirection(query.sortOrder)
   const sortMap: Record<string, Prisma.BugProjectModuleOrderByWithRelationInput> = {
     projectId: { projectId: direction },
@@ -27,11 +32,14 @@ export function buildModuleOrderBy(query: QueryBugModuleDto): Prisma.BugProjectM
     orderNum: { orderNum: direction },
     status: { status: direction },
   }
-  if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { moduleId: 'desc' }]
+  if (direction && query.sortBy && sortMap[query.sortBy])
+    return [sortMap[query.sortBy], { moduleId: 'desc' }]
   return [{ projectId: 'asc' }, { orderNum: 'asc' }]
 }
 
-export function buildVersionOrderBy(query: QueryBugVersionDto): Prisma.BugProjectVersionOrderByWithRelationInput[] {
+export function buildVersionOrderBy(
+  query: QueryBugVersionDto,
+): Prisma.BugProjectVersionOrderByWithRelationInput[] {
   const direction = sortDirection(query.sortOrder)
   const sortMap: Record<string, Prisma.BugProjectVersionOrderByWithRelationInput> = {
     projectId: { projectId: direction },
@@ -39,6 +47,7 @@ export function buildVersionOrderBy(query: QueryBugVersionDto): Prisma.BugProjec
     versionName: { versionName: direction },
     status: { status: direction },
   }
-  if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { versionId: 'desc' }]
+  if (direction && query.sortBy && sortMap[query.sortBy])
+    return [sortMap[query.sortBy], { versionId: 'desc' }]
   return [{ projectId: 'asc' }, { versionId: 'desc' }]
 }

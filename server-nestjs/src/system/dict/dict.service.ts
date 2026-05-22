@@ -45,7 +45,8 @@ export class DictService {
       status: { status: direction },
       createTime: { createTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { dictId: 'asc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { dictId: 'asc' }]
     return [{ dictId: 'asc' }]
   }
 

@@ -35,7 +35,8 @@ export class BugStatisticsService {
     })
     return grouped.map((item) => ({
       projectId: item.projectId,
-      projectName: projects.find((project) => project.projectId === item.projectId)?.projectName || '',
+      projectName:
+        projects.find((project) => project.projectId === item.projectId)?.projectName || '',
       _count: item._count,
     }))
   }

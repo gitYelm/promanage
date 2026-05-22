@@ -44,8 +44,11 @@ export class BugAccessService {
       include: { roles: { include: { role: true } } },
     })
     if (!user) return []
-    const activeRoles = user.roles.filter((item) =>
-      item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey),
+    const activeRoles = user.roles.filter(
+      (item) =>
+        item.role.delFlag === '0' &&
+        item.role.status === '0' &&
+        !isLegacyBusinessRole(item.role.roleKey),
     )
     if (activeRoles.some((item) => item.role.roleKey === 'admin')) return ['*:*:*']
 
@@ -145,7 +148,12 @@ export class BugAccessService {
   private async getProjectWideProjectIds(userId: string): Promise<bigint[]> {
     const [memberProjects, ownedProjects] = await Promise.all([
       this.prisma.bugProjectMember.findMany({
-        where: { userId: BigInt(userId), memberRole: { in: PROJECT_WIDE_ROLES }, status: '0', project: { delFlag: '0', status: '0' } },
+        where: {
+          userId: BigInt(userId),
+          memberRole: { in: PROJECT_WIDE_ROLES },
+          status: '0',
+          project: { delFlag: '0', status: '0' },
+        },
         select: { projectId: true },
       }),
       this.prisma.bugProject.findMany({
@@ -158,7 +166,12 @@ export class BugAccessService {
 
   private async getTesterProjectIds(userId: string): Promise<bigint[]> {
     const members = await this.prisma.bugProjectMember.findMany({
-      where: { userId: BigInt(userId), memberRole: BUG_MEMBER_ROLE.TESTER, status: '0', project: { delFlag: '0', status: '0' } },
+      where: {
+        userId: BigInt(userId),
+        memberRole: BUG_MEMBER_ROLE.TESTER,
+        status: '0',
+        project: { delFlag: '0', status: '0' },
+      },
       select: { projectId: true },
     })
     return [...new Set(members.map((item) => item.projectId))]
@@ -201,7 +214,8 @@ export class BugAccessService {
       return
     }
     if (action === BUG_ACTION.CLOSE) {
-      if (ticket.status === BUG_STATUS.SUSPENDED) await this.assertProjectReviewer(userId, ticket.projectId)
+      if (ticket.status === BUG_STATUS.SUSPENDED)
+        await this.assertProjectReviewer(userId, ticket.projectId)
       else await this.assertTicketVerifier(userId, ticket)
     }
   }
@@ -222,7 +236,11 @@ export class BugAccessService {
 
   async isProjectReviewer(userId: string, projectId: bigint) {
     if (await this.isAdmin(userId)) return true
-    return this.hasProjectRole(userId, projectId, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER])
+    return this.hasProjectRole(userId, projectId, [
+      BUG_MEMBER_ROLE.OWNER,
+      BUG_MEMBER_ROLE.PRODUCT,
+      BUG_MEMBER_ROLE.REVIEWER,
+    ])
   }
 
   async isReadonlyProjectViewer(userId: string, projectId: bigint) {
@@ -240,7 +258,10 @@ export class BugAccessService {
     return viewer && !elevated
   }
 
-  async assertCanRemoveAttachment(userId: string, attachment: { uploaderId: bigint; ticketId: bigint | null }) {
+  async assertCanRemoveAttachment(
+    userId: string,
+    attachment: { uploaderId: bigint; ticketId: bigint | null },
+  ) {
     if (await this.isAdmin(userId)) return
     if (attachment.uploaderId === BigInt(userId)) return
     if (!attachment.ticketId) throw BusinessException.forbidden('无权删除该附件')
@@ -266,14 +287,30 @@ export class BugAccessService {
   private async assertTicketVerifier(userId: string, ticket: BugTicketActorInfo) {
     const userIdBigInt = BigInt(userId)
     if (ticket.verifierId === userIdBigInt) return
-    if (await this.hasProjectRole(userId, ticket.projectId, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER, BUG_MEMBER_ROLE.TESTER])) return
+    if (
+      await this.hasProjectRole(userId, ticket.projectId, [
+        BUG_MEMBER_ROLE.OWNER,
+        BUG_MEMBER_ROLE.PRODUCT,
+        BUG_MEMBER_ROLE.REVIEWER,
+        BUG_MEMBER_ROLE.TESTER,
+      ])
+    )
+      return
     throw BusinessException.forbidden('只有测试人员或审核人员可以验证该 Bug')
   }
 
   private async assertCanReopen(userId: string, ticket: BugTicketActorInfo) {
     const userIdBigInt = BigInt(userId)
     if (ticket.submitterId === userIdBigInt || ticket.verifierId === userIdBigInt) return
-    if (await this.hasProjectRole(userId, ticket.projectId, [BUG_MEMBER_ROLE.OWNER, BUG_MEMBER_ROLE.PRODUCT, BUG_MEMBER_ROLE.REVIEWER, BUG_MEMBER_ROLE.TESTER])) return
+    if (
+      await this.hasProjectRole(userId, ticket.projectId, [
+        BUG_MEMBER_ROLE.OWNER,
+        BUG_MEMBER_ROLE.PRODUCT,
+        BUG_MEMBER_ROLE.REVIEWER,
+        BUG_MEMBER_ROLE.TESTER,
+      ])
+    )
+      return
     throw BusinessException.forbidden('只有提交人、测试人员或审核人员可以重新打开该 Bug')
   }
 
@@ -326,9 +363,12 @@ export class BugAccessService {
       const userParts = userPerm.split(':')
       const requiredParts = required.split(':')
       const sameLength = userParts.length === requiredParts.length
-      return sameLength && userParts.every((part, index) => {
-        return part === '*' || part === requiredParts[index]
-      })
+      return (
+        sameLength &&
+        userParts.every((part, index) => {
+          return part === '*' || part === requiredParts[index]
+        })
+      )
     })
   }
 }

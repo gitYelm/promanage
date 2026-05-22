@@ -44,7 +44,17 @@ export class UserService {
    * 查询用户列表
    */
   async findAll(query: QueryUserDto) {
-    const { userName, phonenumber, status, deptId, roleId, beginTime, endTime, pageNum = 1, pageSize = 20 } = query
+    const {
+      userName,
+      phonenumber,
+      status,
+      deptId,
+      roleId,
+      beginTime,
+      endTime,
+      pageNum = 1,
+      pageSize = 20,
+    } = query
     const skip = (pageNum - 1) * pageSize
 
     const where: Prisma.SysUserWhereInput = {
@@ -474,5 +484,4 @@ export class UserService {
       createTime: user.createTime ? new Date(user.createTime).toLocaleString('zh-CN') : '',
     }))
   }
-
 }

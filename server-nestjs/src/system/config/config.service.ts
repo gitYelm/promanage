@@ -42,7 +42,8 @@ export class ConfigService {
       configType: { configType: direction },
       createTime: { createTime: direction },
     }
-    if (direction && query.sortBy && sortMap[query.sortBy]) return [sortMap[query.sortBy], { configId: 'asc' }]
+    if (direction && query.sortBy && sortMap[query.sortBy])
+      return [sortMap[query.sortBy], { configId: 'asc' }]
     return [{ configId: 'asc' }]
   }
 

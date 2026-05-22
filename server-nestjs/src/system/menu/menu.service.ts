@@ -188,7 +188,10 @@ export class MenuService {
 
     const roles = user.roles
       .map((ur) => ur.role)
-      .filter((role) => role.delFlag === '0' && role.status === '0' && !isLegacyBusinessRole(role.roleKey))
+      .filter(
+        (role) =>
+          role.delFlag === '0' && role.status === '0' && !isLegacyBusinessRole(role.roleKey),
+      )
     const isAdmin = roles.some((role) => role.roleKey === 'admin')
 
     let menus: SysMenu[] = []

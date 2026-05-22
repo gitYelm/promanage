@@ -19,8 +19,11 @@ import { RequirePermission } from '../../common/decorators/permission.decorator'
 import { NotificationService } from './notification.service'
 import { NotificationStreamService } from './notification-stream.service'
 import { QueryNotificationDto } from './dto/query-notification.dto'
+import type { NotificationStreamChannel } from './types/notification.types'
 
 type RequestWithUser = Request & { user: { userId: string; username: string } }
+
+const STREAM_CHANNELS: NotificationStreamChannel[] = ['notification', 'online']
 
 @ApiTags('站内通知')
 @ApiBearerAuth('JWT-auth')
@@ -51,8 +54,8 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @RequirePermission('system:notification:stream')
   @ApiOperation({ summary: '生成站内通知实时连接令牌' })
-  streamToken(@Req() req: RequestWithUser) {
-    return this.streamService.createStreamToken(req.user)
+  streamToken(@Req() req: RequestWithUser, @Query('channels') channels?: string) {
+    return this.streamService.createStreamToken(req.user, this.parseChannels(channels))
   }
 
   @Put('read-all')
@@ -75,6 +78,17 @@ export class NotificationController {
   @ApiOperation({ summary: '站内通知实时推送流' })
   stream(@Query('token') token: string): Observable<MessageEvent> {
     const user = this.streamService.verifyStreamToken(token)
-    return this.streamService.stream(user.userId)
+    return this.streamService.stream(user)
+  }
+
+  private parseChannels(channels?: string): NotificationStreamChannel[] {
+    const requested = channels
+      ?.split(',')
+      .map((item) => item.trim())
+      .filter((item): item is NotificationStreamChannel =>
+        STREAM_CHANNELS.includes(item as NotificationStreamChannel),
+      )
+
+    return requested?.length ? [...new Set(requested)] : ['notification']
   }
 }
