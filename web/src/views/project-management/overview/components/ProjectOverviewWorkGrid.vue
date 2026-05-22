@@ -6,6 +6,7 @@ import PmScrollableSectionCard from '../../components/PmScrollableSectionCard.vu
 import { usePermission } from '@/composables/usePermission'
 import type { ProjectOverview, Requirement } from '@/api/project-management/types'
 import { formatDate } from '../../shared/options'
+import { pmActivityDescription } from '../../shared/activity'
 
 const props = defineProps<{
   overview: ProjectOverview
@@ -28,14 +29,6 @@ function bugMeta(row: Record<string, unknown>) {
   return (row.assignee as { nickName?: string; userName?: string } | undefined)?.nickName
     || (row.assignee as { nickName?: string; userName?: string } | undefined)?.userName
     || '-'
-}
-function activityText(item: {
-  targetType: string
-  action: string
-  fromValue?: string
-  toValue?: string
-}) {
-  return `${item.targetType} ${item.action}${item.toValue ? `：${item.fromValue || '-'} → ${item.toValue}` : ''}`
 }
 </script>
 
@@ -143,7 +136,7 @@ function activityText(item: {
         :key="item.activityId"
         class="rounded-md border p-3 text-sm"
       >
-        <div>{{ activityText(item) }}</div>
+        <div>{{ pmActivityDescription(item) }}</div>
         <div class="text-muted-foreground">
           {{ item.operator?.nickName || '-' }} · {{ formatDate(item.createTime) }}
         </div>
