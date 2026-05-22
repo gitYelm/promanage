@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ExportDialog from '@/components/common/ExportDialog.vue'
+import ExportTaskList from '@/components/common/ExportTaskList.vue'
 import TablePagination from '@/components/common/TablePagination.vue'
 import RequirementBatchBar from './components/RequirementBatchBar.vue'
 import RequirementDetailDialog from './components/RequirementDetailDialog.vue'
+import RequirementImportDialog from '@/views/system/user/UserImportDialog.vue'
 import RequirementBatchAssignDialog from './components/RequirementBatchAssignDialog.vue'
 import RequirementFormDialog from './components/RequirementFormDialog.vue'
 import {
@@ -27,7 +30,9 @@ import {
   addRequirement,
   batchAssignRequirements,
   deleteRequirements,
+  downloadRequirementTemplate,
   getRequirement,
+  importRequirementExcel,
   listRequirements,
   runRequirementAction,
   updateRequirement,
@@ -52,6 +57,13 @@ const loading = ref(false)
 const open = ref(false)
 const detailOpen = ref(false)
 const batchAssignOpen = ref(false)
+const importOpen = ref(false)
+const exportOpen = ref(false)
+const exportTasksOpen = ref(false)
+const importFile = ref<File | null>(null)
+const importLoading = ref(false)
+const importResult = ref<{ success: number; fail: number; errors: string[] } | null>(null)
+const lastExportTaskId = ref<string | null>(null)
 const rows = ref<Requirement[]>([])
 const total = ref(0)
 const detail = ref<Requirement | null>(null)
@@ -235,6 +247,49 @@ async function saveBatchAssign() {
   selectedIds.value = []
   getList()
 }
+function openImport() {
+  importFile.value = null
+  importResult.value = null
+  importOpen.value = true
+}
+async function downloadTemplate() {
+  try {
+    const res = await downloadRequirementTemplate()
+    const blob = new Blob([res as any], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = '需求导入模板.xlsx'
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch {
+    toast({ title: '下载失败', variant: 'destructive' })
+  }
+}
+function handleImportFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  importFile.value = target.files?.[0] || null
+}
+async function confirmImport() {
+  if (!importFile.value) {
+    toast({ title: '请选择文件', variant: 'destructive' })
+    return
+  }
+  importLoading.value = true
+  try {
+    const result = await importRequirementExcel(importFile.value)
+    importResult.value = result
+    toast({ title: '导入完成', description: `成功 ${result.success} 条，失败 ${result.fail} 条` })
+    if (result.success > 0) getList()
+  } catch {
+    toast({ title: '导入失败', variant: 'destructive' })
+  } finally {
+    importLoading.value = false
+  }
+}
+function handleExportSuccess(taskId: string) {
+  lastExportTaskId.value = taskId
+  exportTasksOpen.value = true
+}
 
 onMounted(async () => {
   ;[projects.value, filterUsers.value] = await Promise.all([
@@ -253,6 +308,9 @@ onMounted(async () => {
       :columns="columns"
       @refresh="getList"
       @batch-assign="openBatchAssign"
+      @import="openImport"
+      @export="exportOpen = true"
+      @show-export-tasks="exportTasksOpen = true"
       @add="add"
       @toggle-column="toggleColumn"
       @reset-columns="resetColumns"
@@ -315,5 +373,32 @@ onMounted(async () => {
       @project-change="refreshAssignableUsers"
       @save="save"
     />
+    <RequirementImportDialog
+      v-model:open="importOpen"
+      title="导入需求"
+      description="上传 Excel 文件批量导入需求数据"
+      template-title="下载需求导入模板"
+      template-description="请先下载模板，按项目名称、人员账号等规则填写"
+      :show-update-support="false"
+      :import-file="importFile"
+      :import-loading="importLoading"
+      :update-support="false"
+      :import-result="importResult"
+      @download-template="downloadTemplate"
+      @file-change="handleImportFileChange"
+      @update-support="() => undefined"
+      @confirm="confirmImport"
+    />
+    <ExportDialog
+      v-model:open="exportOpen"
+      module="pm-requirement"
+      module-name="需求数据"
+      permission="pm:requirement:view"
+      :query-params="buildRequirementListQuery(query)"
+      :selected-ids="selectedIds"
+      :selected-count="selectedIds.length"
+      @success="handleExportSuccess"
+    />
+    <ExportTaskList v-model:open="exportTasksOpen" permission="pm:requirement:view" :watch-task-id="lastExportTaskId" />
   </div>
 </template>

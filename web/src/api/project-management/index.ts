@@ -60,6 +60,23 @@ export function runRequirementAction(id: string, action: string, remark = '') {
     data: { remark },
   })
 }
+export function downloadRequirementTemplate() {
+  return request({
+    url: '/project-management/requirements/import/template',
+    method: 'get',
+    responseType: 'blob',
+  })
+}
+export function importRequirementExcel(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request<{ data: { success: number; fail: number; errors: string[] } }>({
+    url: '/project-management/requirements/import',
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then((res: any) => res.data)
+}
 
 export function listIterations(params: IterationQuery): Promise<PageResult<Iteration>> {
   return request({ url: '/project-management/iterations', method: 'get', params }).then(

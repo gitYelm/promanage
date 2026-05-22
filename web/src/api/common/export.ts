@@ -31,6 +31,7 @@ export type ExportTaskStatus = 'pending' | 'processing' | 'completed' | 'failed'
 const EXPORT_PERMISSIONS: Record<string, string> = {
   user: 'system:user:export',
   'bug-statistics': 'bug:statistics:export',
+  'pm-requirement': 'pm:requirement:view',
 }
 
 function canExport(module?: string) {

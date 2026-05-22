@@ -16,6 +16,8 @@ import { NotificationModule } from '../system/notification/notification.module'
 import { BugNotificationService } from './bug-notification.service'
 import { ProjectManagementController } from './project-management/project-management.controller'
 import { ProjectRequirementService } from './project-management/project-requirement.service'
+import { ProjectRequirementExportProvider } from './project-management/project-requirement-export.provider'
+import { ProjectRequirementImportService } from './project-management/project-requirement-import.service'
 import { ProjectIterationService } from './project-management/project-iteration.service'
 import { ProjectMilestoneService } from './project-management/project-milestone.service'
 import { ProjectActivityService } from './project-management/project-activity.service'
@@ -26,7 +28,12 @@ import { RoleSecurityService } from './security/role-security.service'
 
 @Module({
   imports: [PrismaModule, LoggerModule, UploadModule, NotificationModule],
-  controllers: [BugProjectController, BugTicketController, BugAttachmentController, ProjectManagementController],
+  controllers: [
+    BugProjectController,
+    BugTicketController,
+    BugAttachmentController,
+    ProjectManagementController,
+  ],
   providers: [
     BugAccessService,
     BugProjectService,
@@ -38,6 +45,8 @@ import { RoleSecurityService } from './security/role-security.service'
     BugStatisticsExportProvider,
     BugNotificationService,
     ProjectRequirementService,
+    ProjectRequirementExportProvider,
+    ProjectRequirementImportService,
     ProjectIterationService,
     ProjectMilestoneService,
     ProjectActivityService,

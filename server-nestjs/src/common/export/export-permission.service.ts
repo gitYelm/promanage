@@ -5,6 +5,7 @@ import { isLegacyBusinessRole } from '../security/role-level.config'
 const EXPORT_MODULE_PERMISSIONS: Record<string, string> = {
   user: 'system:user:export',
   'bug-statistics': 'bug:statistics:export',
+  'pm-requirement': 'pm:requirement:view',
 }
 
 @Injectable()
@@ -38,7 +39,11 @@ export class ExportPermissionService {
     })
     if (!user) return []
     const activeRoles = user.roles.filter((item) => {
-      return item.role.delFlag === '0' && item.role.status === '0' && !isLegacyBusinessRole(item.role.roleKey)
+      return (
+        item.role.delFlag === '0' &&
+        item.role.status === '0' &&
+        !isLegacyBusinessRole(item.role.roleKey)
+      )
     })
     if (activeRoles.some((item) => item.role.roleKey === 'admin')) return ['*:*:*']
     const roleIds = activeRoles.map((item) => item.roleId)
@@ -65,8 +70,10 @@ export class ExportPermissionService {
       if (userPerm.endsWith(':*')) return required.startsWith(userPerm.slice(0, -1))
       const userParts = userPerm.split(':')
       const requiredParts = required.split(':')
-      return userParts.length === requiredParts.length
-        && userParts.every((part, index) => part === '*' || part === requiredParts[index])
+      return (
+        userParts.length === requiredParts.length &&
+        userParts.every((part, index) => part === '*' || part === requiredParts[index])
+      )
     })
   }
 }

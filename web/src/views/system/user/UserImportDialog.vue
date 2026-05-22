@@ -12,6 +12,11 @@ const props = defineProps<{
   importLoading: boolean
   updateSupport: boolean
   importResult: { success: number; fail: number; errors: string[] } | null
+  title?: string
+  description?: string
+  templateTitle?: string
+  templateDescription?: string
+  showUpdateSupport?: boolean
 }>()
 const emit = defineEmits<{
   downloadTemplate: []
@@ -25,13 +30,13 @@ const emit = defineEmits<{
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-[500px]">
       <DialogHeader>
-        <DialogTitle>导入用户</DialogTitle>
-        <DialogDescription> 上传 Excel 文件批量导入用户数据 </DialogDescription>
+        <DialogTitle>{{ props.title || '导入用户' }}</DialogTitle>
+        <DialogDescription>{{ props.description || '上传 Excel 文件批量导入用户数据' }}</DialogDescription>
       </DialogHeader>
 
       <div class="space-y-4 py-4">
         <div class="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-          <div class="text-sm"><p class="font-medium">下载导入模板</p><p class="text-muted-foreground">请先下载模板，按格式填写数据</p></div>
+          <div class="text-sm"><p class="font-medium">{{ props.templateTitle || '下载导入模板' }}</p><p class="text-muted-foreground">{{ props.templateDescription || '请先下载模板，按格式填写数据' }}</p></div>
           <Button variant="outline" size="sm" @click="emit('downloadTemplate')"><Download class="mr-2 h-4 w-4" />下载模板</Button>
         </div>
 
@@ -41,7 +46,7 @@ const emit = defineEmits<{
           <p v-if="props.importFile" class="text-sm text-muted-foreground">已选择: {{ props.importFile.name }}</p>
         </div>
 
-        <div class="flex items-center space-x-2">
+        <div v-if="props.showUpdateSupport !== false" class="flex items-center space-x-2">
           <Checkbox id="updateSupport" :model-value="props.updateSupport" @update:model-value="(value) => emit('updateSupport', Boolean(value))" />
           <Label for="updateSupport" class="text-sm font-normal"> 更新已存在的用户数据 </Label>
         </div>

@@ -35,6 +35,7 @@ import {
 } from '@/api/common/export'
 import { exportPermissionForRoute, normalizePermissionFlags } from '@/utils/permission-visibility'
 import { hasAnyPermission } from '@/composables/usePermission'
+import { buildApiUrl, saveBlobFile } from '@/utils/file-download'
 
 const props = defineProps<{
   open: boolean
@@ -134,12 +135,8 @@ function stopPolling() {
 async function handleDownload(task: ExportTask) {
   try {
     const res = await downloadExportFile(task.taskId)
-    const blob = new Blob([res as any])
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = task.filePath || `export.${task.format}`
-    link.click()
-    URL.revokeObjectURL(link.href)
+    const blob = res instanceof Blob ? res : new Blob([res as any])
+    saveBlobFile(blob, task.filePath || `export.${task.format}`)
   } catch {
     toast({ title: '下载失败', variant: 'destructive' })
   }
@@ -266,7 +263,16 @@ watch(
 
             <!-- 操作按钮 -->
             <div class="flex gap-2">
-              <Button v-if="task.status === 'completed'" size="sm" :permission="effectivePermission" @click="handleDownload(task)">
+              <Button
+                v-if="task.status === 'completed'"
+                as="a"
+                :href="buildApiUrl(`/export/task/${task.taskId}/download`)"
+                target="_blank"
+                rel="noopener"
+                size="sm"
+                :permission="effectivePermission"
+                @click.prevent="handleDownload(task)"
+              >
                 <DownloadIcon class="h-4 w-4 mr-1" />
                 下载
               </Button>

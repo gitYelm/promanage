@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, Res, UseGuards, Request } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Res,
+  UseGuards,
+  Request,
+} from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import type { Response } from 'express'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
@@ -58,18 +69,7 @@ export class ExportTaskController {
     const task = await this.exportPermissionService.assertCanAccessTask(taskId, username)
     await this.exportPermissionService.assertCanExportModule(req.user.userId, task.module)
     const { filePath, filename } = await this.exportTaskService.getDownloadPath(taskId, username)
-
-    // 根据扩展名设置 Content-Type
-    const ext = filename.split('.').pop()
-    const contentTypes: Record<string, string> = {
-      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      csv: 'text/csv; charset=utf-8',
-      json: 'application/json; charset=utf-8',
-    }
-
-    res.setHeader('Content-Type', contentTypes[ext || 'xlsx'] || 'application/octet-stream')
-    res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(filename)}`)
-    res.sendFile(filePath)
+    this.sendExportFile(res, filePath, filename)
   }
 
   @Delete('task/:taskId')
@@ -92,5 +92,21 @@ export class ExportTaskController {
   async getConfig() {
     const fileExpireHours = await this.exportTaskService.getFileExpireHours()
     return { fileExpireHours }
+  }
+
+  private sendExportFile(res: Response, filePath: string, filename: string) {
+    const ext = filename.split('.').pop()
+    const contentTypes: Record<string, string> = {
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      csv: 'text/csv; charset=utf-8',
+      json: 'application/json; charset=utf-8',
+    }
+
+    res.setHeader('Content-Type', contentTypes[ext || 'xlsx'] || 'application/octet-stream')
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    )
+    res.sendFile(filePath)
   }
 }
